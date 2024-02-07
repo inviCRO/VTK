@@ -63,6 +63,38 @@ public:
       bool colorProjection = false;
   };
 
+  enum CompositeMethod {
+      RegularComposite = 0,
+      FeatureDetection = 1,
+      ColorProjection = 2
+  };
+
+  void setFeatureDetectionWeight(double weight) { m_weight = weight; }
+  void setFeatureDetectionThreshold(double threshold) { m_threshold = threshold; }
+  void setFeatureDetectionTransitionPeriod(double transPeriod) { m_transPeriod = transPeriod; }
+  void setFeatureDetectionEnabled(bool toEnable) {
+      if (toEnable) {
+          m_compositeMethod = FeatureDetection;
+      }
+      else {
+          if (m_compositeMethod == FeatureDetection) {
+              m_compositeMethod = RegularComposite;
+          }
+      }
+  }
+  void setColorDetectionWeight(double* weight) { for (int i = 0; i < 3; i++) { m_channelWeight[i] = weight[i]; } }
+  void setColorProjectionEnabled(bool toEnable) {
+      if (toEnable) {
+          m_compositeMethod = ColorProjection;
+      }
+      else {
+          if (m_compositeMethod == ColorProjection) {
+              m_compositeMethod = RegularComposite;
+          }
+      }
+  }
+  void setCompositeOpacityInverted(bool toEnable) { m_invert = toEnable; }
+
 protected:
   vtkFixedPointVolumeRayCastCompositeGOHelper();
   ~vtkFixedPointVolumeRayCastCompositeGOHelper() VTK_OVERRIDE;
@@ -70,7 +102,15 @@ protected:
 private:
   vtkFixedPointVolumeRayCastCompositeGOHelper(const vtkFixedPointVolumeRayCastCompositeGOHelper&) VTK_DELETE_FUNCTION;
   void operator=(const vtkFixedPointVolumeRayCastCompositeGOHelper&) VTK_DELETE_FUNCTION;
+
+  CompositeMethod m_compositeMethod;
+  bool m_invert;
+  double m_weight;
+  double m_threshold;
+  double m_transPeriod;
+  double m_channelWeight[3];
 };
+
 
 #endif
 

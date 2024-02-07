@@ -32,6 +32,10 @@ vtkStandardNewMacro(vtkFixedPointVolumeRayCastCompositeGOHelper);
 // Construct a new vtkFixedPointVolumeRayCastCompositeGOHelper with default values
 vtkFixedPointVolumeRayCastCompositeGOHelper::vtkFixedPointVolumeRayCastCompositeGOHelper()
 {
+    m_compositeMethod = RegularComposite;
+    m_invert = false;
+    m_weight = 0.1; m_threshold = 0.5; m_transPeriod = -2;
+    for (int i = 0; i < 3; i++) { m_channelWeight[i] = 1.0; m_channelWeight[2] = 3.0; }
 }
 
 // Destruct a vtkFixedPointVolumeRayCastCompositeGOHelper - clean up any memory used
@@ -951,6 +955,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
       if ( mapper->GetTableScale()[0] == 1.0 &&
            mapper->GetTableShift()[0] == 0.0 )
       {
+          if(m_compositeMethod == RegularComposite) {
         switch ( scalarType )
         {
           vtkTemplateMacro(
@@ -958,10 +963,22 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
               static_cast<VTK_TT *>(data),
               threadID, threadCount, mapper, vol) );
         }
+          } else {
+              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp{ m_weight, m_threshold, m_transPeriod };
+
+              switch ( scalarType )
+                {
+                vtkTemplateMacro(
+                  vtkFixedPointCompositeGOHelperGenerateImageOneSimpleTrilin(
+                    static_cast<VTK_TT *>(data),
+                    threadID, threadCount, mapper, vol, &temp));
+                }
+          }
       }
       // Scale != 1.0 or shift != 0.0 - must apply scale/shift in inner loop
       else
       {
+          if(m_compositeMethod == RegularComposite) {
         switch ( scalarType )
         {
           vtkTemplateMacro(
@@ -969,11 +986,44 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
               static_cast<VTK_TT *>(data),
               threadID, threadCount, mapper, vol) );
         }
+          } else {
+              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp{ m_weight, m_threshold, m_transPeriod };
+
+              switch ( scalarType )
+                {
+                vtkTemplateMacro(
+                  vtkFixedPointCompositeGOHelperGenerateImageOneTrilin(
+                    static_cast<VTK_TT *>(data),
+                    threadID, threadCount, mapper, vol, &temp) );
+                }
+          }
       }
     }
     // Indepedent components (more than one)
     else if ( vol->GetProperty()->GetIndependentComponents() )
     {
+        if (m_compositeMethod == ColorProjection) {
+            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp{ m_weight, m_threshold, m_transPeriod, false, m_channelWeight, true };
+
+            switch (scalarType)
+            {
+                vtkTemplateMacro(
+                    vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin(
+                        static_cast<VTK_TT *>(data),
+                        threadID, threadCount, mapper, vol, &temp));
+            }
+        } else if (m_compositeMethod == FeatureDetection) {
+            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp{ m_weight, m_threshold, m_transPeriod, !m_invert, m_channelWeight, false };
+
+            switch (scalarType)
+            {
+                vtkTemplateMacro(
+                    vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin(
+                        static_cast<VTK_TT *>(data),
+                        threadID, threadCount, mapper, vol, &temp));
+            }
+        }
+        else {
       switch ( scalarType )
       {
         vtkTemplateMacro(
@@ -982,6 +1032,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
             threadID, threadCount, mapper, vol) );
       }
     }
+      }
     // Dependent components
     else
     {
