@@ -60,6 +60,7 @@ public:
       double transPeriod = 0.0;
       bool invert = false;
       double* channelWeight = nullptr;
+      bool colorProjection = false;
   };
 
 protected:

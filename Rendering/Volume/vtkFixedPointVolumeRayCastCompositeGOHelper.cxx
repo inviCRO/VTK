@@ -777,31 +777,48 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
 
     if (VQ2)
     {
-        double gradientSum = 0.0;
-        for (int _idx = 0; _idx < components; _idx++) {
-            gradientSum += static_cast<double>(mag[_idx]) / 100.0;
-        }
-        gradientSum /= static_cast<double>(components);
-        if (gradientSum < 0.0001) continue;
+        double op = 0.0;
+        if (!VQ2->colorProjection)
+        {
+            double gradientSum = 0.0;
+            for (int _idx = 0; _idx < components; _idx++) {
+                gradientSum += static_cast<double>(mag[_idx]) / 100.0;
+            }
+            gradientSum /= static_cast<double>(components);
+            if (gradientSum < 0.0001) continue;
 
-        double scalarSum = 0.0;
-        double scalarSum2 = 0.0;
-        for (int _idx = 0; _idx < components; _idx++) {
-            scalarSum += static_cast<double>(val[_idx]) / 255.0 * VQ2->channelWeight[_idx];
-            scalarSum2 += static_cast<double>(val[_idx]) / 255.0;
-        }
-        scalarSum /= static_cast<double>(components);
-        scalarSum2 /= static_cast<double>(components);
+            double scalarSum = 0.0;
+            double scalarSum2 = 0.0;
+            for (int _idx = 0; _idx < components; _idx++) {
+                scalarSum += static_cast<double>(val[_idx]) / 255.0 * VQ2->channelWeight[_idx];
+                scalarSum2 += static_cast<double>(val[_idx]) / 255.0;
+            }
+            scalarSum /= static_cast<double>(components);
+            scalarSum2 /= static_cast<double>(components);
 
-        double pow = ((VQ2->weight * scalarSum + (1 - VQ2->weight) * gradientSum) - VQ2->threshold);
-        double op = 1.0 / (1.0 + exp(VQ2->transPeriod * pow));
+            double pow = ((VQ2->weight * scalarSum + (1 - VQ2->weight) * gradientSum) - VQ2->threshold);
+            op = 1.0 / (1.0 + exp(VQ2->transPeriod * pow));
 
-        if (VQ2->invert) {
-            op *= (1 - scalarSum2);
+            if (VQ2->invert) {
+                op *= (1 - scalarSum2);
+            }
+            else {
+                op *= scalarSum2;
+            }
         }
-        else {
-            op *= scalarSum2;
+        else
+        {
+            double distance = 0.0;
+            for (int idx = 0; idx < components; idx++) {
+                distance += pow(val[idx] - VQ2->channelWeight[idx], 2);
+            }
+            distance = sqrt(distance);
+            op = distance / (1.732 * 255) * VQ2->transPeriod;
+            if (op > 1) op = 1;
+            if (op < 0) op = 0;
+            op = 1 - op;
         }
+
         unsigned short ops = op * 32767;
         ops = ops > 0x7fff ? 0x7fff : ops;
         if (!ops)
@@ -831,6 +848,13 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
 
     VTKKWRCHelper_CompositeColorAndCheckEarlyTermination( color, tmp, remainingOpacity );
 
+  }
+
+  if (VQ2->colorProjection)
+  {
+      for (int com = 0; com < components; com++) {
+          color[com] = static_cast<unsigned int>(static_cast<double>(color[com]) * VQ2->weight);
+      }
   }
 
   VTKKWRCHelper_SetPixelColor( imagePtr, color, remainingOpacity );
