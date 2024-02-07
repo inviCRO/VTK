@@ -47,6 +47,20 @@ public:
                                int threadCount,
                                vtkVolume *vol,
                                vtkFixedPointVolumeRayCastMapper *mapper) VTK_OVERRIDE;
+  struct VQStruct1
+  {
+      double weight = 0.0;
+      double threshold = 0.0;
+      double transPeriod = 0.0;
+  };
+  struct VQStruct2
+  {
+      double weight = 0.0;
+      double threshold = 0.0;
+      double transPeriod = 0.0;
+      bool invert = false;
+      double* channelWeight = nullptr;
+  };
 
 protected:
   vtkFixedPointVolumeRayCastCompositeGOHelper();

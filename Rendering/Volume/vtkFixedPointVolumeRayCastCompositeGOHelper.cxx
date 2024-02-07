@@ -310,7 +310,8 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneSimpleTrilin( T *data,
                                                        int threadID,
                                                        int threadCount,
                                                        vtkFixedPointVolumeRayCastMapper *mapper,
-                                                       vtkVolume *vol)
+                                                       vtkVolume *vol,
+                                                       vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1* VQ1 = nullptr)
 {
   VTKKWRCHelper_InitializationAndLoopStartGOTrilin();
   VTKKWRCHelper_InitializeCompositeOneTrilin();
@@ -360,7 +361,22 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneSimpleTrilin( T *data,
     }
 
     VTKKWRCHelper_InterpolateMagnitude(mag);
-    tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff)>>VTKKW_FP_SHIFT;
+
+    if (VQ1)
+    {
+        double d_val = static_cast<double>(val) / 255.0;
+        double d_mag = static_cast<double>(mag) / 255.0;
+        double weighttmp = ((VQ1->weight * d_val) + (0x7fff - VQ1->weight) * d_mag);
+        double otmp = (weighttmp - VQ1->threshold);
+        double op = 1.0 / (1.0 + exp(VQ1->transPeriod * otmp));
+        unsigned short ops = op * 0x7fff;
+        tmp[3] = ops > 0x7fff ? 0x7fff : ops;
+    }
+    else
+    {
+        tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff) >> VTKKW_FP_SHIFT;
+    }
+
     if ( !tmp[3] )
     {
       continue;
@@ -396,7 +412,8 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneTrilin( T *data,
                                                  int threadID,
                                                  int threadCount,
                                                  vtkFixedPointVolumeRayCastMapper *mapper,
-                                                 vtkVolume *vol)
+                                                 vtkVolume *vol, 
+                                                 vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1* VQ1 = nullptr)
 {
   VTKKWRCHelper_InitializationAndLoopStartGOTrilin();
   VTKKWRCHelper_InitializeCompositeOneTrilin();
@@ -447,7 +464,22 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneTrilin( T *data,
     }
     VTKKWRCHelper_InterpolateMagnitude(mag);
 
-    tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff)>>VTKKW_FP_SHIFT;
+    if (VQ1)
+    {
+        double d_val = static_cast<double>(val) / 255.0;
+        double d_mag = static_cast<double>(mag) / 255.0;
+
+        double weighttmp = ((VQ1->weight * d_val) + (1 - VQ1->weight) * d_mag);
+        double otmp = (weighttmp - VQ1->threshold);
+        double op = 1.0 / (1.0 + exp(VQ1->transPeriod * otmp));
+        unsigned short ops = op * 0x7fff;
+        tmp[3] = ops > 0x7fff ? 0x7fff : ops;
+    }
+    else
+    {
+        tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff) >> VTKKW_FP_SHIFT;
+    }
+
     if ( !tmp[3] )
     {
       continue;
@@ -673,7 +705,8 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
                                                          int threadID,
                                                          int threadCount,
                                                          vtkFixedPointVolumeRayCastMapper *mapper,
-                                                         vtkVolume *vol)
+                                                         vtkVolume *vol,
+                                                         vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2* VQ2 = nullptr)
 {
   VTKKWRCHelper_InitializeWeights();
   VTKKWRCHelper_InitializationAndLoopStartGOTrilin();
@@ -742,9 +775,59 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
     VTKKWRCHelper_InterpolateScalarComponent( val, c, components );
     VTKKWRCHelper_InterpolateMagnitudeComponent( mag, c, components );
 
-    VTKKWRCHelper_LookupAndCombineIndependentColorsGOUS( colorTable, scalarOpacityTable,
-                                                         gradientOpacityTable, val, mag,
-                                                         weights, components, tmp );
+    if (VQ2)
+    {
+        double gradientSum = 0.0;
+        for (int _idx = 0; _idx < components; _idx++) {
+            gradientSum += static_cast<double>(mag[_idx]) / 100.0;
+        }
+        gradientSum /= static_cast<double>(components);
+        if (gradientSum < 0.0001) continue;
+
+        double scalarSum = 0.0;
+        double scalarSum2 = 0.0;
+        for (int _idx = 0; _idx < components; _idx++) {
+            scalarSum += static_cast<double>(val[_idx]) / 255.0 * VQ2->channelWeight[_idx];
+            scalarSum2 += static_cast<double>(val[_idx]) / 255.0;
+        }
+        scalarSum /= static_cast<double>(components);
+        scalarSum2 /= static_cast<double>(components);
+
+        double pow = ((VQ2->weight * scalarSum + (1 - VQ2->weight) * gradientSum) - VQ2->threshold);
+        double op = 1.0 / (1.0 + exp(VQ2->transPeriod * pow));
+
+        if (VQ2->invert) {
+            op *= (1 - scalarSum2);
+        }
+        else {
+            op *= scalarSum2;
+        }
+        unsigned short ops = op * 32767;
+        ops = ops > 0x7fff ? 0x7fff : ops;
+        if (!ops)
+        {
+            continue;
+        }
+        unsigned int _tmp[4] = { 0,0,0,0 };
+
+        {for (int _idx = 0; _idx < components; _idx++)
+        {
+            _tmp[0] += static_cast<unsigned short>(((colorTable[_idx][3 * val[_idx]]) * ops + 0x7fff) >> (VTKKW_FP_SHIFT));
+            _tmp[1] += static_cast<unsigned short>(((colorTable[_idx][3 * val[_idx] + 1]) * ops + 0x7fff) >> (VTKKW_FP_SHIFT));
+            _tmp[2] += static_cast<unsigned short>(((colorTable[_idx][3 * val[_idx] + 2]) * ops + 0x7fff) >> (VTKKW_FP_SHIFT));
+        }}
+        _tmp[3] = ops;
+        tmp[0] = (_tmp[0] > 32767) ? (32767) : (_tmp[0]);
+        tmp[1] = (_tmp[1] > 32767) ? (32767) : (_tmp[1]);
+        tmp[2] = (_tmp[2] > 32767) ? (32767) : (_tmp[2]);
+        tmp[3] = (_tmp[3] > 32767) ? (32767) : (_tmp[3]);
+    }
+    else
+    {
+        VTKKWRCHelper_LookupAndCombineIndependentColorsGOUS(colorTable, scalarOpacityTable,
+            gradientOpacityTable, val, mag,
+            weights, components, tmp);
+    }
 
     VTKKWRCHelper_CompositeColorAndCheckEarlyTermination( color, tmp, remainingOpacity );
 
