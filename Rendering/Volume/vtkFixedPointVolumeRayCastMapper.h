@@ -80,6 +80,8 @@ class vtkRenderWindow;
 class vtkColorTransferFunction;
 class vtkPiecewiseFunction;
 class vtkFixedPointVolumeRayCastMIPHelper;
+class vqFixedPointVolumeRayCastAIPHelper;
+class vqFixedPointVolumeRayCastISOHelper;
 class vtkFixedPointVolumeRayCastCompositeHelper;
 class vtkFixedPointVolumeRayCastCompositeGOHelper;
 class vtkFixedPointVolumeRayCastCompositeGOShadeHelper;
@@ -256,6 +258,8 @@ public:
 
   vtkGetObjectMacro( RenderWindow, vtkRenderWindow );
   vtkGetObjectMacro( MIPHelper, vtkFixedPointVolumeRayCastMIPHelper );
+  vtkGetObjectMacro( AIPHelper, vqFixedPointVolumeRayCastAIPHelper );
+  vtkGetObjectMacro( ISOHelper, vqFixedPointVolumeRayCastISOHelper );
   vtkGetObjectMacro( CompositeHelper, vtkFixedPointVolumeRayCastCompositeHelper );
   vtkGetObjectMacro( CompositeGOHelper, vtkFixedPointVolumeRayCastCompositeGOHelper );
   vtkGetObjectMacro( CompositeGOShadeHelper, vtkFixedPointVolumeRayCastCompositeGOShadeHelper );
@@ -359,6 +363,7 @@ public:
    */
   void ReleaseGraphicsResources(vtkWindow *) VTK_OVERRIDE;
 
+  double* getWorldCameraPosition() { return m_camPos; }                    //vq 7417 (CPU isosurface rendering)
 protected:
   vtkFixedPointVolumeRayCastMapper();
   ~vtkFixedPointVolumeRayCastMapper() VTK_OVERRIDE;
@@ -511,6 +516,8 @@ protected:
   float         GetZBufferValue( int x, int y );
 
   vtkFixedPointVolumeRayCastMIPHelper              *MIPHelper;
+  vqFixedPointVolumeRayCastAIPHelper               *AIPHelper;
+  vqFixedPointVolumeRayCastISOHelper               *ISOHelper;
   vtkFixedPointVolumeRayCastCompositeHelper        *CompositeHelper;
   vtkFixedPointVolumeRayCastCompositeGOHelper      *CompositeGOHelper;
   vtkFixedPointVolumeRayCastCompositeShadeHelper   *CompositeShadeHelper;
@@ -544,6 +551,9 @@ protected:
   float FinalColorLevel;
 
   int FlipMIPComparison;
+
+  //Just a helper to be able to use later on in GenerateImage where we don't have the renderer
+  double m_camPos[4];//vq 7417 (CPU isosurface rendering)
 
   void ApplyFinalColorWindowLevel();
 

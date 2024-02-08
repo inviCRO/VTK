@@ -630,6 +630,8 @@ vtkFixedPointVolumeRayCastMapper::vtkFixedPointVolumeRayCastMapper()
   this->RenderWindow           = NULL;
 
   this->MIPHelper              = vtkFixedPointVolumeRayCastMIPHelper::New();
+  this->AIPHelper              = vqFixedPointVolumeRayCastAIPHelper::New();
+  this->ISOHelper              = vqFixedPointVolumeRayCastISOHelper::New();
   this->CompositeHelper        = vtkFixedPointVolumeRayCastCompositeHelper::New();
   this->CompositeGOHelper      = vtkFixedPointVolumeRayCastCompositeGOHelper::New();
   this->CompositeShadeHelper   = vtkFixedPointVolumeRayCastCompositeShadeHelper::New();
@@ -724,6 +726,9 @@ vtkFixedPointVolumeRayCastMapper::vtkFixedPointVolumeRayCastMapper()
   // of the last run is passed back to the SpaceLeapFilter and its reused
   // since we may not be updating every flag in this structure.
   this->MinMaxVolumeCache = vtkImageData::New();
+
+  m_camPos[0] = m_camPos[1] = m_camPos[2] = 0;//vq 7417 (CPU isosurface rendering)
+  m_camPos[3] = 1;//vq 7417 (CPU isosurface rendering)
 }
 
 //----------------------------------------------------------------------------
@@ -1155,6 +1160,15 @@ int vtkFixedPointVolumeRayCastMapper::PerImageInitialization( vtkRenderer *ren,
     {
       return 0;
     }
+  }
+
+  ren->GetActiveCamera()->GetPosition(m_camPos);                    //vq 7417 (CPU isosurface rendering)
+
+  if (m_camPos[3])                                                  //vq 7417 (CPU isosurface rendering)
+  {
+      m_camPos[0] /= m_camPos[3];                                     //vq 7417 (CPU isosurface rendering)
+      m_camPos[1] /= m_camPos[3];                                     //vq 7417 (CPU isosurface rendering)
+      m_camPos[2] /= m_camPos[3];                                     //vq 7417 (CPU isosurface rendering)
   }
 
   return 1;
