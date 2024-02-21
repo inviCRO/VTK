@@ -63,7 +63,7 @@
 
 #include "vtkRenderingVolumeModule.h" // For export macro
 #include "vtkVolumeMapper.h"
-
+#include <vector>
 #define VTKKW_FP_SHIFT       15
 #define VTKKW_FPMM_SHIFT     17
 #define VTKKW_FP_MASK        0x7fff
@@ -90,7 +90,7 @@ class vtkVolumeRayCastSpaceLeapingImageFilter;
 class vtkDirectionEncoder;
 class vtkEncodedGradientShader;
 class vtkFiniteDifferenceGradientEstimator;
-class vtkRayCastImageDisplayHelper;
+#include "vtkRayCastImageDisplayHelper.h"
 class vtkFixedPointRayCastImage;
 class vtkDataArray;
 
@@ -101,6 +101,35 @@ VTK_THREAD_RETURN_TYPE vtkFPVRCMSwitchOnDataType( void *arg );
 class VTKRENDERINGVOLUME_EXPORT vtkFixedPointVolumeRayCastMapper : public vtkVolumeMapper
 {
 public:
+
+    //VQ ADDED
+    void vqSetBlendFactor(float alpha);
+    bool vqUseIsoSurface() { return m_vqIsosurfaceExtraction; }
+    void vqSetIsoSurfaceExtraction(bool toEnable) { m_vqIsosurfaceExtraction = toEnable; }
+    void vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend);
+    void vqSetFeatureDetectionWeight(double weight);
+    void vqSetFeatureDetectionThreshold(double threshold);
+    void vqSetCompositeFeatureDetectionEnable(bool toEnable);
+    void vqSetCompositeColorDetectionWeight(double* weight);
+    void vqSetFeatureDetectionTransPeriod(double transPeriod);
+    void vqSetColorProjectionModeEnabled(bool toEnable);
+    void vqSetCompositeOpacityInverted(bool toEnable);
+    void vqLowResAutoRender(bool toEnable) { m_vqLowResAutoRendering = toEnable; }//vq 5114 decrease sample rate when change palette
+    void vqSetNumberOfData(int num);                                          //vq 5114 decrease sample rate when change palette
+    void vqSetVolumeIndex(int idx) { m_vqVolIdx = idx; }
+
+    static const int VQMaxRGB;
+    static inline int VQAlphaBlending(const int bg, const int fg, const int opacity) {
+        const float a = static_cast<float>(bg) * (VQMaxRGB - opacity);
+        const float b = static_cast<float>(fg) * opacity;
+        const int val = static_cast<int>((a + b) / VQMaxRGB + 0.5f);
+        return val;
+    }
+    static inline int VQDissolveAndLighten(const int bg, const int fg, const int opacity) {
+        const int val = VQAlphaBlending(bg, fg, opacity);
+        return bg <= val ? val : bg;
+    }
+
   static vtkFixedPointVolumeRayCastMapper *New();
   vtkTypeMacro(vtkFixedPointVolumeRayCastMapper,vtkVolumeMapper);
   void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
@@ -363,10 +392,27 @@ public:
    */
   void ReleaseGraphicsResources(vtkWindow *) VTK_OVERRIDE;
 
-  double* getWorldCameraPosition() { return m_camPos; }                    //vq 7417 (CPU isosurface rendering)
+  double* vqGetWorldCameraPosition() { return m_vqCamPos; }                    //vq 7417 (CPU isosurface rendering)
 protected:
   vtkFixedPointVolumeRayCastMapper();
   ~vtkFixedPointVolumeRayCastMapper() VTK_OVERRIDE;
+
+
+  //VQ ADDED
+  void vqUpdateAlpha();
+  bool vqFuseImages(vtkFixedPointRayCastImage* image1, vtkFixedPointRayCastImage* image2);//vq 5475 (classic mip blending algo)
+
+  bool m_vqLightOnly;
+  float m_vqAlpha;
+  bool m_vqThreadWarning;
+  bool m_vqLowResAutoRendering;//vq 5114
+  bool m_vqIsosurfaceExtraction;
+  int m_vqVolIdx;//vq 5475 (classic mip blending algo)
+  static int m_vqNumData;
+  static std::vector<vtkFixedPointRayCastImage*> m_vqSavedImage;//vq 5475 (classic mip blending algo)
+  static std::vector<vtkVolume*> m_vqSavedVolume;//vq 5475 (classic mip blending algo)
+  //Just a helper to be able to use later on in GenerateImage where we don't have the renderer
+  double m_vqCamPos[4];//vq 7417 (CPU isosurface rendering)
 
   // The helper class that displays the image
   vtkRayCastImageDisplayHelper *ImageDisplayHelper;
@@ -551,9 +597,7 @@ protected:
   float FinalColorLevel;
 
   int FlipMIPComparison;
-
-  //Just a helper to be able to use later on in GenerateImage where we don't have the renderer
-  double m_camPos[4];//vq 7417 (CPU isosurface rendering)
+  
 
   void ApplyFinalColorWindowLevel();
 

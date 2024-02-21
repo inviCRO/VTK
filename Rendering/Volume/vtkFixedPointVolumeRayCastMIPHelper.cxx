@@ -1457,7 +1457,7 @@ vqFixedPointVolumeRayCastISOHelper  ::~vqFixedPointVolumeRayCastISOHelper()
 
 #define VTKKWRCHelper_InitLight()\
     light.type = 1; \
-    light.surfaceP = vec3(static_cast<float>(wCamPos[0]), static_cast<float>(wCamPos[1]), static_cast<float>(wCamPos[2])); \
+    light.surfaceP = vec3(static_cast<float>(vqCamPos[0]), static_cast<float>(vqCamPos[1]), static_cast<float>(vqCamPos[2])); \
     light.surfaceN = vec3(event.inRayDir);
 
 #define VTKKWRCHelper_uniformSampleOneLight(Event) \
@@ -1562,7 +1562,7 @@ void vqFixedPointISOHelperGenerateImageOneTrilin(
     double diffuseCoef = property->GetDiffuse();
     double specularCoef = property->GetSpecular();
     double glossinessCoef = property->GetSpecularPower();
-    double* wCamPos = mapper->getWorldCameraPosition();
+    double* vqCamPos = mapper->vqGetWorldCameraPosition();
     VTKKWRCHelper_InitializationAndLoopStartTrilin();
     VTKKWRCHelper_InitializeMIPOneTrilin();
     VTKKWRCHelper_SpaceLeapSetup();
@@ -1727,8 +1727,7 @@ void vqFixedPointISOHelperGenerateImageIndependentTrilin(
     vtkFixedPointVolumeRayCastMapper* mapper,
     vtkVolume* vol)
 {
-    //VQFixedPointVolumeRayCastMapper* vqMapper = dynamic_cast<VQFixedPointVolumeRayCastMapper*>(mapper);
-    double* wCamPos = mapper->getWorldCameraPosition();
+    double* vqCamPos = mapper->vqGetWorldCameraPosition();
     vtkVolumeProperty* property = vol->GetProperty();
     double ambientCoef = property->GetAmbient();
     double diffuseCoef = property->GetDiffuse();
