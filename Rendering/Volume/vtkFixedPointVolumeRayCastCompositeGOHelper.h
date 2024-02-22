@@ -52,6 +52,8 @@ public:
       double weight = 0.0;
       double threshold = 0.0;
       double transPeriod = 0.0;
+
+      VQStruct1(double w, double t, double tp) : weight(w), threshold(t), transPeriod(tp) {}
   };
   struct VQStruct2
   {
@@ -61,6 +63,9 @@ public:
       bool invert = false;
       double* channelWeight = nullptr;
       bool colorProjection = false;
+
+      VQStruct2(double w, double t, double tp, bool inv, double* cw, bool cp)
+          : weight(w), threshold(t), transPeriod(tp), invert(inv), channelWeight(cw), colorProjection(cp) {}
   };
 
   enum CompositeMethod {
