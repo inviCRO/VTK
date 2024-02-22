@@ -964,7 +964,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
               threadID, threadCount, mapper, vol) );
         }
           } else {
-              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp{ m_weight, m_threshold, m_transPeriod };
+              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp( m_weight, m_threshold, m_transPeriod );
 
               switch ( scalarType )
                 {
@@ -987,7 +987,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
               threadID, threadCount, mapper, vol) );
         }
           } else {
-              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp{ m_weight, m_threshold, m_transPeriod };
+              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp( m_weight, m_threshold, m_transPeriod );
 
               switch ( scalarType )
                 {
@@ -1003,7 +1003,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
     else if ( vol->GetProperty()->GetIndependentComponents() )
     {
         if (m_compositeMethod == ColorProjection) {
-            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp{ m_weight, m_threshold, m_transPeriod, false, m_channelWeight, true };
+            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp(m_weight, m_threshold, m_transPeriod, false, m_channelWeight, true );
 
             switch (scalarType)
             {
@@ -1013,7 +1013,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
                         threadID, threadCount, mapper, vol, &temp));
             }
         } else if (m_compositeMethod == FeatureDetection) {
-            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp{ m_weight, m_threshold, m_transPeriod, !m_invert, m_channelWeight, false };
+            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp( m_weight, m_threshold, m_transPeriod, !m_invert, m_channelWeight, false );
 
             switch (scalarType)
             {
