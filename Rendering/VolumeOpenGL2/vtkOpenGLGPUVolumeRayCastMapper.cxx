@@ -91,6 +91,9 @@
 #include <sstream>
 #include <string>
 
+vtkStandardNewMacro(vtkOpenGLVolumeOpacityTable);
+vtkStandardNewMacro(vtkOpenGLVolumeRGBTable);
+vtkStandardNewMacro(vtkOpenGLVolumeGradientOpacityTable);
 vtkStandardNewMacro(vtkOpenGLGPUVolumeRayCastMapper);
 
 //----------------------------------------------------------------------------
@@ -2546,7 +2549,7 @@ vtkOpenGLGPUVolumeRayCastMapper::vtkOpenGLGPUVolumeRayCastMapper() :
     &vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources);
 
   this->VolumeTexture = vtkVolumeTexture::New();
-  this->VolumeTexture->SetMapper(this);
+  this->VolumeTexture->SetMapper(&this->CellFlag);
 }
 
 //----------------------------------------------------------------------------

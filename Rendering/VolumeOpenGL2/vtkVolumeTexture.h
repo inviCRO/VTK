@@ -108,7 +108,7 @@ public:
   /**
    * Set the parent volume mapper and initialize internals.
    */
-  void SetMapper(vtkOpenGLGPUVolumeRayCastMapper* mapper);
+  void SetMapper(int* cellflagin);// vtkOpenGLGPUVolumeRayCastMapper* mapper);
 
   /**
    *  Set a number of blocks per axis.
@@ -226,7 +226,8 @@ private:
   Size3 Partitions;
 
   vtkDataArray* Scalars;
-  vtkOpenGLGPUVolumeRayCastMapper* Mapper;
+  //vtkOpenGLGPUVolumeRayCastMapper* Mapper;
+  int* cellflag;
 };
 
 #endif //vtkVolumeTexture_h

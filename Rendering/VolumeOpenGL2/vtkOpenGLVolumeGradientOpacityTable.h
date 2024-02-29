@@ -211,7 +211,7 @@ private:
     const vtkOpenGLVolumeGradientOpacityTable&) VTK_DELETE_FUNCTION;
 };
 
-vtkStandardNewMacro(vtkOpenGLVolumeGradientOpacityTable);
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
