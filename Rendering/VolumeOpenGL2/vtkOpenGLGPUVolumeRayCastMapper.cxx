@@ -3225,72 +3225,65 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShaderLegacy(vtkRenderer* ren,
 void vtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(
   double allocatedTime)
 {
-  if ( !this->AutoAdjustSampleDistances )
-  {
-    this->ReductionFactor = 1.0 / this->ImageSampleDistance;
-    return;
-  }
-
-  if ( this->TimeToDraw )
-  {
-    double oldFactor = this->ReductionFactor;
-
-    double timeToDraw;
-    if (allocatedTime < 1.0)
+    if (!this->AutoAdjustSampleDistances)
     {
-      timeToDraw = this->SmallTimeToDraw;
-      if ( timeToDraw == 0.0 )
-      {
-        timeToDraw = this->BigTimeToDraw/3.0;
-      }
-    }
-    else
-    {
-      timeToDraw = this->BigTimeToDraw;
+        this->ReductionFactor = 1.0 / this->ImageSampleDistance;
+        return;
     }
 
-    // This should be the case when rendering the volume very first time
-    // 10.0 is an arbitrary value chosen which happen to a large number
-    // in this context
-    if ( timeToDraw == 0.0 )
+    if (this->TimeToDraw)
     {
-      timeToDraw = 10.0;
-    }
+        double oldFactor = this->ReductionFactor;
 
-    double fullTime = timeToDraw / this->ReductionFactor;
-    double newFactor = allocatedTime / fullTime;
+        double timeToDraw;
+        if (allocatedTime < 1.0)
+        {
+            timeToDraw = this->SmallTimeToDraw;
+            if (timeToDraw == 0.0)
+            {
+                timeToDraw = this->BigTimeToDraw / 3.0;
+            }
+        }
+        else
+        {
+            timeToDraw = this->BigTimeToDraw;
+        }
 
-    // Compute average factor
-    this->ReductionFactor = (newFactor + oldFactor)/2.0;
+        // This should be the case when rendering the volume very first time
+        // 10.0 is an arbitrary value chosen which happen to a large number
+        // in this context
+        if (timeToDraw == 0.0)
+        {
+            timeToDraw = 10.0;
+        }
 
-    // Discretize reduction factor so that it doesn't cause
-    // visual artifacts when used to reduce the sample distance
-    this->ReductionFactor = (this->ReductionFactor > 1.0) ? 1.0 :
-                              (this->ReductionFactor);
+        double fullTime = timeToDraw / this->ReductionFactor;
+        double newFactor = allocatedTime / fullTime;
 
-    if (this->ReductionFactor < 0.20)
-    {
-      this->ReductionFactor = 0.10;
-    }
-    else if (this->ReductionFactor < 0.50)
-    {
-      this->ReductionFactor = 0.20;
-    }
-    else if (this->ReductionFactor < 1.0)
-    {
-      this->ReductionFactor = 0.50;
-    }
+        // Compute average factor
+        this->ReductionFactor = (newFactor + oldFactor) / 2.0;
 
-    // Clamp it
-    if ( 1.0/this->ReductionFactor > this->MaximumImageSampleDistance )
-    {
-      this->ReductionFactor = 1.0 / this->MaximumImageSampleDistance;
+        // Discretize reduction factor so that it doesn't cause
+        // visual artifacts when used to reduce the sample distance
+        this->ReductionFactor = (this->ReductionFactor > 1.0) ? 1.0 :
+            (this->ReductionFactor);
+        this->ReductionFactor = (this->ReductionFactor < 1.0) ? (0.5) :
+            (this->ReductionFactor);
+        this->ReductionFactor = (this->ReductionFactor < 0.5) ? (0.25) :
+            (this->ReductionFactor);
+        this->ReductionFactor = (this->ReductionFactor < 0.25) ? (0.1) :
+            (this->ReductionFactor);
+
+        // Clamp it
+        if (1.0 / this->ReductionFactor > this->MaximumImageSampleDistance)
+        {
+            this->ReductionFactor = 1.0 / this->MaximumImageSampleDistance;
+        }
+        if (1.0 / this->ReductionFactor < this->MinimumImageSampleDistance)
+        {
+            this->ReductionFactor = 1.0 / this->MinimumImageSampleDistance;
+        }
     }
-    if ( 1.0/this->ReductionFactor < this->MinimumImageSampleDistance )
-    {
-      this->ReductionFactor = 1.0 / this->MinimumImageSampleDistance;
-    }
-  }
 }
 
 //----------------------------------------------------------------------------
