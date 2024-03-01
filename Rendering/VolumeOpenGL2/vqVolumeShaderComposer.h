@@ -83,13 +83,6 @@ namespace vqvtkvolume
       vtkVolumeMapper* vtkNotUsed(mapper),
       vtkVolume* vtkNotUsed(vol))
   {
-    return std::string("\n  // Assuming point data only. Also, we offset the texture coordinate\
-       \n  // to account for OpenGL treating voxel at the center of the cell.\
-       \n  vec3 uvx = (in_vertexPos - in_volumeExtentsMin) /\
-       \n             (in_volumeExtentsMax - in_volumeExtentsMin);\
-       \n  vec3 delta = in_textureExtentsMax - in_textureExtentsMin;\
-       \n  ip_textureCoords = (uvx * (delta - vec3(1.0)) + vec3(0.5)) / delta;");
-
     //original reference
     return std::string(
         "\n  // For point dataset, we offset the texture coordinate\
@@ -116,24 +109,23 @@ namespace vqvtkvolume
                                     vtkVolume* vtkNotUsed(vol))
   {
     return std::string("\
-\n//NOT IN VQ uniform bool in_cellFlag;\
-\n//NOT IN VQ uniform vec3 in_cellSpacing;\
+      \n  uniform bool in_cellFlag;\
+      \n  uniform vec3 in_cellSpacing;\
       \n  uniform mat4 in_modelViewMatrix;\
       \n  uniform mat4 in_projectionMatrix;\
-\n//NOT IN VQ uniform mat4 in_volumeMatrix;\
+      \n  uniform mat4 in_volumeMatrix;\
       \n\
       \n  uniform vec3 in_volumeExtentsMin;\
       \n  uniform vec3 in_volumeExtentsMax;\
       \n\
-\n//NOT IN VQ uniform mat4 in_inverseTextureDatasetMatrix;\
-\n//NOT IN VQ uniform mat4 in_cellToPoint;\
+      \n  uniform mat4 in_inverseTextureDatasetMatrix;\
+      \n  uniform mat4 in_cellToPoint;\
       \n  uniform vec3 in_textureExtentsMax;\
       \n  uniform vec3 in_textureExtentsMin;\
       \n\
       \n  //This variable could be 'invariant varying' but it is declared\
       \n  //as 'varying' to avoid compiler compatibility issues.\
-\n//NOT IN VQ varying mat4 ip_inverseTextureDataAdjusted;\
-\n\
+      \n  varying mat4 ip_inverseTextureDataAdjusted;\
 \n\
 \n//VQ ADDED\
 \n//this variables are introduced to support vtkvolume usermaxtrix\
@@ -172,7 +164,7 @@ namespace vqvtkvolume
       \nuniform vec3 in_cameraPos;\
       \n\
       \n// view and model matrices\
-\n//NOT IN VQ uniform mat4 in_volumeMatrix;\
+      \nuniform mat4 in_volumeMatrix;\
       \nuniform mat4 in_inverseVolumeMatrix;\
       \nuniform mat4 in_projectionMatrix;\
       \nuniform mat4 in_inverseProjectionMatrix;\
@@ -180,14 +172,14 @@ namespace vqvtkvolume
       \nuniform mat4 in_inverseModelViewMatrix;\
       \nuniform mat4 in_textureDatasetMatrix;\
       \nuniform mat4 in_inverseTextureDatasetMatrix;\
-\n//NOT IN VQ varying mat4 ip_inverseTextureDataAdjusted;\
-\n//NOT IN VQ uniform vec3 in_texMin;\
-\n//NOT IN VQ uniform vec3 in_texMax;\
-\n//NOT IN VQ uniform mat4 in_textureToEye;\
+      \nvarying mat4 ip_inverseTextureDataAdjusted;\
+      \nuniform vec3 in_texMin;\
+      \nuniform vec3 in_texMax;\
+      \nuniform mat4 in_textureToEye;\
       \n\
       \n// Ray step size\
       \nuniform vec3 in_cellStep;\
-\nuniform vec2 in_scalarsRange[4];\
+      \nuniform vec2 in_scalarsRange[4];\
       \nuniform vec3 in_cellSpacing;\
       \n\
       \n// Sample distance\
@@ -202,19 +194,19 @@ namespace vqvtkvolume
       \nuniform vec3 in_textureExtentsMin;\
       \n\
       \n// Material and lighting\
-\nuniform vec3 in_diffuse[4];\
-\nuniform vec3 in_ambient[4];\
-\nuniform vec3 in_specular[4];\
-\nuniform float in_shininess[4];\
+      \nuniform vec3 in_diffuse[4];\
+      \nuniform vec3 in_ambient[4];\
+      \nuniform vec3 in_specular[4];\
+      \nuniform float in_shininess[4];\
       \n\
       \n// Others\
-\n//NOT IN VQ uniform bool in_cellFlag;\
-\n//NOT IN VQ uniform bool in_useJittering;\
-\n//NOT IN VQ vec3 g_rayJitter = vec3(0.0);\
-\n//NOT IN VQ uniform bool in_clampDepthToBackface;\
-\n//NOT IN VQ \
-\n//NOT IN VQ uniform vec2 in_averageIPRange;\
-\n\
+      \n// Others\
+      \nuniform bool in_cellFlag;\
+      \nuniform bool in_useJittering;\
+      \nvec3 g_rayJitter = vec3(0.0);\
+      \nuniform bool in_clampDepthToBackface;\
+      \n\
+      \nuniform vec2 in_averageIPRange;\
 \n\
 \n//VQ ADDED\
 \n\
@@ -226,19 +218,6 @@ uniform mat4 in_flipMatrix;\n\
 uniform mat4 in_textureOriginMatrix;\n\
 mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       );
-
-    //This is hardcoded in VQ
-    shaderStr += std::string("\
-        \nuniform vec3 in_lightAmbientColor[1];\
-        \nuniform vec3 in_lightDiffuseColor[1];\
-        \nuniform vec3 in_lightSpecularColor[1];\
-        \nvec4 g_lightPosObj;\
-        \nvec3 g_ldir;\
-        \nvec3 g_vdir;\
-        \nvec3 g_h;\
-        \nvec3 g_aspect; ");
-
-    return shaderStr;
 
     if (lightingComplexity > 0 || hasGradientOpacity)
     {
@@ -322,52 +301,52 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                        int lightingComplexity)
   {
 
-      std::string vqshaderStr = std::string("\
-      \n  // Get the 3D texture coordinates for lookup into the in_volume dataset\
-\n vec4 texremapped = vec4(ip_textureCoords, 1.0);\
-\n texremapped = invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * texremapped;\
-\n  g_dataPos = texremapped.xyz;\
-      \n\
-      \n  // Eye position in object space\
-\n  g_eyePosObj = ( in_InverseOriginMatrix * in_volumeInvUserMatrix * in_originMatrix * vec4(in_cameraPos, 1.0));\
-      \n  if (g_eyePosObj.w != 0.0)\
-      \n    {\
-      \n    g_eyePosObj.x /= g_eyePosObj.w;\
-      \n    g_eyePosObj.y /= g_eyePosObj.w;\
-      \n    g_eyePosObj.z /= g_eyePosObj.w;\
-      \n    g_eyePosObj.w = 1.0;\
-      \n    }\
-      \n\
-      \n  // Getting the ray marching direction (in object space);\
-      \n  vec3 rayDir = computeRayDirection();\
-      \n\
-      \n  // Multiply the raymarching direction with the step size to get the\
-      \n  // sub-step size we need to take at each raymarching step\
-\n  g_dirStep = (in_inverseTextureDatasetMatrix * invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * vec4(rayDir, 0.0)).xyz * in_sampleDistance;\
-      \n\
-      \n  g_dataPos += g_dirStep * (texture2D(in_noiseSampler, g_dataPos.xy).x);\
-      \n\
-      \n  // Flag to deternmine if voxel should be considered for the rendering\
-      \n  bool l_skip = false;");
-
-      //VQ added in 56e01a8cff56194928d4577fcce93e455c61b50d connect emission specular diffuse weight to shader
-      vqshaderStr += std::string("\
-          \n  // Light position in dataset space\
-          \n  g_lightPosObj = (in_inverseVolumeMatrix *\
-          \n                      vec4(in_cameraPos, 1.0));\
-          \n  if (g_lightPosObj.w != 0.0)\
-          \n    {\
-          \n    g_lightPosObj.x /= g_lightPosObj.w;\
-          \n    g_lightPosObj.y /= g_lightPosObj.w;\
-          \n    g_lightPosObj.z /= g_lightPosObj.w;\
-          \n    g_lightPosObj.w = 1.0;\
-          \n    }\
-          \n  g_ldir = normalize(g_lightPosObj.xyz - ip_vertexPos);\
-          \n  g_vdir = normalize(g_eyePosObj.xyz - ip_vertexPos);\
-          \n  g_h = normalize(g_ldir + g_vdir);"
-      );
-
-      return vqshaderStr;
+//      std::string vqshaderStr = std::string("\
+//      \n  // Get the 3D texture coordinates for lookup into the in_volume dataset\
+//\n vec4 texremapped = vec4(ip_textureCoords, 1.0);\
+//\n texremapped = invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * texremapped;\
+//\n  g_dataPos = texremapped.xyz;\
+//      \n\
+//      \n  // Eye position in object space\
+//\n  g_eyePosObj = ( in_InverseOriginMatrix * in_volumeInvUserMatrix * in_originMatrix * vec4(in_cameraPos, 1.0));\
+//      \n  if (g_eyePosObj.w != 0.0)\
+//      \n    {\
+//      \n    g_eyePosObj.x /= g_eyePosObj.w;\
+//      \n    g_eyePosObj.y /= g_eyePosObj.w;\
+//      \n    g_eyePosObj.z /= g_eyePosObj.w;\
+//      \n    g_eyePosObj.w = 1.0;\
+//      \n    }\
+//      \n\
+//      \n  // Getting the ray marching direction (in object space);\
+//      \n  vec3 rayDir = computeRayDirection();\
+//      \n\
+//      \n  // Multiply the raymarching direction with the step size to get the\
+//      \n  // sub-step size we need to take at each raymarching step\
+//\n  g_dirStep = (in_inverseTextureDatasetMatrix * invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * vec4(rayDir, 0.0)).xyz * in_sampleDistance;\
+//      \n\
+//      \n  g_dataPos += g_dirStep * (texture2D(in_noiseSampler, g_dataPos.xy).x);\
+//      \n\
+//      \n  // Flag to deternmine if voxel should be considered for the rendering\
+//      \n  bool l_skip = false;");
+//
+//      //VQ added in 56e01a8cff56194928d4577fcce93e455c61b50d connect emission specular diffuse weight to shader
+//      vqshaderStr += std::string("\
+//          \n  // Light position in dataset space\
+//          \n  g_lightPosObj = (in_inverseVolumeMatrix *\
+//          \n                      vec4(in_cameraPos, 1.0));\
+//          \n  if (g_lightPosObj.w != 0.0)\
+//          \n    {\
+//          \n    g_lightPosObj.x /= g_lightPosObj.w;\
+//          \n    g_lightPosObj.y /= g_lightPosObj.w;\
+//          \n    g_lightPosObj.z /= g_lightPosObj.w;\
+//          \n    g_lightPosObj.w = 1.0;\
+//          \n    }\
+//          \n  g_ldir = normalize(g_lightPosObj.xyz - ip_vertexPos);\
+//          \n  g_vdir = normalize(g_eyePosObj.xyz - ip_vertexPos);\
+//          \n  g_h = normalize(g_ldir + g_vdir);"
+//      );
+//
+//      return vqshaderStr;
 
     vtkOpenGLGPUVolumeRayCastMapper* glMapper
       = vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
@@ -404,14 +383,18 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
     {
       shaderStr += std::string("\
         \n  // Get the 3D texture coordinates for lookup into the in_volume dataset\
-        \n  g_dataPos = ip_textureCoords.xyz;"
+        \n  //g_dataPos = ip_textureCoords.xyz;\
+\n vec4 texremapped = vec4(ip_textureCoords, 1.0); \
+\n texremapped = invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * texremapped; \
+\n  g_dataPos = texremapped.xyz; "
       );
     }
 
       shaderStr += std::string("\
         \n\
         \n  // Eye position in dataset space\
-        \n  g_eyePosObj = (in_inverseVolumeMatrix * vec4(in_cameraPos, 1.0));\
+        \n  //g_eyePosObj = (in_inverseVolumeMatrix * vec4(in_cameraPos, 1.0));\
+\n  g_eyePosObj = ( in_InverseOriginMatrix * in_volumeInvUserMatrix * in_originMatrix * vec4(in_cameraPos, 1.0));\
         \n  if (g_eyePosObj.w != 0.0)\
         \n    {\
         \n    g_eyePosObj.x /= g_eyePosObj.w;\
@@ -425,8 +408,9 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \n\
         \n  // Multiply the raymarching direction with the step size to get the\
         \n  // sub-step size we need to take at each raymarching step\
-        \n  g_dirStep = (ip_inverseTextureDataAdjusted *\
-        \n              vec4(rayDir, 0.0)).xyz * in_sampleDistance;\
+        \n  //g_dirStep = (ip_inverseTextureDataAdjusted *\
+        \n  //            vec4(rayDir, 0.0)).xyz * in_sampleDistance;\
+\n  g_dirStep = (in_inverseTextureDatasetMatrix * invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * vec4(rayDir, 0.0)).xyz * in_sampleDistance;\
         \n\
         \n  // 2D Texture fragment coordinates [0,1] from fragment coordinates.\
         \n  // The frame buffer texture has the size of the plain buffer but \
@@ -450,7 +434,8 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \n  }\
         \n\
         \n  // Flag to deternmine if voxel should be considered for the rendering\
-        \n  g_skip = false;");
+        \n  //g_skip = false;\
+\n bool l_skip = false; ");
 
     if (vol->GetProperty()->GetShade() && lightingComplexity == 1)
     {
@@ -1149,53 +1134,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                         ::VQCompositeMethod compositeMode = ::VQCompositeMethod::RegularComposite
   )
   {
-      
-      //JKP - this is obviously in question why this is hardcoded to 0.0 for all cases.
-      std::string shaderStr;
-      //= std::string("\
-      //  \n  // We get data between 0.0 - 1.0 range\
-      //  \n  l_firstValue = true;\
-      //  \n  l_sampledValue = vec4(0.0);"
-      //);
-
-      if (mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
-      {
-          shaderStr += std::string("\
-\n  l_firstValue = true;\
-\n  l_sampledValue = vec4(0.0);\
-\n  float remainOpacity = 1.0;\
-                ");
-
-          if(noOfComponents > 1)
-          {
-              //JKP strange this is not consitent to the 3 channel version
-              shaderStr += std::string("\
-\n  l_sampledValue.w = 0.5;\
-                ");
-          }
-
-        if (compositeMode == VQCompositeMethod::FeatureDetection)//AutoRGBCompositeProjection
-        {
-              if (noOfComponents > 1)
-              {
-                  
-                  shaderStr += std::string("\
-\n  vec4 alphaOp = vec4(1.0);\
-                ");
-              }
-          }
-        return shaderStr;
-      }
-     /* else if (mapper->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
-      {
-            shaderStr += std::string("\
-\n  int numofSample = 0;\
-            ");
-      }
-
-      return shaderStr*/;
-
-
     if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
     {
       return std::string("\
@@ -1224,10 +1162,39 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
     }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::ADDITIVE_BLEND)
     {
-      return std::string("\
+        return std::string("\
         \n  //We get data between 0.0 - 1.0 range\
         \n  l_sumValue = vec4(0.0);"
-      );
+        );
+    }
+    else if (mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
+    {
+        std::string shaderStr;
+
+        shaderStr += std::string("\
+        \n  l_firstValue = true;\
+        \n  l_sampledValue = vec4(0.0);\
+        \n  float remainOpacity = 1.0;\
+        ");
+
+        if (noOfComponents > 1)
+        {
+            //JKP strange this is not consitent to the 3 channel version
+            shaderStr += std::string("\
+            \n  l_sampledValue.w = 0.5;\
+            ");
+        }
+
+        if (compositeMode == VQCompositeMethod::FeatureDetection)//AutoRGBCompositeProjection
+        {
+            if (noOfComponents > 1)
+            {
+                shaderStr += std::string("\
+                \n  vec4 alphaOp = vec4(1.0);\
+                ");
+            }
+        }
+        return shaderStr;
     }
     else
     {
@@ -1915,9 +1882,9 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       \n  // Device coordinates are between -1 and 1. We need texture \
       \n  // coordinates between 0 and 1 the in_depthSampler buffer has the \
       \n  // original size buffer. \
-      \n  vec2 fragTexCoord = (gl_FragCoord.xy - in_windowLowerLeftCorner) *\
+      \n  vec2 fragTexCoord2 = (gl_FragCoord.xy - in_windowLowerLeftCorner) *\
       \n                      in_inverseWindowSize;\
-      \n  vec4 l_depthValue = texture2D(in_depthSampler, fragTexCoord);\
+      \n  vec4 l_depthValue = texture2D(in_depthSampler, fragTexCoord2);\
       \n  float l_terminatePointMax = 0.0;\
       \n\
       \n  // Depth test\

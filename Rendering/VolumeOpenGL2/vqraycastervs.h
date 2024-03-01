@@ -1,7 +1,7 @@
 #ifndef VQRAYCASTERVS_H
 #define VQRAYCASTERVS_H
 
-const char* raycastervs = " //VTK::System::Dec\n"
+const char* raycastervsEx = " //VTK::System::Dec\n"
 "\n"
 "/*=========================================================================\n"
 "the code below is parsed and modified from VTK raycastervs.cxx"

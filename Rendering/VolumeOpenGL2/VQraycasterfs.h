@@ -539,7 +539,7 @@ std::string AutoCompositeProjection() {
                        "\n      l_currentT+= 1.0;");
 }
 
-const char* RGBraycasterfs = "//VTK::System::Dec\n"
+const char* RGBraycasterfsEx = "//VTK::System::Dec\n"
 "\n"
 "varying vec3 ip_textureCoords;\n"
 "varying vec3 ip_vertexPos;\n"
@@ -562,8 +562,6 @@ const char* RGBraycasterfs = "//VTK::System::Dec\n"
 "//VTK::Cropping::Dec\n"
 "\n"
 "//VTK::Shading::Dec\n"
-"\n"
-"uniform vec4 in_componentWeight;"
 "\n"
 "uniform float fuseCoef;\n"
 "uniform int m_lightonly;\n"
@@ -631,7 +629,7 @@ const char* RGBraycasterfs = "//VTK::System::Dec\n"
 "\n"
 "}\n";
 
-const char* raycasterfs = "//VTK::System::Dec\n"
+const char* raycasterfsEx = "//VTK::System::Dec\n"
 "\n"
 "varying vec3 ip_textureCoords;\n"
 "varying vec3 ip_vertexPos;\n"

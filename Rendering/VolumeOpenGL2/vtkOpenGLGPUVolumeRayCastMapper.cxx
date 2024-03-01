@@ -2796,13 +2796,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources(
   this->Impl->ReleaseResourcesTime.Modified();
 }
 
+
 //----------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
                                                   vtkVolume* vol,
                                                   int noOfComponents)
 {
   //---------------replace shader program based based on setting----------------
-  std::string vertexShader (raycastervs);
+  std::string vertexShader (raycastervsEx);
   std::string fragmentShader;
   bool legacy = false;
   //JKP - Bascially COMPOSITE_BLEND will stop trying to port to VTK and use BuildShaderLegacy unitl the standard 
@@ -2812,11 +2813,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
   {
       legacy = true;
       //fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterLEGACYfs : fragmentShader = RGBraycasterLEGACYfs;
-      fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterfs : fragmentShader = RGBraycasterfs;
+      fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
   }
   else
   {
-      fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterfs : fragmentShader = RGBraycasterfs;
+      fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
   }
 
   this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, true);
@@ -4068,9 +4069,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
   prog->SetUniform2fv("in_inverseWindowSize", 1, &fvalue2);
 
 	//VQ not using yet
-	//prog->SetUniformi("in_useJittering", this->GetUseJittering());
-
-	  //prog->SetUniformi("in_cellFlag", this->CellFlag);
+  prog->SetUniformi("in_useJittering", 0);//this->GetUseJittering());
+  prog->SetUniformi("in_cellFlag", this->CellFlag);
   vtkInternal::ToFloat(this->Impl->AdjustedTexMin[0],
                        this->Impl->AdjustedTexMin[1],
                        this->Impl->AdjustedTexMin[2], fvalue3);
@@ -4085,7 +4085,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
   this->Impl->TempMatrix1->DeepCopy(this->Impl->CellToPointMatrix.GetPointer());
   this->Impl->TempMatrix1->Transpose();
   //VQ not using yet
-  //prog->SetUniformMatrix("in_cellToPoint", this->Impl->TempMatrix1.GetPointer());
+  prog->SetUniformMatrix("in_cellToPoint", this->Impl->TempMatrix1.GetPointer());
   //VQ not using yet
   //prog->SetUniformi("in_clampDepthToBackface", this->GetClampDepthToBackface());
 
