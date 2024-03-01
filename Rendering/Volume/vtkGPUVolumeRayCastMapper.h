@@ -27,6 +27,7 @@
 #include <vtkRenderingVolumeModule.h> // For export macro
 
 #include "vtkVolumeMapper.h"
+#include "vtkRayCastImageDisplayHelper.h"
 
 class vtkContourValues;
 class vtkRenderWindow;
@@ -41,7 +42,23 @@ public:
   vtkTypeMacro(vtkGPUVolumeRayCastMapper,vtkVolumeMapper);
   void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
 
-  //@{
+  virtual void setVolumeBlendWeight(float blendCoef) {};
+  virtual void setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend) {};
+  virtual void lowResAutoRender(bool toEnable) {};
+  virtual void setNumberOfData(int num) {};
+  virtual void setIsoSurfaceExtraction(bool toEnable) {};
+  virtual void setFeatureDetectionWeight(double weight) {};
+  virtual void setFeatureDetectionThreshold(double threshold) {};
+  virtual void setCompositeFeatureDetectionEnable(bool toEnable) {};
+  virtual void setFeatureDetectionTransPeriod(double transPeriod) {};
+  virtual void setColorProjectionModeEnabled(bool toEnable) {};
+  virtual void setCompositeOpacityInverted(bool toEnable) {};
+
+  virtual void setCompositeColorDetectionWeight(double* weight) {};
+  virtual unsigned char** GetGradientMagnitude() { return nullptr;};
+  virtual void setVolumeFlip(bool flip[3]) {};
+
+  //@
   /**
    * If AutoAdjustSampleDistances is on, the the ImageSampleDistance
    * will be varied to achieve the allocated render time of this
