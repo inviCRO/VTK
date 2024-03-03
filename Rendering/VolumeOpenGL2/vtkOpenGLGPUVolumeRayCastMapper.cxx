@@ -2935,12 +2935,17 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqTerminationInit(ren, this, vol),
     true);
 
-	//fragmentShader = vtkvolume::replace(
-    //fragmentShader,
-    //"//VTK::Terminate::Impl",
-    //vtkvolume::TerminationImplementation(ren, this, vol),
-    //true);
-
+  //if (noOfComponents == 1)
+  if (this->BlendMode == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND 
+      || this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND
+      || this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
+  {
+      fragmentShader = vtkvolume::replace(
+      fragmentShader,
+      "//VTK::Terminate::Impl",
+      vqvtkvolume::vqTerminationImplementation(ren, this, vol),
+      true);
+  }
   	//fragmentShader = vtkvolume::replace(
     //fragmentShader,
     //"//VTK::Terminate::Exit",
@@ -2966,14 +2971,20 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqShadingInit(ren, this, vol, noOfComponents, m_compositeMethod),
     true);
 
-    //fragmentShader = vtkvolume::replace(
-    //fragmentShader,
-    //"//VTK::Shading::Impl",
-    //vtkvolume::ShadingImplementation(ren, this, vol, this->MaskInput,
-    //                                 this->Impl->CurrentMask,
-    //                                 this->MaskType, noOfComponents,
-    //                                 independentComponents),
-    //true);
+  //if(noOfComponents == 1)
+  if (this->BlendMode == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND 
+      || this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND 
+      || this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
+  {
+      fragmentShader = vtkvolume::replace(
+      fragmentShader,
+      "//VTK::Shading::Impl",
+      vqvtkvolume::vqShadingImplementation(ren, this, vol, this->MaskInput,
+                                       this->Impl->CurrentMask,
+                                       this->MaskType, noOfComponents,
+                                       independentComponents),
+      true);
+  }
 
   fragmentShader = vtkvolume::replace(
     fragmentShader,
@@ -3072,23 +3083,17 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
           }
           else{
 
-              //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::LightDefinition",
-              //                                    noLightShading(), true);
-              fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                                                  MaximumIntensityProjection(), true);
+              //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
+              //                                    MaximumIntensityProjection(), true);
           }
       }
       else if (this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::LightDefinition",
-           //                                   noLightShading(), true);
-          fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                                              MinimumIntensityProjection(), true);
+          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
+          //                                    MinimumIntensityProjection(), true);
       }
       else if (this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::LightDefinition",
-          //                                    noLightShading(), true);
-          fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                                             AverageIntensityProjection(), true);
+          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
+          ///                                   AverageIntensityProjection(), true);
       }
       else
       {
@@ -3100,23 +3105,17 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
               fragmentShader = std::string(isosurface_rgb);
           }
           else {
-              //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::LightDefinition",
-              //                                    noLightShading(), true);
-              fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
-                                                  RGBMaximumIntensityProjection(), true);
+              //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
+              //                                    RGBMaximumIntensityProjection(), true);
           }
       }
       else if (this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::LightDefinition",
-          //                                    noLightShading(), true);
-          fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
-                                              RGBMinimumIntensityProjection(), true);
+          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
+           //                                   RGBMinimumIntensityProjection(), true);
       }
       else if (this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::LightDefinition",
-          //                                    noLightShading(), true);
-          fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
-                                              RGBAverageIntensityProjection(), true);
+          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
+          //                                    RGBAverageIntensityProjection(), true);
       }
       else {
           vtkErrorMacro("No Shader mode");
@@ -3934,7 +3933,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
             newcenter[e] /= newcenter[3];
         }
     }
-    float rotOffset[3] = { newcenter[0] - center[0], newcenter[1] - center[1], newcenter[2] - center[2] };
     invUserMatrix->Delete();
     invUserMatrix2->Delete();
 
@@ -3946,11 +3944,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
     fvalue16[14] = (m_flip[2]? -1: 1) * transz;
     prog->SetUniformMatrix4x4("in_translateMatrix", &(fvalue16[0]));
     transmatrix->Delete();
-
-    fvalue16[12] = -rotOffset[0];
-    fvalue16[13] = -rotOffset[1];
-    fvalue16[14] = -rotOffset[2];
-    prog->SetUniformMatrix4x4("in_rotOffsetMatrix", &(fvalue16[0]));
 
     vtkMatrix4x4* flipMatrix = vtkMatrix4x4::New();
     flipMatrix->Identity();
@@ -3972,6 +3965,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
     textureOriginMatrix->Delete();
 
   
+
 
   this->Impl->TempMatrix1->DeepCopy(this->Impl->TextureToDataSetMat.GetPointer());
 
@@ -4116,7 +4110,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
   }
   vtkInternal::ToFloat(avgRange[0], avgRange[1], fvalue2);
   //VQ not using yet
-  //prog->SetUniform2fv("in_averageIPRange", 1, &fvalue2);
+  prog->SetUniform2fv("in_averageIPRange", 1, &fvalue2);
 
   // Finally set the scale and bias for color correction
   //--------------------------------------------------------------------------

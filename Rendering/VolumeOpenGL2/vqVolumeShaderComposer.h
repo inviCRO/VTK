@@ -134,7 +134,6 @@ namespace vqvtkvolume
 \n  uniform mat4 in_originMatrix;\
 \n  uniform mat4 in_InverseOriginMatrix;\
 \n  uniform mat4 in_translateMatrix;\
-\n  uniform mat4 in_rotOffsetMatrix;\
 \n\
 ");
   }
@@ -301,53 +300,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                        int lightingComplexity)
   {
 
-//      std::string vqshaderStr = std::string("\
-//      \n  // Get the 3D texture coordinates for lookup into the in_volume dataset\
-//\n vec4 texremapped = vec4(ip_textureCoords, 1.0);\
-//\n texremapped = invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * texremapped;\
-//\n  g_dataPos = texremapped.xyz;\
-//      \n\
-//      \n  // Eye position in object space\
-//\n  g_eyePosObj = ( in_InverseOriginMatrix * in_volumeInvUserMatrix * in_originMatrix * vec4(in_cameraPos, 1.0));\
-//      \n  if (g_eyePosObj.w != 0.0)\
-//      \n    {\
-//      \n    g_eyePosObj.x /= g_eyePosObj.w;\
-//      \n    g_eyePosObj.y /= g_eyePosObj.w;\
-//      \n    g_eyePosObj.z /= g_eyePosObj.w;\
-//      \n    g_eyePosObj.w = 1.0;\
-//      \n    }\
-//      \n\
-//      \n  // Getting the ray marching direction (in object space);\
-//      \n  vec3 rayDir = computeRayDirection();\
-//      \n\
-//      \n  // Multiply the raymarching direction with the step size to get the\
-//      \n  // sub-step size we need to take at each raymarching step\
-//\n  g_dirStep = (in_inverseTextureDatasetMatrix * invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * vec4(rayDir, 0.0)).xyz * in_sampleDistance;\
-//      \n\
-//      \n  g_dataPos += g_dirStep * (texture2D(in_noiseSampler, g_dataPos.xy).x);\
-//      \n\
-//      \n  // Flag to deternmine if voxel should be considered for the rendering\
-//      \n  bool l_skip = false;");
-//
-//      //VQ added in 56e01a8cff56194928d4577fcce93e455c61b50d connect emission specular diffuse weight to shader
-//      vqshaderStr += std::string("\
-//          \n  // Light position in dataset space\
-//          \n  g_lightPosObj = (in_inverseVolumeMatrix *\
-//          \n                      vec4(in_cameraPos, 1.0));\
-//          \n  if (g_lightPosObj.w != 0.0)\
-//          \n    {\
-//          \n    g_lightPosObj.x /= g_lightPosObj.w;\
-//          \n    g_lightPosObj.y /= g_lightPosObj.w;\
-//          \n    g_lightPosObj.z /= g_lightPosObj.w;\
-//          \n    g_lightPosObj.w = 1.0;\
-//          \n    }\
-//          \n  g_ldir = normalize(g_lightPosObj.xyz - ip_vertexPos);\
-//          \n  g_vdir = normalize(g_eyePosObj.xyz - ip_vertexPos);\
-//          \n  g_h = normalize(g_ldir + g_vdir);"
-//      );
-//
-//      return vqshaderStr;
-
     vtkOpenGLGPUVolumeRayCastMapper* glMapper
       = vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
 
@@ -386,7 +338,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \n  //g_dataPos = ip_textureCoords.xyz;\
 \n vec4 texremapped = vec4(ip_textureCoords, 1.0); \
 \n texremapped = invTextureOriginMatrix * in_flipMatrix * in_textureOriginMatrix * texremapped; \
-\n  g_dataPos = texremapped.xyz; "
+\n g_dataPos = texremapped.xyz; "
       );
     }
 
@@ -394,7 +346,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \n\
         \n  // Eye position in dataset space\
         \n  //g_eyePosObj = (in_inverseVolumeMatrix * vec4(in_cameraPos, 1.0));\
-\n  g_eyePosObj = ( in_InverseOriginMatrix * in_volumeInvUserMatrix * in_originMatrix * vec4(in_cameraPos, 1.0));\
+\n  g_eyePosObj = ( in_originMatrix  * in_volumeInvUserMatrix * in_InverseOriginMatrix* vec4(in_cameraPos, 1.0));\
         \n  if (g_eyePosObj.w != 0.0)\
         \n    {\
         \n    g_eyePosObj.x /= g_eyePosObj.w;\
@@ -434,8 +386,9 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \n  }\
         \n\
         \n  // Flag to deternmine if voxel should be considered for the rendering\
-        \n  //g_skip = false;\
-\n bool l_skip = false; ");
+        \n  g_skip = false;"
+      );
+
 
     if (vol->GetProperty()->GetShade() && lightingComplexity == 1)
     {
@@ -907,25 +860,24 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                                              vtkVolume* vtkNotUsed(vol),
                                              int vtkNotUsed(noOfComponents))
   {
-      //VQ Hardcoded
-    //if (!ren->GetActiveCamera()->GetParallelProjection())
-    //{
-      return std::string("\
+      if (!ren->GetActiveCamera()->GetParallelProjection())
+      {
+          return std::string("\
         \nvec3 computeRayDirection()\
         \n  {\
         \n  return normalize(ip_vertexPos.xyz - g_eyePosObj.xyz);\
         \n  }");
-    /*}
-    else
-    {
-      return std::string("\
+      }
+      else
+      {
+          return std::string("\
         \nuniform vec3 in_projectionDirection;\
         \nvec3 computeRayDirection()\
         \n  {\
         \n  return normalize((in_inverseVolumeMatrix *\
         \n                   vec4(in_projectionDirection, 0.0)).xyz);\
         \n  }");
-    }*/
+      }
   }
 
   //--------------------------------------------------------------------------
@@ -1043,7 +995,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
 
               shaderStr += std::string("\
             \n    {\
-\n    return texture2D(in_opacityTransferFunc");
+            \n    return texture2D(in_opacityTransferFunc");
               shaderStr += (i == 0 ? "" : toString.str());
               shaderStr += std::string(",vec2(scalar[" + toString.str() + "],0)).r;\
             \n    }");
@@ -1062,7 +1014,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \nuniform sampler2D in_opacityTransferFunc;\
         \nfloat computeOpacity(vec4 scalar)\
         \n  {\
-\n  return texture2D(in_opacityTransferFunc, vec2(scalar.y, 0)).r;\
+        \n  return texture2D(in_opacityTransferFunc, vec2(scalar.y, 0)).r;\
         \n  }");
       }
       else
@@ -1071,7 +1023,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \nuniform sampler2D in_opacityTransferFunc;\
         \nfloat computeOpacity(vec4 scalar)\
         \n  {\
-\n  return texture2D(in_opacityTransferFunc, vec2(scalar.w, 0)).r;\
+        \n  return texture2D(in_opacityTransferFunc, vec2(scalar.w, 0)).r;\
         \n  }");
       }
   }
@@ -1148,7 +1100,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       return std::string("\
         \n  //We get data between 0.0 - 1.0 range\
         \n  l_firstValue = true;\
-        \n  l_minValue = vec4(1.0);"
+        \n  l_minValue = vec4(0.0);"
       );
     }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
@@ -1203,7 +1155,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   }
 
   //--------------------------------------------------------------------------
-  std::string ShadingImplementation(vtkRenderer* vtkNotUsed(ren),
+  std::string vqShadingImplementation(vtkRenderer* vtkNotUsed(ren),
                                     vtkVolumeMapper* mapper,
                                     vtkVolume* vtkNotUsed(vol),
                                     vtkImageData* maskInput,
@@ -1308,7 +1260,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
           shaderStr += std::string("\
           \n      for (int i = 0; i < in_noOfComponents; ++i)\
           \n        {\
-          \n        if (l_minValue[i] < scalar[i] || l_firstValue)\
+          \n        if (l_minValue[i] > scalar[i] || l_firstValue)\
           \n          {\
           \n          l_minValue[i] = scalar[i];\
           \n          }\
@@ -1491,8 +1443,13 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         shaderStr += std::string();
      }
 
+     //JKP VQ This kinda seems like a VTK BUG as the ray will not advance once it registers a crop region.
+     //VTK crop logic doesn't seem to work right even with this change so going to have to continue to use the VQ 
+     //way and hope for 9.+ fix around this area. 
       shaderStr += std::string("\
-        \n      }"
+\n }\
+\n g_dataPos += g_dirStep;\
+        \n      "
       );
       return shaderStr;
   }
@@ -1702,9 +1659,8 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       else
       {
         return std::string("\
-\n   vec4 g_srcColor = computeColor(l_maxValue, computeOpacity(l_maxValue));\
-\n  //g_srcColor = computeColor(l_maxValue,\
-\n  //                          computeOpacity(l_maxValue));\
+         \n  g_srcColor = computeColor(l_maxValue,\
+         \n                            computeOpacity(l_maxValue));\
          \n  g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a;\
          \n  g_fragColor.a = g_srcColor.a;"
         );
@@ -1719,7 +1675,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
 \n   g_srcColor.a = 1.0;\
           \n  for (int i = 0; i < in_noOfComponents; ++i)\
           \n    {\
-\n    vec4 tmp = computeColor(l_minValue, computeOpacity(l_minValue, i), i);\
+          \n    vec4 tmp = computeColor(l_minValue, computeOpacity(l_minValue, i), i);\
           \n    g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
           \n    g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
           \n    g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
@@ -1731,9 +1687,8 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       else
       {
         return std::string("\
-\n  vec4 g_srcColor = computeColor(l_minValue, computeOpacity(l_minValue));\
-\n  //g_srcColor = computeColor(l_minValue,\
-\n   //                         computeOpacity(l_minValue));\
+          \n  g_srcColor = computeColor(l_minValue,\
+          \n                           computeOpacity(l_minValue));\
           \n  g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a;\
           \n  g_fragColor.a = g_srcColor.a;"
         );
@@ -1744,7 +1699,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         if (noOfComponents > 1 && independentComponents)
         {
             return std::string("\
-\n  for (int i = 0; i < in_noOfComponents; ++i) { \
+        \n  for (int i = 0; i < in_noOfComponents; ++i) { \
 \n      l_avgValue[i] = l_avgValue[i] / l_numSamples[0]; \
 \n  }\
 \n   g_srcColor = vec4(0);\
@@ -1763,10 +1718,18 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         else
         {
             return std::string("\
-\n  l_avgValue.w = l_avgValue.w / l_numSamples[0];\
-\n  vec4 g_srcColor = computeColor(l_avgValue, computeOpacity(l_avgValue));\
+         \n  if (l_numSamples.x == uint(0))\
+         \n    {\
+         \n    discard;\
+         \n    }\
+         \n  else\
+         \n    {\
+         \n  l_avgValue.x = l_avgValue.x / l_numSamples.x;\
+         \n    l_avgValue.x = clamp(l_avgValue.x, 0.0, 1.0);\
+\n  vec4 g_srcColor = computeColor(vec4(l_avgValue.x), computeOpacity(vec4(l_avgValue.x)));\
 \n  g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a;\
-\n  g_fragColor.a = g_srcColor.a;"
+\n  g_fragColor.a = g_srcColor.a;\
+         \n  }"
 );
         }
       /*if (noOfComponents > 1 && independentComponents)
@@ -1973,7 +1936,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   }
 
   //--------------------------------------------------------------------------
-  std::string TerminationImplementation(vtkRenderer* vtkNotUsed(ren),
+  std::string vqTerminationImplementation(vtkRenderer* vtkNotUsed(ren),
                                         vtkVolumeMapper* vtkNotUsed(mapper),
                                         vtkVolume* vtkNotUsed(vol))
   {
@@ -2183,7 +2146,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   {
       //JKP - Why didn't VQ use this built in cropping code
       return std::string("\
-\n  l_skip = dot(sign(g_dataPos - l_bb_min.xyz), sign(l_bb_max.xyz - g_dataPos)) < 3.0;\
+\n  g_skip = dot(sign(g_dataPos - l_bb_min.xyz), sign(l_bb_max.xyz - g_dataPos)) < 3.0;\
 ");
 
     if (!mapper->GetCropping()) {
