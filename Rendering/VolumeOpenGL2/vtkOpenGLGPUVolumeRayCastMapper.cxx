@@ -2813,11 +2813,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
   {
       legacy = true;
       //fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterLEGACYfs : fragmentShader = RGBraycasterLEGACYfs;
-      fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
+      fragmentShader = raycasterfsEx;// noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
   }
   else
   {
-      fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
+      fragmentShader = raycasterfsEx;// noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
   }
 
   this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, true);
@@ -3081,48 +3081,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
           if(m_isoSurfaceExtraction) {
             fragmentShader = std::string(isosurface_multiscatter);
           }
-          else{
-
-              //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-              //                                    MaximumIntensityProjection(), true);
-          }
-      }
-      else if (this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-          //                                    MinimumIntensityProjection(), true);
-      }
-      else if (this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-          ///                                   AverageIntensityProjection(), true);
-      }
-      else
-      {
-          vtkErrorMacro("No Shader mode");
       }
   } else {
       if (this->BlendMode == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND) {
           if(m_isoSurfaceExtraction) {
               fragmentShader = std::string(isosurface_rgb);
           }
-          else {
-              //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
-              //                                    RGBMaximumIntensityProjection(), true);
-          }
-      }
-      else if (this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
-           //                                   RGBMinimumIntensityProjection(), true);
-      }
-      else if (this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND) {
-          //fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
-          //                                    RGBAverageIntensityProjection(), true);
-      }
-      else {
-          vtkErrorMacro("No Shader mode");
       }
   }
-
-
 
 // Clipping methods replacements
 //--------------------------------------------------------------------------
@@ -3176,19 +3142,19 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShaderLegacy(vtkRenderer* ren,
   }
     else {
         if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND) {
-            fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::GradientDefinition",
+            fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::GradientDefinition",
                 RGBGradientDefination(), true);
             if (m_compositeMethod == ColorProjection) {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
+                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
                     RGBColorProjection(), true);
             }
             else if (m_compositeMethod == FeatureDetection) {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
+                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
                     AutoRGBCompositeProjection(), true);
 
             }
             else {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RGBRayCastingMethod::Implementation",
+                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
                     AlphaRGBCompositeProjection(), true);
             }
         }
