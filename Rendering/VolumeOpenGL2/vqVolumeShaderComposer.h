@@ -213,8 +213,15 @@ uniform mat4 in_flipMatrix;\n\
 uniform mat4 in_textureOriginMatrix;\n\
 mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
 \n  vec4 l_bb_min; \
-\n  vec4 l_bb_max; "
-      );
+\n  vec4 l_bb_max; \
+\n  uniform float fuseCoef; \
+\n  uniform int m_lightonly;\
+\n  uniform int m_inverted;\
+\n  uniform float mc_weight;\
+\n  uniform float mc_threshold;\
+\n  uniform float mc_transPeriod;\
+\n  uniform vec3 mc_channelWeight;\
+");
 
     if (lightingComplexity > 0 || hasGradientOpacity)
     {

@@ -176,7 +176,6 @@ protected:
 
   // Description:
   // Build vertex and fragment shader for the volume rendering
-  void BuildShaderOG(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
   void BuildShader(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
 
   // TODO Take these out as these are no longer needed
