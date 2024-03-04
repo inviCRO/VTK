@@ -37,7 +37,6 @@
 
 namespace vqvtkvolume
 {
-    
   //--------------------------------------------------------------------------
   std::string replace(std::string source, const std::string &search,
                       const std::string &replace, bool all)
@@ -77,13 +76,11 @@ namespace vqvtkvolume
     );
   }
 
-  //This is vtk 6.3 code
   //--------------------------------------------------------------------------
   std::string vqComputeTextureCoordinates(vtkRenderer* vtkNotUsed(ren),
       vtkVolumeMapper* vtkNotUsed(mapper),
       vtkVolume* vtkNotUsed(vol))
   {
-    //original reference
     return std::string(
         "\n  // For point dataset, we offset the texture coordinate\
        \n  // to account for OpenGL treating voxel at the center of the cell.\
@@ -199,7 +196,6 @@ namespace vqvtkvolume
       \nuniform float in_shininess[4];\
       \n\
       \n// Others\
-      \n// Others\
       \nuniform bool in_cellFlag;\
       \nuniform bool in_useJittering;\
       \nvec3 g_rayJitter = vec3(0.0);\
@@ -293,13 +289,11 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   }
 
   //--------------------------------------------------------------------------
-  // Taken for 6.3 with the slight additions
   std::string vqBaseInit(vtkRenderer* vtkNotUsed(ren),
                        vtkVolumeMapper* mapper,
                        vtkVolume* vol,
                        int lightingComplexity)
   {
-
     vtkOpenGLGPUVolumeRayCastMapper* glMapper
       = vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
 
@@ -458,7 +452,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
 
   //--------------------------------------------------------------------------
   std::string vqComputeGradientDeclaration(vtkRenderer* vtkNotUsed(ren),
-                                         vtkVolumeMapper* vtkNotUsed(mapper),
+                                         vtkVolumeMapper* mapper,
                                          vtkVolume* vol,
                                          int noOfComponents,
                                          int independentComponents,
@@ -467,60 +461,15 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   {
       
     std::string shaderStr;
-    if (!vol->GetProperty()->GetShade())
+    /*if (!vol->GetProperty()->GetShade())
     {
         return shaderStr;
-    }
-    //if (vol->GetProperty()->HasGradientOpacity() &&
-    //    (noOfComponents == 1 || !independentComponents))
-    //{
-    //  shaderStr += std::string("\
-    //    \nuniform sampler2D in_gradientTransferFunc;\
-    //    \nfloat computeGradientOpacity(vec4 grad)\
-    //    \n  {\
-    //    \n  return texture2D("+gradientTableMap[0]+", vec2(grad.w, 0.0)).r;\
-    //    \n  }"
-    //  );
-    //}
-    //else if (noOfComponents > 1 && independentComponents &&
-    //         vol->GetProperty()->HasGradientOpacity())
-    //{
-    //  std::ostringstream toString;
-    //  for (int i = 0; i < noOfComponents; ++i)
-    //  {
-    //    shaderStr += std::string("\n uniform sampler2D ") +
-    //                 gradientTableMap[i] + std::string(";");
-    //  }
+    }*/
 
-    //  shaderStr += std::string("\
-    //    \nfloat computeGradientOpacity(vec4 grad, int component)\
-    //    \n  {");
-
-    //  for (int i = 0; i < noOfComponents; ++i)
-    //  {
-    //    toString << i;
-    //    shaderStr += std::string("\
-    //      \n  if (component == " + toString.str() + ")");
-
-    //    shaderStr += std::string("\
-    //      \n    {\
-    //      \n    return texture2D("+ gradientTableMap[i] + ", vec2(grad.w, 0.0)).r;\
-    //      \n    }"
-    //    );
-
-    //    // Reset
-    //    toString.str("");
-    //    toString.clear();
-    //  }
-
-    //  shaderStr += std::string("\
-    //    \n  }");
-    //}
-
-    //if (vol->GetProperty()->GetShade() &&
-    //    !vol->GetProperty()->HasGradientOpacity())
-    {
-      shaderStr += std::string("\
+    if(mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
+    { 
+        {
+            shaderStr += std::string("\
         \n// c is short for component\
         \nvec4 computeGradient(int c)\
         \n  {\
@@ -550,58 +499,138 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
         \n  // not scaled by 2h and a dummy gradient mag is returned (-1.).\
         \n  return vec4((g1 - g2), -1.0);\
         \n  }"
+            );
+        }
+
+        return shaderStr;
+    
+    }
+
+    if (vol->GetProperty()->HasGradientOpacity() &&
+        (noOfComponents == 1 || !independentComponents))
+    {
+      shaderStr += std::string("\
+        \nuniform sampler2D in_gradientTransferFunc;\
+        \nfloat computeGradientOpacity(vec4 grad)\
+        \n  {\
+        \n  return texture2D("+gradientTableMap[0]+", vec2(grad.w, 0.0)).r;\
+        \n  }"
       );
     }
-    //else if (vol->GetProperty()->HasGradientOpacity())
-    //{
-    //  shaderStr += std::string("\
-    //    \n// c is short for component\
-    //    \nvec4 computeGradient(int c)\
-    //    \n  {\
-    //    \n  // Approximate Nabla(F) derivatives with central differences.\
-    //    \n  vec3 g1; // F_front\
-    //    \n  vec3 g2; // F_back\
-    //    \n  g1.x = texture3D(in_volume, vec3(g_dataPos + g_xvec))[c];\
-    //    \n  g1.y = texture3D(in_volume, vec3(g_dataPos + g_yvec))[c];\
-    //    \n  g1.z = texture3D(in_volume, vec3(g_dataPos + g_zvec))[c];\
-    //    \n  g2.x = texture3D(in_volume, vec3(g_dataPos - g_xvec))[c];\
-    //    \n  g2.y = texture3D(in_volume, vec3(g_dataPos - g_yvec))[c];\
-    //    \n  g2.z = texture3D(in_volume, vec3(g_dataPos - g_zvec))[c];\
-    //    \n\
-    //    \n  // Apply scale and bias to the fetched values.\
-    //    \n  g1 = g1 * in_volume_scale[c] + in_volume_bias[c];\
-    //    \n  g2 = g2 * in_volume_scale[c] + in_volume_bias[c];\
-    //    \n\
-    //    \n  // Scale values the actual scalar range.\
-    //    \n  float range = in_scalarsRange[c][1] - in_scalarsRange[c][0];\
-    //    \n  g1 = in_scalarsRange[c][0] + range * g1;\
-    //    \n  g2 = in_scalarsRange[c][0] + range * g2;\
-    //    \n\
-    //    \n  // Central differences: (F_front - F_back) / 2h\
-    //    \n  g2 = g1 - g2;\
-    //    \n  g2 /= g_aspect;\
-    //    \n  float grad_mag = length(g2);\
-    //    \n\
-    //    \n  // Handle normalizing with grad_mag == 0.0\
-    //    \n  g2 = grad_mag > 0.0 ? normalize(g2) : vec3(0.0);\
-    //    \n\
-    //    \n  // Since the actual range of the gradient magnitude is unknown,\
-    //    \n  // assume it is in the range [0, 0.25 * dataRange].\
-    //    \n  range = range != 0 ? range : 1.0;\
-    //    \n  grad_mag = grad_mag / (0.25 * range);\
-    //    \n  grad_mag = clamp(grad_mag, 0.0, 1.0);\
-    //    \n\
-    //    \n  return vec4(g2.xyz, grad_mag);\
-    //    \n  }");
-    //}
-    //else
-    //{
-    //  shaderStr += std::string("\
-    //    \nvec4 computeGradient(int component)\
-    //    \n  {\
-    //    \n  return vec4(0.0);\
-    //    \n  }");
-    //}
+    else if (noOfComponents > 1 && independentComponents &&
+             vol->GetProperty()->HasGradientOpacity())
+    {
+      std::ostringstream toString;
+      for (int i = 0; i < noOfComponents; ++i)
+      {
+        shaderStr += std::string("\n uniform sampler2D ") +
+                     gradientTableMap[i] + std::string(";");
+      }
+
+      shaderStr += std::string("\
+        \nfloat computeGradientOpacity(vec4 grad, int component)\
+        \n  {");
+
+      for (int i = 0; i < noOfComponents; ++i)
+      {
+        toString << i;
+        shaderStr += std::string("\
+          \n  if (component == " + toString.str() + ")");
+
+        shaderStr += std::string("\
+          \n    {\
+          \n    return texture2D("+ gradientTableMap[i] + ", vec2(grad.w, 0.0)).r;\
+          \n    }"
+        );
+
+        // Reset
+        toString.str("");
+        toString.clear();
+      }
+
+      shaderStr += std::string("\
+        \n  }");
+    }
+
+    if (vol->GetProperty()->GetShade() &&
+        !vol->GetProperty()->HasGradientOpacity())
+    {
+      shaderStr += std::string("\
+        \n// c is short for component\
+        \nvec4 computeGradient(int c)\
+        \n  {\
+        \n  // Approximate Nabla(F) derivatives with central differences.\
+        \n  vec3 g1; // F_front\
+        \n  vec3 g2; // F_back\
+        \n  g1.x = texture3D(in_volume, vec3(g_dataPos + g_xvec))[c];\
+        \n  g1.y = texture3D(in_volume, vec3(g_dataPos + g_yvec))[c];\
+        \n  g1.z = texture3D(in_volume, vec3(g_dataPos + g_zvec))[c];\
+        \n  g2.x = texture3D(in_volume, vec3(g_dataPos - g_xvec))[c];\
+        \n  g2.y = texture3D(in_volume, vec3(g_dataPos - g_yvec))[c];\
+        \n  g2.z = texture3D(in_volume, vec3(g_dataPos - g_zvec))[c];\
+        \n\
+        \n  // Apply scale and bias to the fetched values.\
+        \n  g1 = g1 * in_volume_scale[c] + in_volume_bias[c];\
+        \n  g2 = g2 * in_volume_scale[c] + in_volume_bias[c];\
+        \n\
+        \n  // Central differences: (F_front - F_back) / 2h\
+        \n  // This version of computeGradient() is only used for lighting\
+        \n  // calculations (only direction matters), hence the difference is\
+        \n  // not scaled by 2h and a dummy gradient mag is returned (-1.).\
+        \n  return vec4((g1 - g2), -1.0);\
+        \n  }"
+      );
+    }
+    else if (vol->GetProperty()->HasGradientOpacity())
+    {
+      shaderStr += std::string("\
+        \n// c is short for component\
+        \nvec4 computeGradient(int c)\
+        \n  {\
+        \n  // Approximate Nabla(F) derivatives with central differences.\
+        \n  vec3 g1; // F_front\
+        \n  vec3 g2; // F_back\
+        \n  g1.x = texture3D(in_volume, vec3(g_dataPos + g_xvec))[c];\
+        \n  g1.y = texture3D(in_volume, vec3(g_dataPos + g_yvec))[c];\
+        \n  g1.z = texture3D(in_volume, vec3(g_dataPos + g_zvec))[c];\
+        \n  g2.x = texture3D(in_volume, vec3(g_dataPos - g_xvec))[c];\
+        \n  g2.y = texture3D(in_volume, vec3(g_dataPos - g_yvec))[c];\
+        \n  g2.z = texture3D(in_volume, vec3(g_dataPos - g_zvec))[c];\
+        \n\
+        \n  // Apply scale and bias to the fetched values.\
+        \n  g1 = g1 * in_volume_scale[c] + in_volume_bias[c];\
+        \n  g2 = g2 * in_volume_scale[c] + in_volume_bias[c];\
+        \n\
+        \n  // Scale values the actual scalar range.\
+        \n  float range = in_scalarsRange[c][1] - in_scalarsRange[c][0];\
+        \n  g1 = in_scalarsRange[c][0] + range * g1;\
+        \n  g2 = in_scalarsRange[c][0] + range * g2;\
+        \n\
+        \n  // Central differences: (F_front - F_back) / 2h\
+        \n  g2 = g1 - g2;\
+        \n  g2 /= g_aspect;\
+        \n  float grad_mag = length(g2);\
+        \n\
+        \n  // Handle normalizing with grad_mag == 0.0\
+        \n  g2 = grad_mag > 0.0 ? normalize(g2) : vec3(0.0);\
+        \n\
+        \n  // Since the actual range of the gradient magnitude is unknown,\
+        \n  // assume it is in the range [0, 0.25 * dataRange].\
+        \n  range = range != 0 ? range : 1.0;\
+        \n  grad_mag = grad_mag / (0.25 * range);\
+        \n  grad_mag = clamp(grad_mag, 0.0, 1.0);\
+        \n\
+        \n  return vec4(g2.xyz, grad_mag);\
+        \n  }");
+    }
+    else
+    {
+      shaderStr += std::string("\
+        \nvec4 computeGradient(int component)\
+        \n  {\
+        \n  return vec4(0.0);\
+        \n  }");
+    }
 
     return shaderStr;
   }
@@ -629,7 +658,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
 
     //Need to look at how VQ hacked in this stuff if other replace functions
     //Note - shininess just a float and no in_twoSidedLighting
-    if (shadeReqd)// || volProperty->HasGradientOpacity())
+    if (shadeReqd || volProperty->HasGradientOpacity())
     {
       shaderStr += std::string("\
         \n  // Compute gradient function only once\
@@ -819,21 +848,23 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
     }
 
     //Need to look at how VQ hacked in this stuff in other replace functions
-   /* if (volProperty->HasGradientOpacity() &&
-        (noOfComponents == 1 || !independentComponents))
+    if (mapper->GetBlendMode() != vtkVolumeMapper::COMPOSITE_BLEND)
     {
-      shaderStr += std::string("\
+        if (volProperty->HasGradientOpacity() &&
+            (noOfComponents == 1 || !independentComponents))
+        {
+            shaderStr += std::string("\
         \n  if (gradient.w >= 0.0)\
         \n    {\
         \n    color.a = color.a *\
         \n              computeGradientOpacity(gradient);\
         \n    }"
-      );
-    }
-     else if (noOfComponents > 1 && independentComponents &&
-             volProperty->HasGradientOpacity())
-     {
-      shaderStr += std::string("\
+            );
+        }
+        else if (noOfComponents > 1 && independentComponents &&
+            volProperty->HasGradientOpacity())
+        {
+            shaderStr += std::string("\
       \n  if (gradient.w >= 0.0)\
       \n    {\
       \n    for (int i = 0; i < in_noOfComponents; ++i)\
@@ -842,8 +873,9 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       \n      computeGradientOpacity(gradient, i) * in_componentWeight[i];\
       \n      }\
       \n    }"
-      );
-     }*/
+            );
+        }
+    }
 
     shaderStr += std::string("\
       \n  finalColor.a = color.a;\
@@ -881,8 +913,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   }
 
   //--------------------------------------------------------------------------
-  // VQ still using VTK 6.3, VTK 8.0.1 is using texture2D
-  // VQ not using the last 2 arguments. 
   std::string vqComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
                                       vtkVolumeMapper* vtkNotUsed(mapper),
                                       vtkVolume* vtkNotUsed(vol),
@@ -953,14 +983,12 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
           return std::string("\
           \nvec4 computeColor(vec4 scalar, float opacity)\
           \n  {\
-          \n  return computeLighting(vec4(scalar.xyz, opacity));\
+          \n  return computeLighting(vec4(scalar.xyz, opacity), 0);\
           \n  }");
       }
   }
 
   //--------------------------------------------------------------------------
-  // VQ still using VTK 6.3, VTK 8.0.1 is using texture2D
-  // VQ not using the last 2 arguments. 
   std::string vqComputeOpacityDeclaration(vtkRenderer* vtkNotUsed(ren),
                                         vtkVolumeMapper* vtkNotUsed(mapper),
                                         vtkVolume* vtkNotUsed(vol),
@@ -968,9 +996,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                                         int independentComponents,
                                         std::map<int, std::string> opacityTableMap)
   {
-
-      
-      //and not looking for independentComponents or opacityTableMap
       if (noOfComponents > 1 && independentComponents)
       {
           std::string shaderStr;
@@ -1041,7 +1066,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                                          vtkVolumeMapper* mapper,
                                          vtkVolume* vtkNotUsed(vol))
   {
-
     if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
     {
       return std::string("\
@@ -1544,12 +1568,12 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
     vtkOpenGLGPUVolumeRayCastMapper* glMapper =
       vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
 
-   /* if (glMapper->GetUseDepthPass() && glMapper->GetCurrentPass() ==
+    if (glMapper->GetUseDepthPass() && glMapper->GetCurrentPass() ==
         vtkOpenGLGPUVolumeRayCastMapper::DepthPass &&
         mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
     {
       return std::string();
-    }*/
+    }
 
     if (mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
     {
@@ -1827,71 +1851,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                               vtkVolumeMapper* vtkNotUsed(mapper),
                               vtkVolume* vtkNotUsed(vol))
   {
-      //VQ is using a 6.3 modified version
-      return std::string("\
-      \n  // Minimum texture access coordinate\
-      \n  const vec3 l_tex_min = vec3(0);\
-      \n\
-      \n  // Maximum texture access coordinate\
-      \n  const vec3 l_tex_max = vec3(1);\
-      \n\
-      \n  // Flag to indicate if the raymarch loop should terminate \
-      \n  bool stop = false;\
-      \n\
-      \n  // 2D Texture fragment coordinates [0,1] from fragment coordinates \
-      \n  // the frame buffer texture has the size of the plain buffer but \
-      \n  // we use a fraction of it. The texture coordinates is less than 1 if \
-      \n  // the reduction factor is less than 1. \
-      \n  // Device coordinates are between -1 and 1. We need texture \
-      \n  // coordinates between 0 and 1 the in_depthSampler buffer has the \
-      \n  // original size buffer. \
-      \n  vec2 fragTexCoord2 = (gl_FragCoord.xy - in_windowLowerLeftCorner) *\
-      \n                      in_inverseWindowSize;\
-      \n  vec4 l_depthValue = texture2D(in_depthSampler, fragTexCoord2);\
-      \n  float l_terminatePointMax = 0.0;\
-      \n\
-      \n  // Depth test\
-      \n  if(gl_FragCoord.z >= l_depthValue.x)\
-      \n    {\
-      \n    discard;\
-      \n    }\
-      \n\
-      \n  // color buffer or max scalar buffer have a reduced size.\
-\n  //fragTexCoord = (gl_FragCoord.xy - in_windowLowerLeftCorner) *\
-\n  //               in_inverseOriginalWindowSize;\
-      \n\
-      \n  // Compute max number of iterations it will take before we hit\
-      \n  // the termination point\
-      \n\
-      \n  // Abscissa of the point on the depth buffer along the ray.\
-      \n  // point in texture coordinates\
-      \n  vec4 terminatePoint;\
-      \n  terminatePoint.x = (gl_FragCoord.x - in_windowLowerLeftCorner.x) * 2.0 *\
-      \n                     in_inverseWindowSize.x - 1.0;\
-      \n  terminatePoint.y = (gl_FragCoord.y - in_windowLowerLeftCorner.y) * 2.0 *\
-      \n                     in_inverseWindowSize.y - 1.0;\
-      \n  terminatePoint.z = (2.0 * l_depthValue.x - (gl_DepthRange.near +\
-      \n                     gl_DepthRange.far)) / gl_DepthRange.diff;\
-      \n  terminatePoint.w = 1.0;\
-      \n\
-      \n  // From normalized device coordinates to eye coordinates.\
-      \n  // in_projectionMatrix is inversed because of way VT\
-      \n  // From eye coordinates to texture coordinates\
-      \n  terminatePoint = in_inverseTextureDatasetMatrix *\
-\n  in_originMatrix * \
-\n  in_volumeInvUserMatrix * \
-\n  in_InverseOriginMatrix * \
-\n                          //in_inverseVolumeMatrix *\
-      \n                   in_inverseModelViewMatrix *\
-      \n                   in_inverseProjectionMatrix *\
-      \n                   terminatePoint;\
-      \n  terminatePoint /= terminatePoint.w;\
-      \n\
-\n  l_terminatePointMax = length(terminatePoint.xyz - ip_textureCoords.xyz) /\
-\n  //l_terminatePointMax = length(terminatePoint.xyz - g_dataPos.xyz) /\
-\n                        length(g_dirStep);\
-      \n  float l_currentT = 0.0;");
-
     return std::string("\
       \n  // Flag to indicate if the raymarch loop should terminate \
       \n  bool stop = false;\
@@ -1924,13 +1883,17 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       \n  // in_projectionMatrix is inversed because of way VT\
       \n  // From eye coordinates to texture coordinates\
       \n  terminatePoint = ip_inverseTextureDataAdjusted *\
-      \n                   in_inverseVolumeMatrix *\
+\n  in_originMatrix * \
+\n  in_volumeInvUserMatrix * \
+\n  in_InverseOriginMatrix * \
+      \n                   //in_inverseVolumeMatrix *\
       \n                   in_inverseModelViewMatrix *\
       \n                   in_inverseProjectionMatrix *\
       \n                   terminatePoint;\
       \n  terminatePoint /= terminatePoint.w;\
       \n\
-      \n  g_terminatePointMax = length(terminatePoint.xyz - g_dataPos.xyz) /\
+\n  g_terminatePointMax = length(terminatePoint.xyz - ip_textureCoords.xyz) /\
+      \n  //g_terminatePointMax = length(terminatePoint.xyz - g_dataPos.xyz) /\
       \n                        length(g_dirStep);\
       \n  g_currentT = 0.0;");
   }
@@ -1940,41 +1903,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                                         vtkVolumeMapper* vtkNotUsed(mapper),
                                         vtkVolume* vtkNotUsed(vol))
   {
-      //VQ is using a 6.3 modified version
-      return std::string("\
-      \n    // The two constants l_tex_min and l_tex_max have a value of\
-      \n    // vec3(-1,-1,-1) and vec3(1,1,1) respectively. To determine if the\
-      \n    // data value is outside the in_volume data, we use the sign function.\
-      \n    // The sign function return -1 if the value is less than 0, 0 if the\
-      \n    // value is equal to 0 and 1 if value is greater than 0. Hence, the\
-      \n    // sign function for the calculation (sign(g_dataPos-l_tex_min) and\
-      \n    // sign (l_tex_max-g_dataPos)) will give us vec3(1,1,1) at the\
-      \n    // possible minimum and maximum position.\
-      \n    // When we do a dot product between two vec3(1,1,1) we get answer 3.\
-      \n    // So to be within the dataset limits, the dot product will return a\
-      \n    // value less than 3. If it is greater than 3, we are already out of\
-      \n    // the in_volume dataset\
-      \n    stop = dot(sign(g_dataPos - l_tex_min), sign(l_tex_max - g_dataPos))\
-      \n           < 3.0;\
-      \n\
-      \n    // If the stopping condition is true we brek out of the ray marching\
-      \n    // loop\
-      \n    if (stop)\
-      \n      {\
-      \n      break;\
-      \n      }\
-      \n    // Early ray termination\
-      \n    // if the currently composited colour alpha is already fully saturated\
-      \n    // we terminated the loop or if we have hit an obstacle in the\
-      \n    // direction of they ray (using depth buffer) we terminate as well.\
-\n    //if((g_fragColor.a > (1 - 1/255.0)) || \
-\n      if(l_currentT >= l_terminatePointMax)\
-      \n      {\
-      \n      break;\
-      \n      }\
-      \n    ++l_currentT;"
-      );
-
     return std::string("\
       \n    if(any(greaterThan(g_dataPos, in_texMax)) ||\
       \n      any(lessThan(g_dataPos, in_texMin)))\

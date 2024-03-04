@@ -176,6 +176,7 @@ protected:
 
   // Description:
   // Build vertex and fragment shader for the volume rendering
+  void BuildShaderOG(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
   void BuildShader(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
 
   //JKP need this for bit to transition the standard blend modes back to VTK

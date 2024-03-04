@@ -2796,12 +2796,392 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources(
   this->Impl->ReleaseResourcesTime.Modified();
 }
 
+void vtkOpenGLGPUVolumeRayCastMapper::BuildShaderOG(vtkRenderer* ren,
+    vtkVolume* vol,
+    int noOfComponents)
+{
+    std::string vertexShader(raycastervs);
+    std::string fragmentShader(raycasterfs);
+
+    this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, true);
+
+    // Every volume should have a property (cannot be NULL);
+    vtkVolumeProperty* volumeProperty = vol->GetProperty();
+    int independentComponents = volumeProperty->GetIndependentComponents();
+
+    if (volumeProperty->GetShade())
+    {
+        vtkLightCollection* lc = ren->GetLights();
+        vtkLight* light;
+        this->Impl->NumberOfLights = 0;
+
+        // Compute light complexity.
+        vtkCollectionSimpleIterator sit;
+        for (lc->InitTraversal(sit); (light = lc->GetNextLight(sit)); )
+        {
+            float status = light->GetSwitch();
+            if (status > 0.0)
+            {
+                this->Impl->NumberOfLights++;
+                if (this->Impl->LightComplexity == 0)
+                {
+                    this->Impl->LightComplexity = 1;
+                }
+            }
+
+            if (this->Impl->LightComplexity == 1
+                && (this->Impl->NumberOfLights > 1
+                    || light->GetIntensity() != 1.0
+                    || light->GetLightType() != VTK_LIGHT_TYPE_HEADLIGHT))
+            {
+                this->Impl->LightComplexity = 2;
+            }
+
+            if (this->Impl->LightComplexity < 3
+                && (light->GetPositional()))
+            {
+                this->Impl->LightComplexity = 3;
+                break;
+            }
+        }
+    }
+
+    // Base methods replacements
+    //--------------------------------------------------------------------------
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::ComputeClipPos::Impl",
+        vtkvolume::ComputeClipPositionImplementation(ren, this, vol),
+        true);
+
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::ComputeTextureCoords::Impl",
+        vtkvolume::ComputeTextureCoordinates(ren, this, vol),
+        true);
+
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::Base::Dec",
+        vtkvolume::BaseDeclarationVertex(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::CallWorker::Impl",
+        vtkvolume::WorkerImplementation(ren, this, vol), true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Base::Dec",
+        vtkvolume::BaseDeclarationFragment(ren, this, vol, this->Impl->NumberOfLights,
+            this->Impl->LightComplexity,
+            vol->GetProperty()->HasGradientOpacity(),
+            noOfComponents, independentComponents),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Base::Init",
+        vtkvolume::BaseInit(ren, this, vol, this->Impl->LightComplexity),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Base::Impl",
+        vtkvolume::BaseImplementation(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Base::Exit",
+        vtkvolume::BaseExit(ren, this, vol),
+        true);
+
+    // Termination methods replacements
+    //--------------------------------------------------------------------------
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::Termination::Dec",
+        vtkvolume::TerminationDeclarationVertex(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Termination::Dec",
+        vtkvolume::TerminationDeclarationFragment(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Terminate::Init",
+        vtkvolume::TerminationInit(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Terminate::Impl",
+        vtkvolume::TerminationImplementation(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Terminate::Exit",
+        vtkvolume::TerminationExit(ren, this, vol),
+        true);
+
+    // Shading methods replacements
+    //--------------------------------------------------------------------------
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::Shading::Dec",
+        vtkvolume::ShadingDeclarationVertex(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Shading::Dec",
+        vtkvolume::ShadingDeclarationFragment(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Shading::Init",
+        vtkvolume::ShadingInit(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Shading::Impl",
+        vtkvolume::ShadingImplementation(ren, this, vol, this->MaskInput,
+            this->Impl->CurrentMask,
+            this->MaskType, noOfComponents,
+            independentComponents),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Shading::Exit",
+        vtkvolume::ShadingExit(ren, this, vol, noOfComponents,
+            independentComponents),
+        true);
+
+
+    // Compute methods replacements
+    //--------------------------------------------------------------------------
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::ComputeOpacity::Dec",
+        vtkvolume::ComputeOpacityDeclaration(ren, this, vol, noOfComponents,
+            independentComponents,
+            this->Impl->OpacityTablesMap),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::ComputeGradient::Dec",
+        vtkvolume::ComputeGradientDeclaration(ren, this, vol, noOfComponents,
+            independentComponents,
+            this->Impl->GradientOpacityTablesMap),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::ComputeColor::Dec",
+        vtkvolume::ComputeColorDeclaration(ren, this, vol, noOfComponents,
+            independentComponents,
+            this->Impl->RGBTablesMap),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::ComputeLighting::Dec",
+        vtkvolume::ComputeLightingDeclaration(ren, this, vol, noOfComponents,
+            independentComponents,
+            this->Impl->NumberOfLights,
+            this->Impl->LightComplexity),
+        true);
+
+    fragmentShader = vtkvolume::replace(fragmentShader,
+        "//VTK::ComputeRayDirection::Dec",
+        vtkvolume::ComputeRayDirectionDeclaration(ren, this, vol, noOfComponents),
+        true);
+
+    // Cropping methods replacements
+    //--------------------------------------------------------------------------
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::Cropping::Dec",
+        vtkvolume::CroppingDeclarationVertex(ren, this, vol),
+        true);
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Cropping::Dec",
+        vtkvolume::CroppingDeclarationFragment(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Cropping::Init",
+        vtkvolume::CroppingInit(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Cropping::Impl",
+        vtkvolume::CroppingImplementation(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Cropping::Exit",
+        vtkvolume::CroppingExit(ren, this, vol),
+        true);
+
+    // Clipping methods replacements
+    //--------------------------------------------------------------------------
+    vertexShader = vtkvolume::replace(
+        vertexShader,
+        "//VTK::Clipping::Dec",
+        vtkvolume::ClippingDeclarationVertex(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Clipping::Dec",
+        vtkvolume::ClippingDeclarationFragment(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Clipping::Init",
+        vtkvolume::ClippingInit(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Clipping::Impl",
+        vtkvolume::ClippingImplementation(ren, this, vol),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::Clipping::Exit",
+        vtkvolume::ClippingExit(ren, this, vol),
+        true);
+
+    // Masking methods replacements
+    //--------------------------------------------------------------------------
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::BinaryMask::Dec",
+        vtkvolume::BinaryMaskDeclaration(ren, this, vol, this->MaskInput,
+            this->Impl->CurrentMask,
+            this->MaskType),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::BinaryMask::Impl",
+        vtkvolume::BinaryMaskImplementation(ren, this, vol, this->MaskInput,
+            this->Impl->CurrentMask,
+            this->MaskType),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::CompositeMask::Dec",
+        vtkvolume::CompositeMaskDeclarationFragment(
+            ren, this, vol, this->MaskInput,
+            this->Impl->CurrentMask,
+            this->MaskType),
+        true);
+
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::CompositeMask::Impl",
+        vtkvolume::CompositeMaskImplementation(
+            ren, this, vol, this->MaskInput,
+            this->Impl->CurrentMask,
+            this->MaskType,
+            noOfComponents),
+        true);
+
+    // Picking replacements
+    //--------------------------------------------------------------------------
+    if (this->Impl->CurrentSelectionPass != (vtkHardwareSelector::MIN_KNOWN_PASS - 1))
+    {
+        switch (this->Impl->CurrentSelectionPass)
+        {
+        case vtkHardwareSelector::ID_LOW24:
+            fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::Picking::Exit",
+                vtkvolume::PickingIdLow24PassExit(ren, this, vol), true);
+            break;
+        case vtkHardwareSelector::ID_MID24:
+            fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::Picking::Exit",
+                vtkvolume::PickingIdMid24PassExit(ren, this, vol), true);
+            break;
+        default: // ACTOR_PASS, PROCESS_PASS
+            fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::Picking::Dec",
+                vtkvolume::PickingActorPassDeclaration(ren, this, vol), true);
+
+            fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::Picking::Exit",
+                vtkvolume::PickingActorPassExit(ren, this, vol), true);
+            break;
+        }
+    }
+
+    // Render to texture
+    //--------------------------------------------------------------------------
+    if (this->RenderToImage)
+    {
+        fragmentShader = vtkvolume::replace(
+            fragmentShader,
+            "//VTK::RenderToImage::Dec",
+            vtkvolume::RenderToImageDeclarationFragment(
+                ren, this, vol), true);
+
+        fragmentShader = vtkvolume::replace(
+            fragmentShader,
+            "//VTK::RenderToImage::Init",
+            vtkvolume::RenderToImageInit(
+                ren, this, vol), true);
+
+        fragmentShader = vtkvolume::replace(
+            fragmentShader,
+            "//VTK::RenderToImage::Impl",
+            vtkvolume::RenderToImageImplementation(
+                ren, this, vol), true);
+
+        fragmentShader = vtkvolume::replace(
+            fragmentShader,
+            "//VTK::RenderToImage::Exit",
+            vtkvolume::RenderToImageExit(
+                ren, this, vol), true);
+    }
+
+    this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, false);
+
+    // Now compile the shader
+    //--------------------------------------------------------------------------
+    this->Impl->ShaderProgram = this->Impl->ShaderCache->ReadyShaderProgram(
+        vertexShader.c_str(), fragmentShader.c_str(), "");
+    if (!this->Impl->ShaderProgram || !this->Impl->ShaderProgram->GetCompiled())
+    {
+        vtkErrorMacro("Shader failed to compile");
+    }
+
+    this->Impl->ShaderBuildTime.Modified();
+}
 
 //----------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
                                                   vtkVolume* vol,
                                                   int noOfComponents)
 {
+
+    /*if (this->BlendMode != vtkVolumeMapper::COMPOSITE_BLEND)
+    {
+        return BuildShaderOG(ren, vol, noOfComponents);
+    }*/
   //---------------replace shader program based based on setting----------------
   std::string vertexShader (raycastervsEx);
   std::string fragmentShader;
@@ -2917,17 +3297,17 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
 
   // Termination methods replacements
   //--------------------------------------------------------------------------
-  //vertexShader = vtkvolume::replace(
-  //  vertexShader,
-  //  "//VTK::Termination::Dec",
-  //  vtkvolume::TerminationDeclarationVertex(ren, this, vol),
-  //  true);
+  vertexShader = vtkvolume::replace(
+    vertexShader,
+    "//VTK::Termination::Dec",
+    vtkvolume::TerminationDeclarationVertex(ren, this, vol),
+    true);
 
-  //fragmentShader = vtkvolume::replace(
-  //  fragmentShader,
-  //  "//VTK::Termination::Dec",
-  //  vtkvolume::TerminationDeclarationFragment(ren, this, vol),
-  //  true);
+  fragmentShader = vtkvolume::replace(
+    fragmentShader,
+    "//VTK::Termination::Dec",
+    vtkvolume::TerminationDeclarationFragment(ren, this, vol),
+    true);
 
   fragmentShader = vtkvolume::replace(
     fragmentShader,
@@ -3004,7 +3384,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
           this->Impl->OpacityTablesMap),//we are currently not using these, investigate how we can
     true);
 
-  if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND)
+  //if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND)
   {
   fragmentShader = vtkvolume::replace(
     fragmentShader,
@@ -4035,13 +4415,13 @@ void vtkOpenGLGPUVolumeRayCastMapper::DoGPURender(vtkRenderer* ren,
                        this->Impl->AdjustedTexMin[1],
                        this->Impl->AdjustedTexMin[2], fvalue3);
 	//VQ not using yet
-  //prog->SetUniform3fv("in_texMin", 1, &fvalue3);
+  prog->SetUniform3fv("in_texMin", 1, &fvalue3);
 
   vtkInternal::ToFloat(this->Impl->AdjustedTexMax[0],
                        this->Impl->AdjustedTexMax[1],
                        this->Impl->AdjustedTexMax[2], fvalue3);
   //VQ not using yet
-  //prog->SetUniform3fv("in_texMax", 1, &fvalue3);
+  prog->SetUniform3fv("in_texMax", 1, &fvalue3);
   this->Impl->TempMatrix1->DeepCopy(this->Impl->CellToPointMatrix.GetPointer());
   this->Impl->TempMatrix1->Transpose();
   //VQ not using yet
