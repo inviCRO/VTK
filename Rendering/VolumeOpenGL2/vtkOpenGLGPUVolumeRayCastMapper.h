@@ -179,13 +179,6 @@ protected:
   void BuildShaderOG(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
   void BuildShader(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
 
-  //JKP need this for bit to transition the standard blend modes back to VTK
-  //and leave the VQ stuff specific for the moment.
-  //This will include:
-  //    COMPOSITE_BLEND
-  //    m_isoSurfaceExtraction
-  void BuildShaderLegacy(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents, std::string& vertexShader, std::string& fragmentShader);
-
   // TODO Take these out as these are no longer needed
   // Methods called by the AMR Volume Mapper.
   void PreRender(vtkRenderer * vtkNotUsed(ren),

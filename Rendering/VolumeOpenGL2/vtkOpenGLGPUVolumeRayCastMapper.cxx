@@ -3177,28 +3177,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
                                                   vtkVolume* vol,
                                                   int noOfComponents)
 {
-
-    /*if (this->BlendMode != vtkVolumeMapper::COMPOSITE_BLEND)
-    {
-        return BuildShaderOG(ren, vol, noOfComponents);
-    }*/
-  //---------------replace shader program based based on setting----------------
   std::string vertexShader (raycastervsEx);
-  std::string fragmentShader;
-  bool legacy = false;
-  //JKP - Bascially COMPOSITE_BLEND will stop trying to port to VTK and use BuildShaderLegacy unitl the standard 
-  //mode are brought over to VTK.  Seems too sticky to try and bring everything over there at once when VTK
-  //doesn't have a notion of these homespum modes
-  if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND)
-  {
-      legacy = true;
-      //fragmentShader = noOfComponents == 1 ? fragmentShader = raycasterLEGACYfs : fragmentShader = RGBraycasterLEGACYfs;
-      fragmentShader = raycasterfsEx;// noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
-  }
-  else
-  {
-      fragmentShader = raycasterfsEx;// noOfComponents == 1 ? fragmentShader = raycasterfsEx : fragmentShader = RGBraycasterfsEx;
-  }
+  std::string fragmentShader (raycasterfsEx);
 
   this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, true);
 
@@ -3263,8 +3243,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqBaseDeclarationVertex(ren, this, vol),
     true);
 
-  //fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::CallWorker::Impl",
-  //  vtkvolume::WorkerImplementation(ren, this, vol), true);
+  fragmentShader = vtkvolume::replace(fragmentShader, "//VTK::CallWorker::Impl",
+    vtkvolume::WorkerImplementation(ren, this, vol), true);
 
   fragmentShader = vtkvolume::replace(
     fragmentShader,
@@ -3272,7 +3252,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqBaseDeclarationFragment(ren, this, vol, this->Impl->NumberOfLights,
                                        this->Impl->LightComplexity,
                                        vol->GetProperty()->HasGradientOpacity(),
-          noOfComponents, 1/*independentComponents*/),
+          noOfComponents, independentComponents),
     true);
 
 
@@ -3282,11 +3262,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqBaseInit(ren, this, vol, this->Impl->LightComplexity),
     true);
 
-  //fragmentShader = vtkvolume::replace(
-  //    fragmentShader,
-  //    "//VTK::Base::Impl",
-  //    vqvtkvolume::BaseImplementation(ren, this, vol),
-  //    true);
+  fragmentShader = vtkvolume::replace(
+      fragmentShader,
+      "//VTK::Base::Impl",
+      vqvtkvolume::BaseImplementation(ren, this, vol),
+      true);
 
   fragmentShader = vtkvolume::replace(
     fragmentShader,
@@ -3315,30 +3295,26 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqTerminationInit(ren, this, vol),
     true);
 
-  //if (noOfComponents == 1)
-  if (this->BlendMode == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND 
-      || this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND
-      || this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
-  {
-      fragmentShader = vtkvolume::replace(
-      fragmentShader,
-      "//VTK::Terminate::Impl",
-      vqvtkvolume::vqTerminationImplementation(ren, this, vol),
-      true);
-  }
-  	//fragmentShader = vtkvolume::replace(
-    //fragmentShader,
-    //"//VTK::Terminate::Exit",
-    //vtkvolume::TerminationExit(ren, this, vol),
-    //true);
+    fragmentShader = vtkvolume::replace(
+    fragmentShader,
+    "//VTK::Terminate::Impl",
+    vqvtkvolume::vqTerminationImplementation(ren, this, vol),
+    true);
+
+  	fragmentShader = vtkvolume::replace(
+    fragmentShader,
+    "//VTK::Terminate::Exit",
+    vtkvolume::TerminationExit(ren, this, vol),
+    true);
 
   // Shading methods replacements
   //--------------------------------------------------------------------------
-  //vertexShader = vtkvolume::replace(
-  //  vertexShader,
-   // "//VTK::Shading::Dec",
-   // vtkvolume::ShadingDeclarationVertex(ren, this, vol),
-  //  true);
+  vertexShader = vtkvolume::replace(
+    vertexShader,
+    "//VTK::Shading::Dec",
+    vtkvolume::ShadingDeclarationVertex(ren, this, vol),
+    true);
+
   fragmentShader = vtkvolume::replace(
     fragmentShader,
     "//VTK::Shading::Dec",
@@ -3351,26 +3327,21 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::vqShadingInit(ren, this, vol, noOfComponents, m_compositeMethod),
     true);
 
-  //if(noOfComponents == 1)
-  if (this->BlendMode == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND 
-      || this->BlendMode == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND 
-      || this->BlendMode == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
-  {
       fragmentShader = vtkvolume::replace(
       fragmentShader,
       "//VTK::Shading::Impl",
       vqvtkvolume::vqShadingImplementation(ren, this, vol, this->MaskInput,
                                        this->Impl->CurrentMask,
                                        this->MaskType, noOfComponents,
-                                       independentComponents),
+                                       independentComponents,
+                                       m_compositeMethod),
       true);
-  }
 
   fragmentShader = vtkvolume::replace(
     fragmentShader,
     "//VTK::Shading::Exit",
       vqvtkvolume::vqShadingExit(ren, this, vol, noOfComponents,
-          1/*independentComponents*/ //we are currently not using these, investigate how we can
+          independentComponents
           ,m_compositeMethod),
     true);
 
@@ -3380,7 +3351,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     fragmentShader,
     "//VTK::ComputeOpacity::Dec",
       vqvtkvolume::vqComputeOpacityDeclaration(ren, this, vol, noOfComponents,
-          1/*independentComponents*/, //we are currently not using these, investigate how we can
+          independentComponents,
           this->Impl->OpacityTablesMap),//we are currently not using these, investigate how we can
     true);
 
@@ -3399,7 +3370,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     fragmentShader,
     "//VTK::ComputeColor::Dec",
       vqvtkvolume::vqComputeColorDeclaration(ren, this, vol, noOfComponents,
-          1/*independentComponents*/,//we are currently not using these, investigate how we can
+          independentComponents,
           this->Impl->RGBTablesMap),//we are currently not using these, investigate how we can
     true);
 
@@ -3409,7 +3380,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
         vqvtkvolume::vqComputeLightingDeclaration(ren, this, vol, noOfComponents,
                                           independentComponents,
                                           this->Impl->NumberOfLights,
-            1/*this->Impl->LightComplexity*/),
+            this->Impl->LightComplexity),
     true);
 
   fragmentShader = vtkvolume::replace(fragmentShader,
@@ -3449,11 +3420,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
       vqvtkvolume::CroppingExit(ren, this, vol),
     true);
 
-  if (legacy)
-  {
-      return BuildShaderLegacy(ren, vol, noOfComponents, vertexShader, fragmentShader);
-  }
-
   //JKP Now we continue with bring the standard mode over to VTK
 
   if (noOfComponents == 1) {
@@ -3487,75 +3453,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     }
 
     this->Impl->ShaderBuildTime.Modified();
-}
-
-void vtkOpenGLGPUVolumeRayCastMapper::BuildShaderLegacy(vtkRenderer* ren,
-    vtkVolume* vol,
-    int noOfComponents
-    , std::string& vertexShader
-    , std::string& fragmentShader)
-  {
-    if (noOfComponents == 1) {
-        if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND) {
-            if (this->Impl->GradientOpacityTables) {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::GradientDefinition",
-                    GradientDefination(), true);
-            }
-            else {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::GradientDefinition",
-                    noGradientDefination(), true);
-            }
-            if (m_compositeMethod == FeatureDetection) {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                    AutoCompositeProjection(), true);
-            }
-            else {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                    AlphaCompositeProjection(), true);
-            }
-        }
-        else
-    {
-            vtkErrorMacro("No Shader mode");
-
-    }
-  }
-    else {
-        if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND) {
-            fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::GradientDefinition",
-                RGBGradientDefination(), true);
-            if (m_compositeMethod == ColorProjection) {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                    RGBColorProjection(), true);
-            }
-            else if (m_compositeMethod == FeatureDetection) {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                    AutoRGBCompositeProjection(), true);
-
-            }
-            else {
-                fragmentShader = vtkvolume::replace(fragmentShader, "//VQ::RayCastingMethod::Implementation",
-                    AlphaRGBCompositeProjection(), true);
-            }
-        }
-        else {
-            vtkErrorMacro("No Shader mode");
-
-        }
-  }
-
-  this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, false);
-
-  // Now compile the shader
-  //--------------------------------------------------------------------------
-  this->Impl->ShaderProgram = this->Impl->ShaderCache->ReadyShaderProgram(
-    vertexShader.c_str(), fragmentShader.c_str(), "");
-  if (!this->Impl->ShaderProgram || !this->Impl->ShaderProgram->GetCompiled())
-  {
-    vtkErrorMacro("Shader failed to compile");
-  }
-
-  this->Impl->ShaderBuildTime.Modified();
 }
 
 //-----------------------------------------------------------------------------

@@ -211,7 +211,9 @@ uniform mat4 in_volumeUserMatrix;\n\
 uniform mat4 in_volumeInvUserMatrix;\n\
 uniform mat4 in_flipMatrix;\n\
 uniform mat4 in_textureOriginMatrix;\n\
-mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
+mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
+\n  vec4 l_bb_min; \
+\n  vec4 l_bb_max; "
       );
 
     if (lightingComplexity > 0 || hasGradientOpacity)
@@ -461,13 +463,66 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   {
       
     std::string shaderStr;
-    /*if (!vol->GetProperty()->GetShade())
-    {
-        return shaderStr;
-    }*/
 
     if(mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
     { 
+        if (vol->GetProperty()->HasGradientOpacity())
+        {
+            if (noOfComponents == 1)
+            {
+                shaderStr += std::string("\
+\n              \
+\n              uniform sampler3D in_gradient;\
+\n              uniform sampler2D in_gradientTransferFunc;\
+\n              vec4 computeGradientIntensity() {\
+\n                  vec4 gradient = texture3D(in_gradient, g_dataPos);\
+\n                  gradient = vec4(gradient.r,gradient.r,gradient.r,gradient.r);\
+\n                  return gradient;\
+\n              }\
+\n              float computeGradientOpacity(vec4 grad, int component)\
+\n              {\
+\n                  return texture2D(in_gradientTransferFunc, vec2(grad.w, 0.0)).r;\
+\n              }\
+");
+            }
+            else
+            {
+                shaderStr += std::string("\
+\n              uniform sampler3D in_gradient;\
+\n              uniform sampler2D in_gradientTransferFunc;\
+\n              uniform sampler2D in_gradientTransferFunc1;\
+\n              uniform sampler2D in_gradientTransferFunc2;\
+\n              float computeGradientOpacity(vec4 grad, int component)        \
+\n                {        \
+\n                if (component == 0)        \
+\n                  {        \
+\n                  return texture2D(in_gradientTransferFunc, vec2(grad.r, 0.0)).r;        \
+\n                  }        \
+\n                if (component == 1)        \
+\n                  {        \
+\n                  return texture2D(in_gradientTransferFunc1, vec2(grad.g, 0.0)).r;        \
+\n                  }        \
+\n                if (component == 2)        \
+\n                  {        \
+\n                  return texture2D(in_gradientTransferFunc2, vec2(grad.b, 0.0)).r;        \
+\n                  }        \
+\n                }        \
+              ");
+            }
+        }
+        else
+        {
+            shaderStr += std::string("\
+\n          vec4 computeGradientIntensity() {\
+\n              return vec4(1.0);\
+\n          }\
+\n          float computeGradientOpacity(vec4 grad, int component)\
+\n          {\
+\n              return 1.0;\
+\n          }\
+            ");
+        }
+
         {
             shaderStr += std::string("\
         \n// c is short for component\
@@ -1185,7 +1240,8 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
                                     vtkImageData* maskInput,
                                     vtkVolumeMask* mask, int maskType,
                                     int noOfComponents,
-                                    int independentComponents = 0)
+                                    int independentComponents = 0,
+                                    ::VQCompositeMethod compositeMode = ::VQCompositeMethod::RegularComposite)
   {
     vtkOpenGLGPUVolumeRayCastMapper* glMapper =
       vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
@@ -1369,113 +1425,281 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
     }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
     {
-      if (noOfComponents > 1 && independentComponents)
-      {
-        shaderStr += std::string("\
-          \n      vec4 color[4]; vec4 tmp = vec4(0.0);\
-          \n      float totalAlpha = 0.0;\
-          \n      for (int i = 0; i < in_noOfComponents; ++i)\
-          \n        {\
-        ");
-        if (glMapper->GetUseDepthPass() && glMapper->GetCurrentPass() ==
-            vtkOpenGLGPUVolumeRayCastMapper::DepthPass)
+        if (compositeMode == VQCompositeMethod::RegularComposite)//AlphaCompositeProjection
         {
-          shaderStr += std::string("\
-            \n        // Data fetching from the red channel of volume texture\
-            \n        float opacity = computeOpacity(scalar, i);\
-            \n        if (opacity > 0.0)\
-            \n          {\
-            \n          g_srcColor.a = opacity;\
-            \n          }\
-            \n       }"
-          );
+            if (noOfComponents > 1)
+            {
+                shaderStr += std::string("\
+\n          vec4 gradient = texture3D(in_gradient, g_dataPos); \
+\n          vec4 gradientOpacity = vec4(0.0);\
+\n          vec4 scalarOpacity = vec4(0.0);\
+\n          if (l_firstValue)\
+\n          {\
+\n              gradient = vec4(0.0);\
+\n          }\
+\n          float totalAlpha = 0.0;\
+\n          vec4 tmpAlpha = vec4(0.0);\
+\n          for(int i = 0; i < in_noOfComponents; i++){\
+\n              scalarOpacity[i] = computeOpacity(scalar,i);\
+\n              gradientOpacity[i] = computeGradientOpacity(gradient,i);\
+\n          }\
+\n          for (int i = 0; i < in_noOfComponents; ++i)\
+\n          {\
+\n               tmpAlpha[i] = scalarOpacity[i] * gradientOpacity[i];\
+\n               totalAlpha += scalarOpacity[i] * gradientOpacity[i];\
+\n          }\
+\n          if(totalAlpha > 0 && !g_skip) { \
+\n              for (int i = 0; i < in_noOfComponents; ++i)\
+\n              {\
+\n                  vec4 tmpcolor = computeColor(scalar, 1.0, i);\
+\n                  l_sampledValue[0] += tmpcolor[0] * tmpAlpha[i];\
+\n                  l_sampledValue[1] += tmpcolor[1] * tmpAlpha[i];\
+\n                  l_sampledValue[2] += tmpcolor[2] * tmpAlpha[i];\
+\n                  l_sampledValue[3] += tmpAlpha[i] * tmpAlpha[i] / totalAlpha;\
+\n              }\
+\n          }\
+\n          remainOpacity *= 1 - l_sampledValue[3];\
+\n          if (remainOpacity < 0.01)\
+\n          {\
+\n              break;\
+\n          }\
+\n          if (l_firstValue)\
+\n          {\
+\n              l_firstValue = false;\
+\n          }\
+\n                ");
+            }
+            else
+            {
+                shaderStr += std::string("\
+\n        float scalarOpacity = computeOpacity(scalar); \
+\n        vec4 gradient = computeGradientIntensity();\
+\n        float gradientOpacity = computeGradientOpacity(gradient, 0);\
+\n        vec4 tmpcolor = vec4(0); tmpcolor.w = scalar.r; \
+\n        if(scalarOpacity * gradientOpacity > 0 && !g_skip) {\
+\n           vec4 temcolor = computeColor(tmpcolor, 1.0);\
+\n           temcolor.rgb = temcolor.rgb * scalarOpacity * gradientOpacity;\
+\n           l_sampledValue += temcolor * remainOpacity;\
+\n           remainOpacity *= (1- scalarOpacity * gradientOpacity);\
+\n        }\
+\n        if (remainOpacity < 0.01)\
+\n        {\
+\n            break;\
+\n        }\
+\n        if (l_firstValue)\
+\n        {\
+\n            l_firstValue = false;\
+\n        }\
+                ");
+            }
         }
-        else if (!mask || !maskInput ||
-            maskType != vtkGPUVolumeRayCastMapper::LabelMapMaskType)
+        else if (compositeMode == VQCompositeMethod::FeatureDetection)//RGBCompositeProjection
         {
-          shaderStr += std::string("\
-          \n        // Data fetching from the red channel of volume texture\
-          \n        color[i][3] = computeOpacity(scalar, i);\
-          \n        color[i] = computeColor(scalar, color[i][3], i);\
-          \n        totalAlpha += color[i][3] * in_componentWeight[i];\
-          \n        }\
-          \n      if (totalAlpha > 0.0)\
-          \n        {\
-          \n        for (int i = 0; i < in_noOfComponents; ++i)\
-          \n          {\
-          \n          // Only let visible components contribute to the final color\
-          \n          if (in_componentWeight[i] <= 0) continue;\
-          \n\
-          \n          tmp.x += color[i].x * color[i].w * in_componentWeight[i];\
-          \n          tmp.y += color[i].y * color[i].w * in_componentWeight[i];\
-          \n          tmp.z += color[i].z * color[i].w * in_componentWeight[i];\
-          \n          tmp.w += ((color[i].w * color[i].w)/totalAlpha);\
-          \n          }\
-          \n        }\
-          \n      g_fragColor = (1.0f - g_fragColor.a) * tmp + g_fragColor;"
-          );
+            if (noOfComponents > 1)
+            {
+                shaderStr += std::string("\
+\n    vec4 gradient = texture3D(in_gradient, g_dataPos); \
+\n    float scalarSum = scalar.r * mc_channelWeight.r + scalar.g * mc_channelWeight.g + scalar.b * mc_channelWeight.b;\
+\n    scalarSum /= 3.0;\
+\n    float gradientSum = gradient.r + gradient.g + gradient.b;\
+\n    gradientSum /= 3.0;\
+\n    gradientSum *= 2;\
+\n    if(gradientSum > 1.0) {\
+\n        gradientSum = 1.0;\
+\n    }\
+\n    float pow = (mc_weight * scalarSum + (1 - mc_weight) * gradientSum) - mc_threshold;\
+\n    float op = 1.0 / (1.0 + exp(mc_transPeriod * pow));\
+\n    if(m_inverted > 0) {op *=  (1.0 - scalarSum);}\
+\n    else {op *= scalarSum;}\
+\n    scalar.rgb = scalar.rgb * op;\
+\n    if(!g_skip) {l_sampledValue += scalar * remainOpacity;}\
+\n    remainOpacity *= (1.0 - op);\
+\n    if (remainOpacity < 0.01)\
+\n    {\
+\n        break;\
+\n    }\
+\n    if (l_firstValue)\
+\n    {\
+\n        l_firstValue = false;\
+\n    }\
+               ");
+            }
+            else
+            {
+                shaderStr += std::string("\
+\n      vec4 gradient = texture3D(in_gradient, g_dataPos);\
+\n      gradient = vec4(gradient.r,gradient.r,gradient.r,gradient.r);\
+\n      if (l_firstValue)\
+\n      {\
+\n          gradient = vec4(0.0);\
+\n      }\
+\n      float weighttmp = (mc_weight * scalar.w) + (1.0-mc_weight) * gradient.r;\
+\n      float thredweight = weighttmp - mc_threshold;\
+\n      float opacity = 1.0 / (1.0 + exp(mc_transPeriod * thredweight));\
+\n      vec4 tmpcolor = vec4(0); tmpcolor.w = scalar.r; \
+\n      vec4 temcolor = computeColor(tmpcolor, 1.0);\
+\n      temcolor.rgb = temcolor.rgb * opacity;\
+\n      if(!g_skip)\
+\n      {\
+\n          l_sampledValue += temcolor * remainOpacity;\
+\n      }\
+\n      remainOpacity *= 1- opacity;\
+\n\n      if (remainOpacity < 0.01)\
+\n      {\
+\n          break;\
+\n      }\
+\n      if (l_firstValue)\
+\n      {\
+\n          l_firstValue = false;\
+\n      }\
+                ");
+            }
         }
-      }
-      else if (glMapper->GetUseDepthPass() && glMapper->GetCurrentPass() ==
-               vtkOpenGLGPUVolumeRayCastMapper::DepthPass)
-      {
-        shaderStr += std::string("\
-          \n      g_srcColor = vec4(0.0);\
-          \n      g_srcColor.a = computeOpacity(scalar);"
-        );
-      }
-      else
-      {
-         if (!mask || !maskInput ||
-             maskType != vtkGPUVolumeRayCastMapper::LabelMapMaskType)
-         {
-           shaderStr += std::string("\
-             \n      g_srcColor = vec4(0.0);\
-             \n      g_srcColor.a = computeOpacity(scalar);\
-             \n      if (g_srcColor.a > 0.0)\
-             \n        {\
-             \n        g_srcColor = computeColor(scalar, g_srcColor.a);"
-           );
-         }
+        else if (compositeMode == VQCompositeMethod::ColorProjection)
+        {
+            if (noOfComponents == 1)
+            {
+                shaderStr += std::string("\
+                ");
+            }
+            else
+            {
+                shaderStr += std::string("\
+\n        float distance = 0.0; \
+\n        for(int idx = 0; idx < 3; idx++) {\
+\n            distance += pow( scalar[idx] - mc_channelWeight[idx]/255, 2.0);\
+\n        }\
+\n        distance = sqrt(distance)/1.732;\
+\n        float op = 1.0 - distance * mc_transPeriod;\
+\n        if(op < 0.0) op = 0.0;\n if(op > 1.0) op = 1.0;\
+\n        scalar.rgb = scalar.rgb * op;\
+\n        if (op > mc_threshold){\
+\n           if (!g_skip){ l_sampledValue += scalar * remainOpacity;}\
+\n           remainOpacity *= (1.0 - op);\
+\n        }\
+\n        if (remainOpacity < 0.01)\
+\n        {\
+\n            break;\
+\n        }\
+\n        if (l_firstValue)\
+\n        {\
+\n            l_firstValue = false;\
+\n        }\
+                ");
+            }
+        }
+    //  if (noOfComponents > 1 && independentComponents)
+    //  {
+    //    shaderStr += std::string("\
+    //      \n      vec4 color[4]; vec4 tmp = vec4(0.0);\
+    //      \n      float totalAlpha = 0.0;\
+    //      \n      for (int i = 0; i < in_noOfComponents; ++i)\
+    //      \n        {\
+    //    ");
+    //    if (glMapper->GetUseDepthPass() && glMapper->GetCurrentPass() ==
+    //        vtkOpenGLGPUVolumeRayCastMapper::DepthPass)
+    //    {
+    //      shaderStr += std::string("\
+    //        \n        // Data fetching from the red channel of volume texture\
+    //        \n        float opacity = computeOpacity(scalar, i);\
+    //        \n        if (opacity > 0.0)\
+    //        \n          {\
+    //        \n          g_srcColor.a = opacity;\
+    //        \n          }\
+    //        \n       }"
+    //      );
+    //    }
+    //    else if (!mask || !maskInput ||
+    //        maskType != vtkGPUVolumeRayCastMapper::LabelMapMaskType)
+    //    {
+    //      shaderStr += std::string("\
+    //      \n        // Data fetching from the red channel of volume texture\
+    //      \n        color[i][3] = computeOpacity(scalar, i);\
+    //      \n        color[i] = computeColor(scalar, color[i][3], i);\
+    //      \n        totalAlpha += color[i][3] * in_componentWeight[i];\
+    //      \n        }\
+    //      \n      if (totalAlpha > 0.0)\
+    //      \n        {\
+    //      \n        for (int i = 0; i < in_noOfComponents; ++i)\
+    //      \n          {\
+    //      \n          // Only let visible components contribute to the final color\
+    //      \n          if (in_componentWeight[i] <= 0) continue;\
+    //      \n\
+    //      \n          tmp.x += color[i].x * color[i].w * in_componentWeight[i];\
+    //      \n          tmp.y += color[i].y * color[i].w * in_componentWeight[i];\
+    //      \n          tmp.z += color[i].z * color[i].w * in_componentWeight[i];\
+    //      \n          tmp.w += ((color[i].w * color[i].w)/totalAlpha);\
+    //      \n          }\
+    //      \n        }\
+    //      \n      g_fragColor = (1.0f - g_fragColor.a) * tmp + g_fragColor;"
+    //      );
+    //    }
+    //  }
+    //  else if (glMapper->GetUseDepthPass() && glMapper->GetCurrentPass() ==
+    //           vtkOpenGLGPUVolumeRayCastMapper::DepthPass)
+    //  {
+    //    shaderStr += std::string("\
+    //      \n      g_srcColor = vec4(0.0);\
+    //      \n      g_srcColor.a = computeOpacity(scalar);"
+    //    );
+    //  }
+    //  else
+    //  {
+    //     if (!mask || !maskInput ||
+    //         maskType != vtkGPUVolumeRayCastMapper::LabelMapMaskType)
+    //     {
+    //       shaderStr += std::string("\
+    //         \n      g_srcColor = vec4(0.0);\
+    //         \n      g_srcColor.a = computeOpacity(scalar);\
+    //         \n      if (g_srcColor.a > 0.0)\
+    //         \n        {\
+    //         \n        g_srcColor = computeColor(scalar, g_srcColor.a);"
+    //       );
+    //     }
 
-         shaderStr += std::string("\
-           \n        // Opacity calculation using compositing:\
-           \n        // Here we use front to back compositing scheme whereby\
-           \n        // the current sample value is multiplied to the\
-           \n        // currently accumulated alpha and then this product\
-           \n        // is subtracted from the sample value to get the\
-           \n        // alpha from the previous steps. Next, this alpha is\
-           \n        // multiplied with the current sample colour\
-           \n        // and accumulated to the composited colour. The alpha\
-           \n        // value from the previous steps is then accumulated\
-           \n        // to the composited colour alpha.\
-           \n        g_srcColor.rgb *= g_srcColor.a;\
-           \n        g_fragColor = (1.0f - g_fragColor.a) * g_srcColor + g_fragColor;"
-         );
+    //     shaderStr += std::string("\
+    //       \n        // Opacity calculation using compositing:\
+    //       \n        // Here we use front to back compositing scheme whereby\
+    //       \n        // the current sample value is multiplied to the\
+    //       \n        // currently accumulated alpha and then this product\
+    //       \n        // is subtracted from the sample value to get the\
+    //       \n        // alpha from the previous steps. Next, this alpha is\
+    //       \n        // multiplied with the current sample colour\
+    //       \n        // and accumulated to the composited colour. The alpha\
+    //       \n        // value from the previous steps is then accumulated\
+    //       \n        // to the composited colour alpha.\
+    //       \n        g_srcColor.rgb *= g_srcColor.a;\
+    //       \n        g_fragColor = (1.0f - g_fragColor.a) * g_srcColor + g_fragColor;"
+    //     );
 
-         if (!mask || !maskInput ||
-           maskType != vtkGPUVolumeRayCastMapper::LabelMapMaskType)
-         {
-           shaderStr += std::string("\
-             \n        }"
-           );
-         }
-      }
+    //     if (!mask || !maskInput ||
+    //       maskType != vtkGPUVolumeRayCastMapper::LabelMapMaskType)
+    //     {
+    //       shaderStr += std::string("\
+    //         \n        }"
+    //       );
+    //     }
+    //  }
     }
      else
      {
         shaderStr += std::string();
      }
 
+     shaderStr += std::string("\
+        \n      }"
+     );
+     return shaderStr;
+
      //JKP VQ This kinda seems like a VTK BUG as the ray will not advance once it registers a crop region.
      //VTK crop logic doesn't seem to work right even with this change so going to have to continue to use the VQ 
      //way and hope for 9.+ fix around this area. 
-      shaderStr += std::string("\
-\n }\
-\n g_dataPos += g_dirStep;\
-        \n      "
-      );
-      return shaderStr;
+//      shaderStr += std::string("\
+//\n }\
+//\n g_dataPos += g_dirStep;\
+//        \n      "
+//      );
+//      return shaderStr;
   }
 
   //--------------------------------------------------------------------------
@@ -1995,13 +2219,13 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
   {
       //JKP - Why didn't VQ use this built in cropping code
       return std::string("\
-\n  vec4 l_bb_min = vec4(in_croppingPlanes[0], in_croppingPlanes[2], in_croppingPlanes[4], 1.0);\
+\n  l_bb_min = vec4(in_croppingPlanes[0], in_croppingPlanes[2], in_croppingPlanes[4], 1.0);\
 \n  l_bb_min = in_inverseTextureDatasetMatrix * l_bb_min;\
 \n  if (l_bb_min.w != 0.0)\
 \n  {\
 \n         l_bb_min /= l_bb_min.w;\
 \n  }\
-\n  vec4 l_bb_max = vec4(in_croppingPlanes[1], in_croppingPlanes[3], in_croppingPlanes[5], 1.0);\
+\n  l_bb_max = vec4(in_croppingPlanes[1], in_croppingPlanes[3], in_croppingPlanes[5], 1.0);\
 \n  l_bb_max = in_inverseTextureDatasetMatrix * l_bb_max;\
 \n  if (l_bb_max.w != 0.0)\
 \n  {\
