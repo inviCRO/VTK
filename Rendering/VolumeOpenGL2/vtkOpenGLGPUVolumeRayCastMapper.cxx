@@ -2858,7 +2858,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     vertexShader = vtkvolume::replace(
         vertexShader,
         "//VTK::ComputeTextureCoords::Impl",
-        vqvtkvolume::vqComputeTextureCoordinates(ren, this, vol),
+        vtkvolume::ComputeTextureCoordinates(ren, this, vol),
         true);
 
     vertexShader = vtkvolume::replace(
@@ -2921,7 +2921,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     fragmentShader = vtkvolume::replace(
         fragmentShader,
         "//VTK::Terminate::Impl",
-        vqvtkvolume::vqTerminationImplementation(ren, this, vol),
+        vtkvolume::TerminationImplementation(ren, this, vol),
         true);
 
     fragmentShader = vtkvolume::replace(
@@ -2974,26 +2974,23 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     fragmentShader = vtkvolume::replace(
         fragmentShader,
         "//VTK::ComputeOpacity::Dec",
-        vqvtkvolume::vqComputeOpacityDeclaration(ren, this, vol, noOfComponents,
+        vtkvolume::ComputeOpacityDeclaration(ren, this, vol, noOfComponents,
             independentComponents,
             this->Impl->OpacityTablesMap),//we are currently not using these, investigate how we can
         true);
 
-    //if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND)
-    {
-        fragmentShader = vtkvolume::replace(
-            fragmentShader,
-            "//VTK::ComputeGradient::Dec",
-            vqvtkvolume::vqComputeGradientDeclaration(ren, this, vol, noOfComponents,
-                independentComponents,
-                this->Impl->GradientOpacityTablesMap),
-            true);
-    }
+    fragmentShader = vtkvolume::replace(
+        fragmentShader,
+        "//VTK::ComputeGradient::Dec",
+        vqvtkvolume::vqComputeGradientDeclaration(ren, this, vol, noOfComponents,
+            independentComponents,
+            this->Impl->GradientOpacityTablesMap),
+        true);
 
     fragmentShader = vtkvolume::replace(
         fragmentShader,
         "//VTK::ComputeColor::Dec",
-        vqvtkvolume::vqComputeColorDeclaration(ren, this, vol, noOfComponents,
+        vtkvolume::ComputeColorDeclaration(ren, this, vol, noOfComponents,
             independentComponents,
             this->Impl->RGBTablesMap),//we are currently not using these, investigate how we can
         true);
@@ -3009,7 +3006,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
 
     fragmentShader = vtkvolume::replace(fragmentShader,
         "//VTK::ComputeRayDirection::Dec",
-        vqvtkvolume::vqComputeRayDirectionDeclaration(ren, this, vol, noOfComponents),
+        vtkvolume::ComputeRayDirectionDeclaration(ren, this, vol, noOfComponents),
         true);
 
     // Cropping methods replacements

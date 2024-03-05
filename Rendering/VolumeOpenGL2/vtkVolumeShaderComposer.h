@@ -1166,7 +1166,7 @@ namespace vtkvolume
           shaderStr += std::string("\
           \n      for (int i = 0; i < in_noOfComponents; ++i)\
           \n        {\
-          \n        if (l_minValue[i] < scalar[i] || l_firstValue)\
+          \n        if (l_minValue[i] > scalar[i] || l_firstValue)\
           \n          {\
           \n          l_minValue[i] = scalar[i];\
           \n          }\

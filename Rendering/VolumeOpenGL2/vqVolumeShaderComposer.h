@@ -77,7 +77,7 @@ namespace vqvtkvolume
   }
 
   //--------------------------------------------------------------------------
-  std::string vqComputeTextureCoordinates(vtkRenderer* vtkNotUsed(ren),
+  std::string ComputeTextureCoordinates(vtkRenderer* vtkNotUsed(ren),
       vtkVolumeMapper* vtkNotUsed(mapper),
       vtkVolume* vtkNotUsed(vol))
   {
@@ -221,6 +221,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
 \n  uniform float mc_threshold;\
 \n  uniform float mc_transPeriod;\
 \n  uniform vec3 mc_channelWeight;\
+\n  uniform sampler3D in_gradient;\
 ");
 
     if (lightingComplexity > 0 || hasGradientOpacity)
@@ -389,9 +390,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
         \n  }\
         \n\
         \n  // Flag to deternmine if voxel should be considered for the rendering\
-        \n  g_skip = false;"
-      );
-
+        \n  g_skip = false;");
 
     if (vol->GetProperty()->GetShade() && lightingComplexity == 1)
     {
@@ -461,116 +460,25 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
 
   //--------------------------------------------------------------------------
   std::string vqComputeGradientDeclaration(vtkRenderer* vtkNotUsed(ren),
-                                         vtkVolumeMapper* mapper,
+                                         vtkVolumeMapper* vtkNotUsed(mapper),
                                          vtkVolume* vol,
                                          int noOfComponents,
                                          int independentComponents,
                                          std::map<int, std::string>
                                            gradientTableMap)
   {
-      
     std::string shaderStr;
-
-    if(mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
-    { 
-        if (vol->GetProperty()->HasGradientOpacity())
-        {
-            if (noOfComponents == 1)
-            {
-                shaderStr += std::string("\
-\n              \
-\n              uniform sampler3D in_gradient;\
-\n              uniform sampler2D in_gradientTransferFunc;\
+    if (vol->GetProperty()->HasGradientOpacity() &&
+        (noOfComponents == 1 || !independentComponents))
+    {
+        shaderStr += std::string("\
 \n              vec4 computeGradientIntensity() {\
 \n                  vec4 gradient = texture3D(in_gradient, g_dataPos);\
 \n                  gradient = vec4(gradient.r,gradient.r,gradient.r,gradient.r);\
 \n                  return gradient;\
 \n              }\
-\n              float computeGradientOpacity(vec4 grad, int component)\
-\n              {\
-\n                  return texture2D(in_gradientTransferFunc, vec2(grad.w, 0.0)).r;\
-\n              }\
 ");
-            }
-            else
-            {
-                shaderStr += std::string("\
-\n              uniform sampler3D in_gradient;\
-\n              uniform sampler2D in_gradientTransferFunc;\
-\n              uniform sampler2D in_gradientTransferFunc1;\
-\n              uniform sampler2D in_gradientTransferFunc2;\
-\n              float computeGradientOpacity(vec4 grad, int component)        \
-\n                {        \
-\n                if (component == 0)        \
-\n                  {        \
-\n                  return texture2D(in_gradientTransferFunc, vec2(grad.r, 0.0)).r;        \
-\n                  }        \
-\n                if (component == 1)        \
-\n                  {        \
-\n                  return texture2D(in_gradientTransferFunc1, vec2(grad.g, 0.0)).r;        \
-\n                  }        \
-\n                if (component == 2)        \
-\n                  {        \
-\n                  return texture2D(in_gradientTransferFunc2, vec2(grad.b, 0.0)).r;        \
-\n                  }        \
-\n                }        \
-              ");
-            }
-        }
-        else
-        {
-            shaderStr += std::string("\
-\n          vec4 computeGradientIntensity() {\
-\n              return vec4(1.0);\
-\n          }\
-\n          float computeGradientOpacity(vec4 grad, int component)\
-\n          {\
-\n              return 1.0;\
-\n          }\
-            ");
-        }
 
-        {
-            shaderStr += std::string("\
-        \n// c is short for component\
-        \nvec4 computeGradient(int c)\
-        \n  {\
-        \n  // Approximate Nabla(F) derivatives with central differences.\
-        \n  vec3 g1; // F_front\
-        \n  vec3 g2; // F_back\
-\n  //g1.x = texture3D(in_volume, vec3(g_dataPos + g_xvec))[c];\
-\n  //g1.y = texture3D(in_volume, vec3(g_dataPos + g_yvec))[c];\
-\n  //g1.z = texture3D(in_volume, vec3(g_dataPos + g_zvec))[c];\
-\n  //g2.x = texture3D(in_volume, vec3(g_dataPos - g_xvec))[c];\
-\n  //g2.y = texture3D(in_volume, vec3(g_dataPos - g_yvec))[c];\
-\n  //g2.z = texture3D(in_volume, vec3(g_dataPos - g_zvec))[c];\
-\n  g1.x = texture3D(in_volume, vec3(g_dataPos - vec3(in_cellStep[0], 0.0, 0.0)))[c];\
-\n  g1.y = texture3D(in_volume, vec3(g_dataPos + vec3(0.0, in_cellStep[1], 0.0)))[c];\
-\n  g1.z = texture3D(in_volume, vec3(g_dataPos + vec3(0.0, 0.0, in_cellStep[2])))[c];\
-\n  g2.x = texture3D(in_volume, vec3(g_dataPos + vec3(in_cellStep[0], 0.0, 0.0)))[c];\
-\n  g2.y = texture3D(in_volume, vec3(g_dataPos - vec3(0.0, in_cellStep[1], 0.0)))[c];\
-\n  g2.z = texture3D(in_volume, vec3(g_dataPos - vec3(0.0, 0.0, in_cellStep[2])))[c];\
-        \n\
-        \n  // Apply scale and bias to the fetched values.\
-        \n  g1 = g1 * in_volume_scale[c] + in_volume_bias[c];\
-        \n  g2 = g2 * in_volume_scale[c] + in_volume_bias[c];\
-        \n\
-        \n  // Central differences: (F_front - F_back) / 2h\
-        \n  // This version of computeGradient() is only used for lighting\
-        \n  // calculations (only direction matters), hence the difference is\
-        \n  // not scaled by 2h and a dummy gradient mag is returned (-1.).\
-        \n  return vec4((g1 - g2), -1.0);\
-        \n  }"
-            );
-        }
-
-        return shaderStr;
-    
-    }
-
-    if (vol->GetProperty()->HasGradientOpacity() &&
-        (noOfComponents == 1 || !independentComponents))
-    {
       shaderStr += std::string("\
         \nuniform sampler2D in_gradientTransferFunc;\
         \nfloat computeGradientOpacity(vec4 grad)\
@@ -614,8 +522,8 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
         \n  }");
     }
 
-    if (vol->GetProperty()->GetShade() &&
-        !vol->GetProperty()->HasGradientOpacity())
+    if (true)//vol->GetProperty()->GetShade() &&
+        //!vol->GetProperty()->HasGradientOpacity())
     {
       shaderStr += std::string("\
         \n// c is short for component\
@@ -745,13 +653,13 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
           \n    {\
           \n    normal = vec3(0.0, 0.0, 0.0);\
           \n    }\
-\n   float nDotL = dot(normal, g_vdir);\
+          \n   float nDotL = dot(normal, g_ldir);\
           \n   float nDotH = dot(normal, g_h);\
-\n   if (nDotL < 0.0)// && in_twoSidedLighting)\
+          \n   if (nDotL < 0.0 && in_twoSidedLighting)\
           \n     {\
           \n     nDotL = -nDotL;\
           \n     }\
-\n   if (nDotH < 0.0)// && in_twoSidedLighting)\
+          \n   if (nDotH < 0.0 && in_twoSidedLighting)\
           \n     {\
           \n     nDotH = -nDotH;\
           \n     }\
@@ -760,8 +668,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
           \n     diffuse = nDotL * in_diffuse[component] *\
           \n               in_lightDiffuseColor[0] * color.rgb;\
           \n     }\
-\n   //specular = pow(nDotH, in_shininess[component]) *\
-\n    specular = pow(nDotL, in_shininess[component]) *\
+          \n    specular = pow(nDotH, in_shininess[component]) *\
           \n                 in_specular[component] *\
           \n                 in_lightSpecularColor[0];\
           \n  // For the headlight, ignore the light's ambient color\
@@ -949,7 +856,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
   }
 
   //--------------------------------------------------------------------------
-  std::string vqComputeRayDirectionDeclaration(vtkRenderer* ren,
+  std::string ComputeRayDirectionDeclaration(vtkRenderer* ren,
                                              vtkVolumeMapper* vtkNotUsed(mapper),
                                              vtkVolume* vtkNotUsed(vol),
                                              int vtkNotUsed(noOfComponents))
@@ -975,7 +882,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
   }
 
   //--------------------------------------------------------------------------
-  std::string vqComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
+  std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
                                       vtkVolumeMapper* vtkNotUsed(mapper),
                                       vtkVolume* vtkNotUsed(vol),
                                       int noOfComponents,
@@ -1051,7 +958,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
   }
 
   //--------------------------------------------------------------------------
-  std::string vqComputeOpacityDeclaration(vtkRenderer* vtkNotUsed(ren),
+  std::string ComputeOpacityDeclaration(vtkRenderer* vtkNotUsed(ren),
                                         vtkVolumeMapper* vtkNotUsed(mapper),
                                         vtkVolume* vtkNotUsed(vol),
                                         int noOfComponents,
@@ -1446,9 +1353,11 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
 \n          }\
 \n          float totalAlpha = 0.0;\
 \n          vec4 tmpAlpha = vec4(0.0);\
+\n          vec4 tmpGradient = vec4(0.0);\
 \n          for(int i = 0; i < in_noOfComponents; i++){\
 \n              scalarOpacity[i] = computeOpacity(scalar,i);\
-\n              gradientOpacity[i] = computeGradientOpacity(gradient,i);\
+\n              tmpGradient = vec4(gradient[i]);\
+\n              gradientOpacity[i] = computeGradientOpacity(tmpGradient,i);\
 \n          }\
 \n          for (int i = 0; i < in_noOfComponents; ++i)\
 \n          {\
@@ -1481,7 +1390,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
                 shaderStr += std::string("\
 \n        float scalarOpacity = computeOpacity(scalar); \
 \n        vec4 gradient = computeGradientIntensity();\
-\n        float gradientOpacity = computeGradientOpacity(gradient, 0);\
+\n        float gradientOpacity = computeGradientOpacity(gradient);\
 \n        vec4 tmpcolor = vec4(0); tmpcolor.w = scalar.r; \
 \n        if(scalarOpacity * gradientOpacity > 0 && !g_skip) {\
 \n           vec4 temcolor = computeColor(tmpcolor, 1.0);\
@@ -1697,16 +1606,6 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
         \n      }"
      );
      return shaderStr;
-
-     //JKP VQ This kinda seems like a VTK BUG as the ray will not advance once it registers a crop region.
-     //VTK crop logic doesn't seem to work right even with this change so going to have to continue to use the VQ 
-     //way and hope for 9.+ fix around this area. 
-//      shaderStr += std::string("\
-//\n }\
-//\n g_dataPos += g_dirStep;\
-//        \n      "
-//      );
-//      return shaderStr;
   }
 
   //--------------------------------------------------------------------------
@@ -2130,7 +2029,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n\
   }
 
   //--------------------------------------------------------------------------
-  std::string vqTerminationImplementation(vtkRenderer* vtkNotUsed(ren),
+  std::string TerminationImplementation(vtkRenderer* vtkNotUsed(ren),
                                         vtkVolumeMapper* vtkNotUsed(mapper),
                                         vtkVolume* vtkNotUsed(vol))
   {
