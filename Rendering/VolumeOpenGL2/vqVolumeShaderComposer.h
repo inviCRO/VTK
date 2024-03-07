@@ -1148,7 +1148,7 @@ mat4 invTextureOriginMatrix = inverse(in_textureOriginMatrix);\n"
       return std::string("\
         \n  //We get data between 0.0 - 1.0 range\
         \n  l_firstValue = true;\
-        \n  l_minValue = vec4(1.0);"
+        \n  l_minValue = vec4(0.0);"
       );
     }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
