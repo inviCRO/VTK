@@ -32,6 +32,10 @@ vtkStandardNewMacro(vtkFixedPointVolumeRayCastCompositeGOHelper);
 // Construct a new vtkFixedPointVolumeRayCastCompositeGOHelper with default values
 vtkFixedPointVolumeRayCastCompositeGOHelper::vtkFixedPointVolumeRayCastCompositeGOHelper()
 {
+    m_compositeMethod = RegularComposite;
+    m_invert = false;
+    m_weight = 0.1; m_threshold = 0.5; m_transPeriod = -2;
+    for (int i = 0; i < 3; i++) { m_channelWeight[i] = 1.0; m_channelWeight[2] = 3.0; }
 }
 
 // Destruct a vtkFixedPointVolumeRayCastCompositeGOHelper - clean up any memory used
@@ -310,7 +314,8 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneSimpleTrilin( T *data,
                                                        int threadID,
                                                        int threadCount,
                                                        vtkFixedPointVolumeRayCastMapper *mapper,
-                                                       vtkVolume *vol)
+                                                       vtkVolume *vol,
+                                                       vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1* VQ1 = nullptr)
 {
   VTKKWRCHelper_InitializationAndLoopStartGOTrilin();
   VTKKWRCHelper_InitializeCompositeOneTrilin();
@@ -360,7 +365,22 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneSimpleTrilin( T *data,
     }
 
     VTKKWRCHelper_InterpolateMagnitude(mag);
-    tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff)>>VTKKW_FP_SHIFT;
+
+    if (VQ1)
+    {
+        double d_val = static_cast<double>(val) / 255.0;
+        double d_mag = static_cast<double>(mag) / 255.0;
+        double weighttmp = ((VQ1->weight * d_val) + (0x7fff - VQ1->weight) * d_mag);
+        double otmp = (weighttmp - VQ1->threshold);
+        double op = 1.0 / (1.0 + exp(VQ1->transPeriod * otmp));
+        unsigned short ops = op * 0x7fff;
+        tmp[3] = ops > 0x7fff ? 0x7fff : ops;
+    }
+    else
+    {
+        tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff) >> VTKKW_FP_SHIFT;
+    }
+
     if ( !tmp[3] )
     {
       continue;
@@ -396,7 +416,8 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneTrilin( T *data,
                                                  int threadID,
                                                  int threadCount,
                                                  vtkFixedPointVolumeRayCastMapper *mapper,
-                                                 vtkVolume *vol)
+                                                 vtkVolume *vol, 
+                                                 vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1* VQ1 = nullptr)
 {
   VTKKWRCHelper_InitializationAndLoopStartGOTrilin();
   VTKKWRCHelper_InitializeCompositeOneTrilin();
@@ -447,7 +468,22 @@ void vtkFixedPointCompositeGOHelperGenerateImageOneTrilin( T *data,
     }
     VTKKWRCHelper_InterpolateMagnitude(mag);
 
-    tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff)>>VTKKW_FP_SHIFT;
+    if (VQ1)
+    {
+        double d_val = static_cast<double>(val) / 255.0;
+        double d_mag = static_cast<double>(mag) / 255.0;
+
+        double weighttmp = ((VQ1->weight * d_val) + (1 - VQ1->weight) * d_mag);
+        double otmp = (weighttmp - VQ1->threshold);
+        double op = 1.0 / (1.0 + exp(VQ1->transPeriod * otmp));
+        unsigned short ops = op * 0x7fff;
+        tmp[3] = ops > 0x7fff ? 0x7fff : ops;
+    }
+    else
+    {
+        tmp[3] = (tmp[3] * gradientOpacityTable[0][mag] + 0x7fff) >> VTKKW_FP_SHIFT;
+    }
+
     if ( !tmp[3] )
     {
       continue;
@@ -673,7 +709,8 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
                                                          int threadID,
                                                          int threadCount,
                                                          vtkFixedPointVolumeRayCastMapper *mapper,
-                                                         vtkVolume *vol)
+                                                         vtkVolume *vol,
+                                                         vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2* VQ2 = nullptr)
 {
   VTKKWRCHelper_InitializeWeights();
   VTKKWRCHelper_InitializationAndLoopStartGOTrilin();
@@ -742,12 +779,86 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
     VTKKWRCHelper_InterpolateScalarComponent( val, c, components );
     VTKKWRCHelper_InterpolateMagnitudeComponent( mag, c, components );
 
-    VTKKWRCHelper_LookupAndCombineIndependentColorsGOUS( colorTable, scalarOpacityTable,
-                                                         gradientOpacityTable, val, mag,
-                                                         weights, components, tmp );
+    if (VQ2)
+    {
+        double op = 0.0;
+        if (!VQ2->colorProjection)
+        {
+            double gradientSum = 0.0;
+            for (int _idx = 0; _idx < components; _idx++) {
+                gradientSum += static_cast<double>(mag[_idx]) / 100.0;
+            }
+            gradientSum /= static_cast<double>(components);
+            if (gradientSum < 0.0001) continue;
+
+            double scalarSum = 0.0;
+            double scalarSum2 = 0.0;
+            for (int _idx = 0; _idx < components; _idx++) {
+                scalarSum += static_cast<double>(val[_idx]) / 255.0 * VQ2->channelWeight[_idx];
+                scalarSum2 += static_cast<double>(val[_idx]) / 255.0;
+            }
+            scalarSum /= static_cast<double>(components);
+            scalarSum2 /= static_cast<double>(components);
+
+            double pow = ((VQ2->weight * scalarSum + (1 - VQ2->weight) * gradientSum) - VQ2->threshold);
+            op = 1.0 / (1.0 + exp(VQ2->transPeriod * pow));
+
+            if (VQ2->invert) {
+                op *= (1 - scalarSum2);
+            }
+            else {
+                op *= scalarSum2;
+            }
+        }
+        else
+        {
+            double distance = 0.0;
+            for (int idx = 0; idx < components; idx++) {
+                distance += pow(val[idx] - VQ2->channelWeight[idx], 2);
+            }
+            distance = sqrt(distance);
+            op = distance / (1.732 * 255) * VQ2->transPeriod;
+            if (op > 1) op = 1;
+            if (op < 0) op = 0;
+            op = 1 - op;
+        }
+
+        unsigned short ops = op * 32767;
+        ops = ops > 0x7fff ? 0x7fff : ops;
+        if (!ops)
+        {
+            continue;
+        }
+        unsigned int _tmp[4] = { 0,0,0,0 };
+
+        {for (int _idx = 0; _idx < components; _idx++)
+        {
+            _tmp[0] += static_cast<unsigned short>(((colorTable[_idx][3 * val[_idx]]) * ops + 0x7fff) >> (VTKKW_FP_SHIFT));
+            _tmp[1] += static_cast<unsigned short>(((colorTable[_idx][3 * val[_idx] + 1]) * ops + 0x7fff) >> (VTKKW_FP_SHIFT));
+            _tmp[2] += static_cast<unsigned short>(((colorTable[_idx][3 * val[_idx] + 2]) * ops + 0x7fff) >> (VTKKW_FP_SHIFT));
+        }}
+        _tmp[3] = ops;
+        tmp[0] = (_tmp[0] > 32767) ? (32767) : (_tmp[0]);
+        tmp[1] = (_tmp[1] > 32767) ? (32767) : (_tmp[1]);
+        tmp[2] = (_tmp[2] > 32767) ? (32767) : (_tmp[2]);
+        tmp[3] = (_tmp[3] > 32767) ? (32767) : (_tmp[3]);
+    }
+    else
+    {
+        VTKKWRCHelper_LookupAndCombineIndependentColorsGOUS(colorTable, scalarOpacityTable,
+            gradientOpacityTable, val, mag,
+            weights, components, tmp);
+    }
 
     VTKKWRCHelper_CompositeColorAndCheckEarlyTermination( color, tmp, remainingOpacity );
 
+  }
+
+  if (VQ2->colorProjection)
+  {
+      for (int com = 0; com < components; com++) {
+          color[com] = static_cast<unsigned int>(static_cast<double>(color[com]) * VQ2->weight);
+      }
   }
 
   VTKKWRCHelper_SetPixelColor( imagePtr, color, remainingOpacity );
@@ -844,6 +955,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
       if ( mapper->GetTableScale()[0] == 1.0 &&
            mapper->GetTableShift()[0] == 0.0 )
       {
+          if(m_compositeMethod == RegularComposite) {
         switch ( scalarType )
         {
           vtkTemplateMacro(
@@ -851,10 +963,22 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
               static_cast<VTK_TT *>(data),
               threadID, threadCount, mapper, vol) );
         }
+          } else {
+              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp( m_weight, m_threshold, m_transPeriod );
+
+              switch ( scalarType )
+                {
+                vtkTemplateMacro(
+                  vtkFixedPointCompositeGOHelperGenerateImageOneSimpleTrilin(
+                    static_cast<VTK_TT *>(data),
+                    threadID, threadCount, mapper, vol, &temp));
+                }
+          }
       }
       // Scale != 1.0 or shift != 0.0 - must apply scale/shift in inner loop
       else
       {
+          if(m_compositeMethod == RegularComposite) {
         switch ( scalarType )
         {
           vtkTemplateMacro(
@@ -862,11 +986,44 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
               static_cast<VTK_TT *>(data),
               threadID, threadCount, mapper, vol) );
         }
+          } else {
+              vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct1 temp( m_weight, m_threshold, m_transPeriod );
+
+              switch ( scalarType )
+                {
+                vtkTemplateMacro(
+                  vtkFixedPointCompositeGOHelperGenerateImageOneTrilin(
+                    static_cast<VTK_TT *>(data),
+                    threadID, threadCount, mapper, vol, &temp) );
+                }
+          }
       }
     }
     // Indepedent components (more than one)
     else if ( vol->GetProperty()->GetIndependentComponents() )
     {
+        if (m_compositeMethod == ColorProjection) {
+            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp(m_weight, m_threshold, m_transPeriod, false, m_channelWeight, true );
+
+            switch (scalarType)
+            {
+                vtkTemplateMacro(
+                    vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin(
+                        static_cast<VTK_TT *>(data),
+                        threadID, threadCount, mapper, vol, &temp));
+            }
+        } else if (m_compositeMethod == FeatureDetection) {
+            vtkFixedPointVolumeRayCastCompositeGOHelper::VQStruct2 temp( m_weight, m_threshold, m_transPeriod, !m_invert, m_channelWeight, false );
+
+            switch (scalarType)
+            {
+                vtkTemplateMacro(
+                    vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin(
+                        static_cast<VTK_TT *>(data),
+                        threadID, threadCount, mapper, vol, &temp));
+            }
+        }
+        else {
       switch ( scalarType )
       {
         vtkTemplateMacro(
@@ -875,6 +1032,7 @@ void vtkFixedPointVolumeRayCastCompositeGOHelper::GenerateImage( int threadID,
             threadID, threadCount, mapper, vol) );
       }
     }
+      }
     // Dependent components
     else
     {

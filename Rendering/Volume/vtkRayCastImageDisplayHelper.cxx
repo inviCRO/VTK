@@ -25,6 +25,8 @@ vtkRayCastImageDisplayHelper::vtkRayCastImageDisplayHelper()
 {
   this->PreMultipliedColors = 1;
   this->PixelScale = 1.0;
+
+  m_vqBlending = vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum;
 }
 
 // Destruct a vtkRayCastImageDisplayHelper - clean up any memory used

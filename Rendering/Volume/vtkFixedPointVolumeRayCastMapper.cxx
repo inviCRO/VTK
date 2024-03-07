@@ -48,6 +48,12 @@
 #include <exception>
 #include <cmath>
 
+//VQ ADDED
+const int vtkFixedPointVolumeRayCastMapper::VQMaxRGB = 255;
+int vtkFixedPointVolumeRayCastMapper::m_vqNumData = 1;
+std::vector<vtkFixedPointRayCastImage*> vtkFixedPointVolumeRayCastMapper::m_vqSavedImage;
+std::vector<vtkVolume*> vtkFixedPointVolumeRayCastMapper::m_vqSavedVolume;
+
 vtkStandardNewMacro(vtkFixedPointVolumeRayCastMapper);
 vtkCxxSetObjectMacro(vtkFixedPointVolumeRayCastMapper, RayCastImage, vtkFixedPointRayCastImage);
 
@@ -630,6 +636,8 @@ vtkFixedPointVolumeRayCastMapper::vtkFixedPointVolumeRayCastMapper()
   this->RenderWindow           = NULL;
 
   this->MIPHelper              = vtkFixedPointVolumeRayCastMIPHelper::New();
+  this->AIPHelper              = vqFixedPointVolumeRayCastAIPHelper::New();
+  this->ISOHelper              = vqFixedPointVolumeRayCastISOHelper::New();
   this->CompositeHelper        = vtkFixedPointVolumeRayCastCompositeHelper::New();
   this->CompositeGOHelper      = vtkFixedPointVolumeRayCastCompositeGOHelper::New();
   this->CompositeShadeHelper   = vtkFixedPointVolumeRayCastCompositeShadeHelper::New();
@@ -724,6 +732,17 @@ vtkFixedPointVolumeRayCastMapper::vtkFixedPointVolumeRayCastMapper()
   // of the last run is passed back to the SpaceLeapFilter and its reused
   // since we may not be updating every flag in this structure.
   this->MinMaxVolumeCache = vtkImageData::New();
+
+  //VQ ADDED
+  m_vqLightOnly = false;
+  m_vqThreadWarning = true;
+  m_vqAlpha = 0.8;
+  m_vqIsosurfaceExtraction = false;
+  m_vqLowResAutoRendering = false;
+  m_vqVolIdx = 0;
+  m_vqCamPos[0] = m_vqCamPos[1] = m_vqCamPos[2] = 0;//vq 7417 (CPU isosurface rendering)
+  m_vqCamPos[3] = 1;//vq 7417 (CPU isosurface rendering)
+  vqSetNumberOfData(3);
 }
 
 //----------------------------------------------------------------------------
@@ -815,6 +834,8 @@ vtkFixedPointVolumeRayCastMapper::~vtkFixedPointVolumeRayCastMapper()
 
   this->MinMaxVolumeCache->Delete();
 }
+
+
 
 float vtkFixedPointVolumeRayCastMapper::ComputeRequiredImageSampleDistance( float desiredTime,
                                                                             vtkRenderer *ren )
@@ -1118,16 +1139,20 @@ int vtkFixedPointVolumeRayCastMapper::PerImageInitialization( vtkRenderer *ren,
   // on the previous one and the previous render time. Don't let
   // the adjusted image sample distance be less than the minimum image sample
   // distance or more than the maximum image sample distance.
-  if ( this->AutoAdjustSampleDistances )
+  if ( this->AutoAdjustSampleDistances || m_vqLowResAutoRendering)
   {
+      float AllocatedTime = m_vqLowResAutoRendering ? 0.011f / m_vqNumData : vol->GetAllocatedRenderTime();
     this->ImageSampleDistance =
-      this->ComputeRequiredImageSampleDistance( vol->GetAllocatedRenderTime(), ren, vol );
+      this->ComputeRequiredImageSampleDistance(AllocatedTime, ren, vol );
 
     // If this is an interactive render (faster than 1 frame per second) then we'll
     // increase the sample distance along the ray to improve performance
     if ( vol->GetAllocatedRenderTime() < 1.0 )
     {
       this->SampleDistance = this->InteractiveSampleDistance;
+    }
+    if (AllocatedTime > 0.05) {//when not in keep framerate mode
+        this->ImageSampleDistance = 1;
     }
   }
 
@@ -1155,6 +1180,15 @@ int vtkFixedPointVolumeRayCastMapper::PerImageInitialization( vtkRenderer *ren,
     {
       return 0;
     }
+  }
+
+  ren->GetActiveCamera()->GetPosition(m_vqCamPos);                    //vq 7417 (CPU isosurface rendering)
+
+  if (m_vqCamPos[3])                                                  //vq 7417 (CPU isosurface rendering)
+  {
+      m_vqCamPos[0] /= m_vqCamPos[3];                                     //vq 7417 (CPU isosurface rendering)
+      m_vqCamPos[1] /= m_vqCamPos[3];                                     //vq 7417 (CPU isosurface rendering)
+      m_vqCamPos[2] /= m_vqCamPos[3];                                     //vq 7417 (CPU isosurface rendering)
   }
 
   return 1;
@@ -1317,6 +1351,54 @@ void vtkFixedPointVolumeRayCastMapper::DisplayRenderedImage( vtkRenderer *ren,
     this->ApplyFinalColorWindowLevel();
   }
 
+  // vq addition
+  this->vqUpdateAlpha();
+
+  //update saved image
+  m_vqSavedImage[m_vqVolIdx] = this->RayCastImage;
+  m_vqSavedVolume[m_vqVolIdx] = vol;
+  if (m_vqLightOnly) {
+      //if (VQOpenGLRayCastImageDisplayHelper2* vqhelper =
+      //    dynamic_cast<VQOpenGLRayCastImageDisplayHelper2*>(this->ImageDisplayHelper))
+      {
+          std::vector<vtkFixedPointRayCastImage*> fuseList;
+          fuseList.clear();
+          for (int v = 0; v < m_vqNumData; v++) {
+              if (m_vqSavedVolume[v] && m_vqSavedVolume[v]->GetVisibility()) {
+                  fuseList.push_back(m_vqSavedImage[v]);
+              }
+          }
+          if (m_vqVolIdx + 1 == m_vqNumData) {
+              switch (fuseList.size())
+              {
+              case 2:
+                  if (vqFuseImages(fuseList[0], fuseList[1])) {
+                      this->ImageDisplayHelper->vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearDest);
+                  }
+                  else {
+                      this->ImageDisplayHelper->vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum);
+                  }
+                  break;
+              case 3:
+                  if (vqFuseImages(fuseList[0], fuseList[1]) && vqFuseImages(fuseList[1], fuseList[2])) {
+                      this->ImageDisplayHelper->vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearDest);
+                  }
+                  else {
+                      this->ImageDisplayHelper->vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum);
+                  }
+                  break;
+              default:
+                  this->ImageDisplayHelper->vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum);
+                  break;
+              }
+          }
+          else {
+              this->ImageDisplayHelper->vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum);
+          }
+      }
+  }
+  //end
+
   this->ImageDisplayHelper->
     RenderTexture( vol, ren,
                    this->RayCastImage,
@@ -1459,7 +1541,7 @@ void vtkFixedPointVolumeRayCastMapper::Render( vtkRenderer *ren, vtkVolume *vol 
 //    }
 
 
-  if(this->GetBlendMode()!=vtkVolumeMapper::COMPOSITE_BLEND &&
+  /*if(this->GetBlendMode()!=vtkVolumeMapper::COMPOSITE_BLEND &&
      this->GetBlendMode()!=vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND &&
      this->GetBlendMode()!=vtkVolumeMapper::MINIMUM_INTENSITY_BLEND &&
      this->GetBlendMode()!=vtkVolumeMapper::ADDITIVE_BLEND)
@@ -1468,7 +1550,7 @@ void vtkFixedPointVolumeRayCastMapper::Render( vtkRenderer *ren, vtkVolume *vol 
                   << "Only Composite, MIP, MinIP and additive modes "
                   << "are supported by the fixed point implementation.");
     return;
-  }
+  }*/
 
   this->Timer->StartTimer();
 
@@ -1547,7 +1629,16 @@ VTK_THREAD_RETURN_TYPE FixedPointVolumeRayCastMapper_CastRays( void *arg )
   if ( me->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND ||
        me->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND )
   {
-    me->GetMIPHelper()->GenerateImage( threadID, threadCount, vol, me );
+      if (me->vqUseIsoSurface()) {
+          me->GetISOHelper()->GenerateImage(threadID, threadCount, vol, me);
+      }
+      else {
+          me->GetMIPHelper()->GenerateImage(threadID, threadCount, vol, me);
+      }
+  }
+  else if (me->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
+  {
+      me->GetAIPHelper()->GenerateImage(threadID, threadCount, vol, me);
   }
   else
   {
@@ -3438,4 +3529,153 @@ void vtkFixedPointVolumeRayCastMapper::ReleaseGraphicsResources(vtkWindow *win)
   {
     this->ImageDisplayHelper->ReleaseGraphicsResources(win);
   }
+}
+
+//VQ ADDED
+void vtkFixedPointVolumeRayCastMapper::vqSetBlendFactor(float alpha)
+{
+    m_vqAlpha = alpha;
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend)
+{
+    ImageDisplayHelper->vqSetVolumeBlend(blend);
+    if (blend == vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::DestColor) m_vqLightOnly = true;
+    else m_vqLightOnly = false;
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetFeatureDetectionWeight(double weight)
+{
+    GetCompositeGOHelper()->setFeatureDetectionWeight(weight);
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetFeatureDetectionThreshold(double threshold)
+{
+    GetCompositeGOHelper()->setFeatureDetectionThreshold(threshold);
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetFeatureDetectionTransPeriod(double transPeriod)
+{
+    GetCompositeGOHelper()->setFeatureDetectionTransitionPeriod(transPeriod);
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetCompositeFeatureDetectionEnable(bool toEnable)
+{
+    GetCompositeGOHelper()->setFeatureDetectionEnabled(toEnable);
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetCompositeColorDetectionWeight(double* weight)
+{
+    GetCompositeGOHelper()->setColorDetectionWeight(weight);
+
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetColorProjectionModeEnabled(bool toEnable)
+{
+    GetCompositeGOHelper()->setColorProjectionEnabled(toEnable);
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetCompositeOpacityInverted(bool toEnable)
+{
+    GetCompositeGOHelper()->setCompositeOpacityInverted(toEnable);
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqSetNumberOfData(int num)
+{
+    if (num <= 0 || num > 3) {
+        return;
+    }
+    m_vqNumData = num;
+    m_vqSavedImage.resize(m_vqNumData);
+    m_vqSavedVolume.resize(m_vqNumData);
+
+    for (std::size_t i = 0; i < m_vqSavedImage.size(); i++) {
+        m_vqSavedVolume[i] = NULL;
+        m_vqSavedImage[i] = NULL;
+    }
+}
+
+void vtkFixedPointVolumeRayCastMapper::vqUpdateAlpha()
+{
+    unsigned short* image = this->RayCastImage->GetImage();
+    unsigned short* iptr;
+
+    int fullSize[2];
+    this->RayCastImage->GetImageMemorySize(fullSize);
+
+    int size[2];
+    this->RayCastImage->GetImageInUseSize(size);
+
+    int i, j;
+
+    for (j = 0; j < fullSize[1]; j++)
+    {
+        iptr = image + 4 * j * fullSize[0];
+        for (i = 0; i < size[0]; i++)
+        {
+            int tmp = 0;
+            int sum = 0;
+            if (!m_vqLightOnly) {
+                tmp = (int)((float)(32767) * m_vqAlpha);
+                iptr += 3;
+            }
+            else {
+                for (int c = 0; c < 3; c++) {
+                    sum += *iptr;
+                    iptr++;
+                }
+                tmp = sum / 3;
+            }
+            tmp = (tmp < 0) ? (0) : (tmp);
+            tmp = (tmp > 32767) ? (32767) : (tmp);
+            *iptr = tmp;
+            iptr++;
+        }
+    }
+}
+
+//VQ ADDED
+bool vtkFixedPointVolumeRayCastMapper::vqFuseImages(vtkFixedPointRayCastImage* image1, vtkFixedPointRayCastImage* image2)
+{
+    if (image1 == NULL || image2 == NULL) {
+        return false;
+    }
+
+    int imgFullSize1[2];
+    image1->GetImageMemorySize(imgFullSize1);
+    int imgSize1[2];
+    image1->GetImageInUseSize(imgSize1);
+
+    int imgFullSize2[2];
+    image2->GetImageMemorySize(imgFullSize2);
+    int imgSize2[2];
+    image2->GetImageInUseSize(imgSize2);
+
+    if (imgSize1[0] != imgSize2[0] || imgSize1[1] != imgSize2[1] ||
+        imgFullSize1[0] != imgFullSize2[0] || imgFullSize1[1] != imgFullSize2[1]) {
+        return false;
+    }
+
+
+    unsigned short* imageptr1 = image1->GetImage();
+    unsigned short* imageptr2 = image2->GetImage();
+    unsigned short* ptr1 = 0, * ptr2 = 0;
+
+    for (int j = 0; j < imgFullSize2[1]; j++)
+    {
+        ptr1 = imageptr1 + 4 * j * imgFullSize2[0];
+        ptr2 = imageptr2 + 4 * j * imgFullSize2[0];
+        for (int i = 0; i < imgSize2[0]; i++)
+        {
+            for (int c = 0; c < 4; c++) {
+                int tmp1 = *ptr1;
+                int tmp2 = *ptr2;
+                int fusedClr = VQDissolveAndLighten(tmp1, tmp2, 255 * (1.5 - this->FinalColorLevel));
+                *ptr2 = fusedClr;
+                ptr2++;
+                ptr1++;
+            }
+        }
+    }
+    return true;
 }
