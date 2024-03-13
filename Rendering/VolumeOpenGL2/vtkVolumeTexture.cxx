@@ -46,15 +46,16 @@ vtkVolumeTexture::~vtkVolumeTexture()
 vtkStandardNewMacro(vtkVolumeTexture);
 
 //-----------------------------------------------------------------------------
-void vtkVolumeTexture::SetMapper(vtkOpenGLGPUVolumeRayCastMapper* mapper)
+void vtkVolumeTexture::SetMapper(int* cellflagin)// vtkOpenGLGPUVolumeRayCastMapper* mapper)
 {
-  if (mapper == NULL)
+  if (!cellflagin)//mapper == NULL)
   {
     vtkErrorMacro("Invalid mapper!");
     return;
   }
 
-  this->Mapper = mapper;
+  this->cellflag = cellflagin;
+  //this->Mapper = mapper;
 }
 
 //-----------------------------------------------------------------------------
@@ -74,7 +75,7 @@ bool vtkVolumeTexture::LoadVolume(vtkRenderer* ren, vtkImageData* data,
   }
   else // Single block
   {
-    if (this->Mapper->CellFlag == 1)
+    if (*this->cellflag == 1)
     {
       this->AdjustExtentForCell(this->FullExtent);
     }
@@ -162,9 +163,9 @@ void vtkVolumeTexture::CreateBlocks(unsigned int const format,
   this->FullSize[2] = this->FullExtent[5] - this->FullExtent[4] + 1;
   // Cell adjusted size. Offset is 1 if current data array is cell data (see
   // vtkAbstractMapper::GetAbstractScalars)
-  this->FullSizeAdjusted[0] = this->FullSize[0] - this->Mapper->CellFlag;
-  this->FullSizeAdjusted[1] = this->FullSize[1] - this->Mapper->CellFlag;
-  this->FullSizeAdjusted[2] = this->FullSize[2] - this->Mapper->CellFlag;
+  this->FullSizeAdjusted[0] = this->FullSize[0] - *this->cellflag;
+  this->FullSizeAdjusted[1] = this->FullSize[1] - *this->cellflag;
+  this->FullSizeAdjusted[2] = this->FullSize[2] - *this->cellflag;
 
   size_t const numBlocks = this->ImageDataBlocks.size();
   for (size_t i = 0; i < numBlocks; i++)
@@ -427,7 +428,7 @@ void vtkVolumeTexture::SplitVolume(vtkImageData* imageData, Size3 const & part)
 
         // Adjust extents depending on the data representation (cell or point) and
         // compute texture size.
-        if (this->Mapper->CellFlag == 1)
+        if (*this->cellflag == 1)
         {
           this->AdjustExtentForCell(ext);
         }

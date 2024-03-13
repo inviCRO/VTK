@@ -258,7 +258,7 @@ private:
     VTK_DELETE_FUNCTION;
 };
 
-vtkStandardNewMacro(vtkOpenGLVolumeOpacityTable);
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

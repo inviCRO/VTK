@@ -19,6 +19,10 @@
 #include "vtkNew.h"                          // For vtkNew
 #include "vtkRenderingVolumeOpenGL2Module.h" // For export macro
 #include "vtkGPUVolumeRayCastMapper.h"
+#include <vtkRayCastImageDisplayHelper.h>
+
+#define VOLUME_GRADIENT
+
 
 // Forward declarations
 class vtkGenericOpenGLResourceFreeCallback;
@@ -27,6 +31,13 @@ class vtkOpenGLCamera;
 class vtkShaderProgram;
 class vtkTextureObject;
 class vtkVolumeTexture;
+
+enum VQCompositeMethod {
+    RegularComposite = 0,
+    FeatureDetection = 1,
+    ColorProjection = 2
+};
+
 
 //----------------------------------------------------------------------------
 class VTKRENDERINGVOLUMEOPENGL2_EXPORT vtkOpenGLGPUVolumeRayCastMapper :
@@ -43,6 +54,50 @@ public:
 
   vtkTypeMacro(vtkOpenGLGPUVolumeRayCastMapper, vtkGPUVolumeRayCastMapper);
   void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
+	void setVolumeBlendWeight(float blendCoef)override;
+    void setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend)override;
+    void lowResAutoRender(bool toEnable) override { m_lowResAutoRendering = toEnable; }
+    void setNumberOfData(int num)override { if (num <= 0) m_numData = 1; if (num > 3) num = 3; m_numData = num; }
+    void setIsoSurfaceExtraction(bool toEnable) override { m_isoSurfaceExtraction = toEnable; }
+    void setFeatureDetectionWeight(double weight)override
+    {
+        m_weight = weight;
+    }
+    void setFeatureDetectionThreshold(double threshold)override
+    {
+        m_threshold = threshold;
+    }
+    void setCompositeFeatureDetectionEnable(bool toEnable)override
+    {
+        if (toEnable) {
+            m_compositeMethod = FeatureDetection;
+        } else {
+            if (m_compositeMethod == FeatureDetection) {
+                m_compositeMethod = RegularComposite;
+            }
+        }
+    }
+    void setFeatureDetectionTransPeriod(double transPeriod)override
+    {
+        m_transPeriod = transPeriod;
+    }
+    void setColorProjectionModeEnabled(bool toEnable) override {
+        if (toEnable) {
+            m_compositeMethod = ColorProjection;
+        } else {
+            if (m_compositeMethod == ColorProjection)
+                m_compositeMethod = RegularComposite;
+        }
+
+    }
+    void setCompositeOpacityInverted(bool toEnable)override {
+        m_opinvert = toEnable;
+    }
+
+  void setCompositeColorDetectionWeight(double* weight) override
+  {for(int i = 0; i < 3; i++) {m_channelWeight[i] = weight[i];}}
+  unsigned char** GetGradientMagnitude() override;
+  void setVolumeFlip(bool flip[3]) override;
 
   // Description:
   // Low level API to enable access to depth texture in
@@ -122,6 +177,13 @@ protected:
   // Description:
   // Build vertex and fragment shader for the volume rendering
   void BuildShader(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents);
+
+  //JKP need this for bit to transition the standard blend modes back to VTK
+  //and leave the VQ stuff specific for the moment.
+  //This will include:
+  //    COMPOSITE_BLEND
+  //    m_isoSurfaceExtraction
+  void BuildShaderLegacy(vtkRenderer* ren, vtkVolume* vol, int noOfCmponents, std::string& vertexShader, std::string& fragmentShader);
 
   // TODO Take these out as these are no longer needed
   // Methods called by the AMR Volume Mapper.
@@ -207,7 +269,20 @@ protected:
 
   double ReductionFactor;
   int    CurrentPass;
-
+  float m_alpha;
+  vtkRayCastImageDisplayHelper::vqVolumeBlendFunction m_blending;
+  int m_lightOnly;
+  static int m_numData;
+  VQCompositeMethod m_compositeMethod;
+  bool m_lowResAutoRendering;
+  double m_weight;
+  double m_threshold;
+  double m_transPeriod;
+  double m_channelWeight[3];
+  bool m_flip[3];
+  bool m_opinvert;
+  bool m_isoSurfaceExtraction = false;
+  
 private:
   class vtkInternal;
   vtkInternal* Impl;

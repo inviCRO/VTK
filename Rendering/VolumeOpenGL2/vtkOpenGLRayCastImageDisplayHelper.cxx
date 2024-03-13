@@ -295,7 +295,7 @@ void vtkOpenGLRayCastImageDisplayHelper::RenderTextureInternal( vtkVolume *vol,
   // restore GL blend state
   glBlendFuncSeparate(blendSrcC,blendDstC,blendSrcA,blendDstA);
   //VQ had this - is it really needed?
-  //glBlendEquation(GL_FUNC_ADD);
+  glBlendEquation(GL_FUNC_ADD);
   vtkOpenGLCheckErrorMacro("failed after RenderTextureInternal");
 }
 

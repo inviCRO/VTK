@@ -16,13 +16,15 @@
 #ifndef vtkVolumeStateRAII_h
 #define vtkVolumeStateRAII_h
 
+#include "vtkRayCastImageDisplayHelper.h"
+
 // Only these states can be queries via glIsEnabled:
 // http://www.khronos.org/opengles/sdk/docs/man/
 
 class vtkVolumeStateRAII
 {
   public:
-    vtkVolumeStateRAII(bool noOp = false)
+    vtkVolumeStateRAII(bool noOp = false, vtkRayCastImageDisplayHelper::vqVolumeBlendFunction state = vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum)
       : NoOp(noOp)
     {
       if (this->NoOp)
@@ -50,7 +52,33 @@ class vtkVolumeStateRAII
       // Set the over blending function
       // NOTE: It is important to choose GL_ONE vs GL_SRC_ALPHA as our colors
       // will be premultiplied by the alpha value (doing front to back blending)
-      glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+      //glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+
+      switch (state)
+      {
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum:
+          glBlendEquation(GL_MAX);
+          break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Alpha:
+          glBlendEquation(GL_FUNC_ADD);
+          glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+          break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::DestColor:
+          glBlendEquation(GL_FUNC_ADD);
+          glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE);
+          break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearDest:
+          glBlendEquation(GL_FUNC_ADD);
+          glBlendFunc(GL_ONE, GL_ZERO);
+          break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearSource:
+          glBlendEquation(GL_FUNC_ADD);
+          glBlendFunc(GL_ZERO, GL_ONE);
+          break;
+      default:
+          glBlendEquation(GL_MAX);
+          break;
+      }
 
       if (!this->BlendEnabled)
       {
@@ -98,6 +126,8 @@ class vtkVolumeStateRAII
       }
 
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      //VQ ADDED - is this really needed
+      //glBlendEquation(GL_FUNC_ADD);
 
       if (!this->BlendEnabled)
       {
