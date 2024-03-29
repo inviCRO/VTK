@@ -854,7 +854,7 @@ void vtkFixedPointCompositeGOHelperGenerateImageIndependentTrilin( T *data,
 
   }
 
-  if (VQ2->colorProjection)
+  if (VQ2 && VQ2->colorProjection)
   {
       for (int com = 0; com < components; com++) {
           color[com] = static_cast<unsigned int>(static_cast<double>(color[com]) * VQ2->weight);
