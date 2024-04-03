@@ -811,6 +811,9 @@ bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadData(vtkRenderer* ren,
                          this->Extents, vol);
     this->InputUpdateTime.Modified();
 
+#ifdef VOLUME_GRADIENT
+    this->GradientUpdateRequired = 1;
+#endif
     return success;
 }
 
