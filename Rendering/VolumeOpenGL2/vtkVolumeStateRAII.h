@@ -126,8 +126,8 @@ class vtkVolumeStateRAII
       }
 
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      //VQ ADDED - is this really needed
-      //glBlendEquation(GL_FUNC_ADD);
+      //Set to what is typically the default blend equation after VQ hijacked it
+      glBlendEquation(GL_FUNC_ADD);
 
       if (!this->BlendEnabled)
       {
