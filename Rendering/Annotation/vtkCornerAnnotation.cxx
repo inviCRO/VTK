@@ -383,6 +383,7 @@ int GetNumberOfLines(const char *str)
 //----------------------------------------------------------------------------
 int vtkCornerAnnotation::RenderOpaqueGeometry(vtkViewport *viewport)
 {
+  static bool secondPass = false;
   int fontSize;
 
   // Check to see whether we have to rebuild everything
@@ -625,6 +626,18 @@ int vtkCornerAnnotation::RenderOpaqueGeometry(vtkViewport *viewport)
     {
       this->TextActor[i]->RenderOpaqueGeometry(viewport);
     }
+  }
+  else
+  {
+      if (secondPass) {
+          return;
+      }
+
+      this->ClearAllTexts();
+      this->SetText(TextPosition::LowerLeft, "Labels Exceed Limits");
+      secondPass = true;
+      this->RenderOpaqueGeometry(viewport);
+      secondPass = false;
   }
 
   return 1;
