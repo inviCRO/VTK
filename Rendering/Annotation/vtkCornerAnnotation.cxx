@@ -630,7 +630,7 @@ int vtkCornerAnnotation::RenderOpaqueGeometry(vtkViewport *viewport)
   else
   {
       if (secondPass) {
-          return;
+          return 1;
       }
 
       this->ClearAllTexts();
