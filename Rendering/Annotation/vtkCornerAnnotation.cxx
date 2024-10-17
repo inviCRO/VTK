@@ -572,7 +572,7 @@ int vtkCornerAnnotation::RenderOpaqueGeometry(vtkViewport *viewport)
               height_02 > line_max_02 ||
               height_13 > line_max_13 ||
               height_47 > line_max_47) &&
-             fontSize > 0)
+             fontSize > this->MinimumFontSize)
       {
         fontSize--;
         for (int i = 0; i < NumTextPositions; i++)
