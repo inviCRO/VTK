@@ -627,7 +627,6 @@ int vtkCornerAnnotation::RenderOpaqueGeometry(vtkViewport *viewport)
     }
   }
 
-
   return 1;
 }
 
