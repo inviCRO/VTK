@@ -461,6 +461,16 @@ void vtkVolumeTexture::SelectTextureFormat(unsigned int& format,
 
   this->HandleLargeDataTypes = false;
 
+  // Cache the array's scalar range
+  for (int n = 0; n < noOfComponents; ++n)
+  {
+      double* range = this->Scalars->GetFiniteRange(n);
+      for (int i = 0; i < 2; ++i)
+      {
+          this->ScalarRange[n][i] = range[i];
+      }
+  }
+
   // Pixel Transfer Data Value To NI (Normalized Integer [0, 1] or [-1, 1])
   double OglScale = 1.0;
   double OglBias = 0.0;
@@ -470,22 +480,32 @@ void vtkVolumeTexture::SelectTextureFormat(unsigned int& format,
     case VTK_FLOAT:
       if (supportsFloat)
       {
+          bool singleprecision = false;
+          for (int n = 0; n < noOfComponents; ++n)
+          {
+              double lower = this->ScalarRange[n][0];
+              double upper = this->ScalarRange[n][1];
+              if (lower < -65504.0 || upper > 65504) {//(sign) * (2 - 2^-10) * 2^15 for half precision
+                  singleprecision = true;
+              }
+          }
+
         switch(noOfComponents)
         {
           case 1:
-            internalFormat = GL_R16F;
+            internalFormat = singleprecision ? GL_R32F : GL_R16F;
             format = GL_RED;
             break;
           case 2:
-            internalFormat = GL_RG16F;
+            internalFormat = singleprecision ? GL_RG32F : GL_RG16F;
             format = GL_RG;
             break;
           case 3:
-            internalFormat = GL_RGB16F;
+            internalFormat = singleprecision ? GL_RGB32F : GL_RGB16F;
             format = GL_RGB;
             break;
           case 4:
-            internalFormat = GL_RGBA16F;
+            internalFormat = singleprecision ? GL_RGBA32F : GL_RGBA16F;
             format = GL_RGBA;
             break;
         }
@@ -588,16 +608,6 @@ void vtkVolumeTexture::SelectTextureFormat(unsigned int& format,
     default:
       assert("check: impossible case" && 0);
       break;
-  }
-
-  // Cache the array's scalar range
-  for (int n = 0; n < noOfComponents; ++n)
-  {
-    double* range = this->Scalars->GetFiniteRange(n);
-    for (int i = 0; i < 2; ++i)
-    {
-      this->ScalarRange[n][i] = range[i];
-    }
   }
 
   // Pixel Transfer NI to LUT Tex.Coord. [0, 1]

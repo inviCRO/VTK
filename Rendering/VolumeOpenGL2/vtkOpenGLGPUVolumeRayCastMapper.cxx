@@ -2799,6 +2799,29 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources(
   this->Impl->ReleaseResourcesTime.Modified();
 }
 
+#ifdef VQ_TEST_SHADER   
+/*
+* Debugging shaders is not he easiest thing in the world. Some GPU tooling will allow edits, 
+* but having this poor mans real time glsl loader going a long way for quick trouble shooting
+*/
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+bool loadFileToString(const std::string& filePath, std::string& outContents) {
+    std::ifstream file(filePath); // Open the file
+    if (!file) {
+        return false; // Return false if the file couldn't be opened
+    }
+
+    std::ostringstream buffer;
+    buffer << file.rdbuf();      // Read file contents into buffer
+    outContents = buffer.str();  // Assign buffer to output parameter
+    return true;                 // Return true if successful
+}
+#endif
+
 //----------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
     vtkVolume* vol,
@@ -3183,10 +3206,46 @@ void vtkOpenGLGPUVolumeRayCastMapper::BuildShader(vtkRenderer* ren,
 
     this->ReplaceShaderRenderPass(vertexShader, fragmentShader, vol, false);
 
+
+#ifdef VQ_TEST_SHADER    
+    std::string vextex_contents;
+    const char* use_vertex = vertexShader.c_str();
+
+    std::string fragment_contents;
+    const char* use_fragment = fragmentShader.c_str();
+
+    if (this->BlendMode == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
+    {
+        std::string fileVertPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_vertex.glsl"; // Replace with your file path
+
+        if (loadFileToString(fileVertPath, vextex_contents)) {
+            use_vertex = vextex_contents.c_str();
+            //std::cout << "File contents:\n" << vextex_contents << std::endl;
+        }
+        else {
+            std::cerr << "Failed to load file: " << fileVertPath << std::endl;
+        }
+
+        std::string fileFragPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_fragment.glsl"; // Replace with your file path
+
+        if (loadFileToString(fileFragPath, fragment_contents)) {
+            use_fragment = fragment_contents.c_str();
+            //std::cout << "File contents:\n" << vextex_contents << std::endl;
+        }
+        else {
+            std::cerr << "Failed to load file: " << fileFragPath << std::endl;
+        }
+    }
+
+    this->Impl->ShaderProgram = this->Impl->ShaderCache->ReadyShaderProgram(
+        use_vertex, use_fragment, "");
+#else
     // Now compile the shader
     //--------------------------------------------------------------------------
     this->Impl->ShaderProgram = this->Impl->ShaderCache->ReadyShaderProgram(
         vertexShader.c_str(), fragmentShader.c_str(), "");
+#endif
+
     if (!this->Impl->ShaderProgram || !this->Impl->ShaderProgram->GetCompiled())
     {
         vtkErrorMacro("Shader failed to compile");
