@@ -34,6 +34,7 @@
 
 #include "vtkRenderingVolumeModule.h" // For export macro
 #include "vtkVolumeMapper.h"
+#include "vtkRayCastImageDisplayHelper.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkContourValues;
@@ -46,6 +47,22 @@ public:
   static vtkGPUVolumeRayCastMapper* New();
   vtkTypeMacro(vtkGPUVolumeRayCastMapper, vtkVolumeMapper);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  virtual void setVolumeBlendWeight(float blendCoef){};
+  virtual void setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend){};
+  virtual void lowResAutoRender(bool toEnable){};
+  virtual void setNumberOfData(int num){};
+  virtual void setIsoSurfaceExtraction(bool toEnable){};
+  virtual void setFeatureDetectionWeight(double weight){};
+  virtual void setFeatureDetectionThreshold(double threshold){};
+  virtual void setCompositeFeatureDetectionEnable(bool toEnable){};
+  virtual void setFeatureDetectionTransPeriod(double transPeriod){};
+  virtual void setColorProjectionModeEnabled(bool toEnable){};
+  virtual void setCompositeOpacityInverted(bool toEnable){};
+
+  virtual void setCompositeColorDetectionWeight(double* weight){};
+  virtual unsigned char** GetGradientMagnitude() { return nullptr; };
+  virtual void setVolumeFlip(bool flip[3]){};
 
   ///@{
   /**

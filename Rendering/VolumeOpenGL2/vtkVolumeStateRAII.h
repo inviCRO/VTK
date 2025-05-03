@@ -17,6 +17,8 @@
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLState.h"
 
+#include "vtkRayCastImageDisplayHelper.h"
+
 // Only these states can be queries via glIsEnabled:
 // http://www.khronos.org/opengles/sdk/docs/man/
 
@@ -24,7 +26,7 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkVolumeStateRAII
 {
 public:
-  vtkVolumeStateRAII(vtkOpenGLState* ostate, bool noOp = false)
+  vtkVolumeStateRAII(vtkOpenGLState* ostate, bool noOp = false, vtkRayCastImageDisplayHelper::vqVolumeBlendFunction state = vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum)
     : NoOp(noOp)
   {
     this->State = ostate;
@@ -51,7 +53,35 @@ public:
     // Set the over blending function
     // NOTE: It is important to choose GL_ONE vs GL_SRC_ALPHA as our colors
     // will be premultiplied by the alpha value (doing front to back blending)
-    ostate->vtkglBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    //ostate->vtkglBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    
+
+    switch (state)
+    {
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum:
+        ostate->vtkglBlendEquation(GL_MAX);
+        break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Alpha:
+        ostate->vtkglBlendEquation(GL_FUNC_ADD);
+        ostate->vtkglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::DestColor:
+        ostate->vtkglBlendEquation(GL_FUNC_ADD);
+        ostate->vtkglBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE);
+        break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearDest:
+        ostate->vtkglBlendEquation(GL_FUNC_ADD);
+        ostate->vtkglBlendFunc(GL_ONE, GL_ZERO);
+        break;
+      case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearSource:
+        ostate->vtkglBlendEquation(GL_FUNC_ADD);
+        ostate->vtkglBlendFunc(GL_ZERO, GL_ONE);
+        break;
+      default:
+        ostate->vtkglBlendEquation(GL_MAX);
+        break;
+    }
+
 
     ostate->vtkglEnable(GL_BLEND);
 
@@ -78,6 +108,8 @@ public:
     this->State->vtkglCullFace(this->CullFaceMode);
     this->State->SetEnumState(GL_CULL_FACE, this->CullFaceEnabled);
     this->State->vtkglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Set to what is typically the default blend equation after VQ hijacked it
+    this->State->vtkglBlendEquation(GL_FUNC_ADD);
 
     // this does not actually restore the state always
     // but a test fails if I change it so either the original

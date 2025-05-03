@@ -154,6 +154,7 @@ public:
     this->PreserveGLState = false;
 
     this->Partitions[0] = this->Partitions[1] = this->Partitions[2] = 1;
+    this->m_alpha = 1.0;
   }
 
   // Destructor
@@ -487,6 +488,8 @@ public:
 
   vtkShaderProgram* ShaderProgram;
   vtkOpenGLShaderCache* ShaderCache;
+
+  float m_alpha = 1.0f;
 
   vtkOpenGLFramebufferObject* FBO;
   vtkTextureObject* RTTDepthBufferTextureObject;
@@ -2165,6 +2168,10 @@ vtkOpenGLGPUVolumeRayCastMapper::vtkOpenGLGPUVolumeRayCastMapper()
 
   this->ResourceCallback = new vtkOpenGLResourceFreeCallback<vtkOpenGLGPUVolumeRayCastMapper>(
     this, &vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources);
+
+  this->m_alpha = 1.0f;
+  this->Impl->m_alpha = 1.0f;
+  m_blending = vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum;
 }
 
 //------------------------------------------------------------------------------
@@ -3243,7 +3250,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
     {
       this->Impl->BeginPicking(ren);
     }
-    vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState);
+    vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState, m_blending);
 
     if (this->Impl->ShaderRebuildNeeded(cam, vol, renderPassTime, ren))
     {
@@ -3934,6 +3941,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
     this->SetCameraShaderParameters(prog, ren, cam);
     this->SetAdvancedShaderParameters(ren, prog, vol, block, numComp);
 
+    prog->SetUniformf("fuseCoef", this->m_alpha); // VQ added diff from 6.3
+
     this->RenderVolumeGeometry(ren, prog, vol, block->VolumeGeometry);
 
     this->FinishRendering(numComp);
@@ -4111,4 +4120,16 @@ void vtkOpenGLGPUVolumeRayCastMapper::SetShaderParametersRenderPass()
     }
   }
 }
+
+void vtkOpenGLGPUVolumeRayCastMapper::setVolumeBlendWeight(float blendCoef)
+{
+  this->m_alpha = blendCoef;
+  this->Impl->m_alpha = blendCoef;
+}
+
+void vtkOpenGLGPUVolumeRayCastMapper::setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend)
+{
+  m_blending = blend;
+}
+
 VTK_ABI_NAMESPACE_END
