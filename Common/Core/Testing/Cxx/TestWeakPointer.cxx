@@ -17,61 +17,42 @@
 // Tests instantiations of the vtkWeakPointer class template.
 
 #include "vtkDebugLeaks.h"
-#include "vtkFloatArray.h"
 #include "vtkIntArray.h"
 #include "vtkWeakPointer.h"
 
-int TestWeakPointer(int,char *[])
+int TestWeakPointer(int, char*[])
 {
   int rval = 0;
   vtkIntArray* ia = vtkIntArray::New();
 
   // Coverage:
   unsigned int testbits = 0;
-  unsigned int correctbits = 0x004d3953;
-  const char *tests[] = {
-    "da2 == da3", "da2 != da3", "da2 < da3", "da2 <= da3", "da2 > da3",
-      "da2 >= da3",
-    "ia == da3", "ia != da3", "ia < da3", "ia <= da3", "ia > da3", "ia >= da3",
-    "da2 == ia", "da2 != ia", "da2 < ia", "da2 <= ia", "da2 > ia", "da2 <= ia",
-      "da2 > ia", "da2 >= ia",
-    "da1 == 0", "da1 != 0", "da1 < 0", "da1 <= 0", "da1 > 0", "da1 >= 0",
-    NULL };
+  unsigned int correctbits = 0x00000953;
+  const char* tests[] = { "da2 == ia", "da2 != ia", "da2 < ia", "da2 <= ia", "da2 > ia",
+    "da2 <= ia", "da2 > ia", "da2 >= ia", "da1 == 0", "da1 != 0", "da1 < 0", "da1 <= 0", "da1 > 0",
+    "da1 >= 0", nullptr };
 
-  vtkWeakPointer<vtkIntArray>  da2(ia);
-  vtkWeakPointer<vtkFloatArray> da3;
+  auto da2 = vtk::TakeWeakPointer(ia); // da2 is vtkWeakPointer<vtkIntArray>
   vtkWeakPointer<vtkDataArray> da1(da2);
   da1 = ia;
   da1 = da2;
-  testbits = (testbits << 1) | ((da2 == da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((da2 != da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((da2 < da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((da2 <= da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((da2 > da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((da2 >= da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((ia == da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((ia != da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((ia < da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((ia <= da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((ia > da3) ? 1 : 0);
-  testbits = (testbits << 1) | ((ia >= da3) ? 1 : 0);
   testbits = (testbits << 1) | ((da2 == ia) ? 1 : 0);
   testbits = (testbits << 1) | ((da2 != ia) ? 1 : 0);
   testbits = (testbits << 1) | ((da2 < ia) ? 1 : 0);
   testbits = (testbits << 1) | ((da2 <= ia) ? 1 : 0);
   testbits = (testbits << 1) | ((da2 > ia) ? 1 : 0);
   testbits = (testbits << 1) | ((da2 >= ia) ? 1 : 0);
-  testbits = (testbits << 1) | ((da1 == 0) ? 1 : 0);
-  testbits = (testbits << 1) | ((da1 != 0) ? 1 : 0);
-  testbits = (testbits << 1) | ((da1 < 0) ? 1 : 0);
-  testbits = (testbits << 1) | ((da1 <= 0) ? 1 : 0);
-  testbits = (testbits << 1) | ((da1 > 0) ? 1 : 0);
-  testbits = (testbits << 1) | ((da1 >= 0) ? 1 : 0);
+  testbits = (testbits << 1) | ((da1 == nullptr) ? 1 : 0);
+  testbits = (testbits << 1) | ((da1 != nullptr) ? 1 : 0);
+  testbits = (testbits << 1) | ((da1 < nullptr) ? 1 : 0);
+  testbits = (testbits << 1) | ((da1 <= nullptr) ? 1 : 0);
+  testbits = (testbits << 1) | ((da1 > nullptr) ? 1 : 0);
+  testbits = (testbits << 1) | ((da1 >= nullptr) ? 1 : 0);
   if (testbits != correctbits)
   {
     unsigned int diffbits = (testbits ^ correctbits);
     int bitcount = 0;
-    while (tests[bitcount] != NULL)
+    while (tests[bitcount] != nullptr)
     {
       bitcount++;
     }
@@ -86,40 +67,139 @@ int TestWeakPointer(int,char *[])
   }
 
   (*da1).SetNumberOfComponents(1);
-  if(da2)
+  if (da2)
   {
     da2->SetNumberOfComponents(1);
   }
-  if(!da2)
+  if (!da2)
   {
-    cerr << "da2 is NULL!" << "\n";
+    cerr << "da2 is nullptr!"
+         << "\n";
     rval = 1;
   }
   cout << "IntArray: " << da2 << "\n";
 
-  if (da1.GetPointer() == 0)
+  if (da1 == nullptr)
   {
-    cerr << "da1.GetPointer() is NULL\n";
+    cerr << "da1 is nullptr\n";
     rval = 1;
   }
-  if (da2.GetPointer() == 0)
+  if (da2 == nullptr)
   {
-    cerr << "da2.GetPointer() is NULL\n";
-    rval = 1;
-  }
-  if (da3.Get() != 0)
-  {
-    cerr << "da3.GetPointer() is not NULL\n";
+    cerr << "da2 is nullptr\n";
     rval = 1;
   }
 
-  da2 = 0;
+  da2 = nullptr;
   ia->Delete();
 
-  if (da1.GetPointer() != NULL)
+  if (da1 != nullptr)
   {
-    cerr << "da1.GetPointer() is not NULL\n";
+    cerr << "da1 is not nullptr\n";
     rval = 1;
+  }
+
+  {
+    vtkNew<vtkIntArray> array;
+    vtkWeakPointer<vtkIntArray> intArray(array);
+    if (array != intArray || array->GetReferenceCount() != 1)
+    {
+      std::cerr << "Constructing vtkWeakPointer from vtkNew failed.\n";
+      rval = 1;
+    }
+    array.Reset();
+    if (intArray)
+    {
+      std::cerr << "Weak pointer not nullptr\n";
+      rval = 1;
+    }
+  }
+
+  {
+    vtkNew<vtkIntArray> array;
+    vtkWeakPointer<vtkDataArray> dataArray(array);
+    if (array != dataArray || array->GetReferenceCount() != 1)
+    {
+      std::cerr << "Constructing vtkWeakPointer from vtkNew failed.\n";
+      rval = 1;
+    }
+    array.Reset();
+    if (dataArray)
+    {
+      std::cerr << "Weak pointer not nullptr\n";
+      rval = 1;
+    }
+  }
+
+  {
+    vtkNew<vtkIntArray> array;
+    vtkWeakPointer<vtkIntArray> intArray(array);
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    vtkWeakPointer<vtkIntArray> intArray2(intArray);
+    if (array != intArray || array != intArray2 || array->GetReferenceCount() != 1)
+    {
+      std::cerr << "Copy failed.\n";
+      rval = 1;
+    }
+    array.Reset();
+    if (intArray || intArray2)
+    {
+      std::cerr << "Weak pointer not nullptr\n";
+      rval = 1;
+    }
+  }
+
+  {
+    vtkNew<vtkIntArray> array;
+    vtkWeakPointer<vtkIntArray> intArray(array);
+    vtkWeakPointer<vtkIntArray> intArray2(std::move(intArray));
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    if (intArray || array != intArray2 || array->GetReferenceCount() != 1)
+    {
+      std::cerr << "Move failed.\n";
+      rval = 1;
+    }
+    array.Reset();
+    if (intArray || intArray2)
+    {
+      std::cerr << "Weak pointer not nullptr\n";
+      rval = 1;
+    }
+  }
+
+  {
+    vtkNew<vtkIntArray> array;
+    vtkWeakPointer<vtkIntArray> intArray(array);
+    vtkWeakPointer<vtkDataArray> dataArray(intArray);
+    if (array != intArray || array != dataArray || array->GetReferenceCount() != 1)
+    {
+      std::cerr << "Copy failed.\n";
+      rval = 1;
+    }
+    array.Reset();
+    if (dataArray || intArray)
+    {
+      std::cerr << "Weak pointer not nullptr\n";
+      rval = 1;
+    }
+  }
+
+  {
+    vtkNew<vtkIntArray> array;
+    vtkWeakPointer<vtkIntArray> intArray(array);
+    vtkWeakPointer<vtkDataArray> dataArray(std::move(intArray));
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    if (intArray || array != dataArray || array->GetReferenceCount() != 1)
+    {
+      std::cerr << "Move failed.\n";
+      rval = 1;
+    }
+    array.Reset();
+    if (dataArray)
+    {
+      std::cerr << "Weak pointer not nullptr\n";
+      rval = 1;
+    }
   }
 
   return rval;

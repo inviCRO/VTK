@@ -24,13 +24,13 @@
  *
  * Converts a vtkGraph to a vtkPolyData.  This assumes that the points
  * of the graph have already been filled (perhaps by vtkGraphLayout),
- * and coverts all the edge of the graph into lines in the polydata.
+ * and converts all the edge of the graph into lines in the polydata.
  * The vertex data is passed along to the point data, and the edge data
  * is passed along to the cell data.
  *
  * Only the owned graph edges (i.e. edges with ghost level 0) are copied
  * into the vtkPolyData.
-*/
+ */
 
 #ifndef vtkGraphToPolyData_h
 #define vtkGraphToPolyData_h
@@ -41,11 +41,11 @@
 class VTKFILTERSSOURCES_EXPORT vtkGraphToPolyData : public vtkPolyDataAlgorithm
 {
 public:
-  static vtkGraphToPolyData *New();
-  vtkTypeMacro(vtkGraphToPolyData,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkGraphToPolyData* New();
+  vtkTypeMacro(vtkGraphToPolyData, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Create a second output containing points and orientation vectors
    * for drawing arrows or other glyphs on edges.  This output should be
@@ -57,9 +57,9 @@ public:
   vtkSetMacro(EdgeGlyphOutput, bool);
   vtkGetMacro(EdgeGlyphOutput, bool);
   vtkBooleanMacro(EdgeGlyphOutput, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The position of the glyph point along the edge.
    * 0 puts a glyph point at the source of each edge.
@@ -69,11 +69,11 @@ public:
    */
   vtkSetMacro(EdgeGlyphPosition, double);
   vtkGetMacro(EdgeGlyphPosition, double);
-  //@}
+  ///@}
 
 protected:
   vtkGraphToPolyData();
-  ~vtkGraphToPolyData() VTK_OVERRIDE {}
+  ~vtkGraphToPolyData() override = default;
 
   bool EdgeGlyphOutput;
   double EdgeGlyphPosition;
@@ -83,16 +83,16 @@ protected:
   /**
    * Convert the vtkGraph into vtkPolyData.
    */
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   /**
    * Set the input type of the algorithm to vtkGraph.
    */
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkGraphToPolyData(const vtkGraphToPolyData&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGraphToPolyData&) VTK_DELETE_FUNCTION;
+  vtkGraphToPolyData(const vtkGraphToPolyData&) = delete;
+  void operator=(const vtkGraphToPolyData&) = delete;
 };
 
 #endif

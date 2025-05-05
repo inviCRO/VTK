@@ -24,7 +24,7 @@
  *
  * @sa
  * vtkWidgetEvent vtkWidgetEventTranslator
-*/
+ */
 
 #ifndef vtkWidgetCallbackMapper_h
 #define vtkWidgetCallbackMapper_h
@@ -36,7 +36,7 @@ class vtkWidgetEvent;
 class vtkAbstractWidget;
 class vtkWidgetEventTranslator;
 class vtkCallbackMap; // PIMPL encapsulation of STL map
-
+class vtkEventData;
 
 class VTKINTERACTIONWIDGETS_EXPORT vtkWidgetCallbackMapper : public vtkObject
 {
@@ -44,30 +44,30 @@ public:
   /**
    * Instantiate the class.
    */
-  static vtkWidgetCallbackMapper *New();
+  static vtkWidgetCallbackMapper* New();
 
-  //@{
+  ///@{
   /**
    * Standard macros.
    */
-  vtkTypeMacro(vtkWidgetCallbackMapper,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkWidgetCallbackMapper, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the vtkWidgetEventTranslator to coordinate with.
    */
-  void SetEventTranslator(vtkWidgetEventTranslator *t);
-  vtkGetObjectMacro(EventTranslator,vtkWidgetEventTranslator);
-  //@}
+  void SetEventTranslator(vtkWidgetEventTranslator* t);
+  vtkGetObjectMacro(EventTranslator, vtkWidgetEventTranslator);
+  ///@}
 
   /**
    * Convenient typedef for working with callbacks.
    */
   typedef void (*CallbackType)(vtkAbstractWidget*);
 
-  //@{
+  ///@{
   /**
    * This class works with the class vtkWidgetEventTranslator to set up the
    * initial coorespondence between VTK events, widget events, and callbacks.
@@ -78,15 +78,15 @@ public:
    * unsigned long eventId) then modifiers are ignored. Otherwise, a vtkEvent
    * instance is used to fully quality the events.
    */
-  void SetCallbackMethod(unsigned long VTKEvent, unsigned long widgetEvent,
-                         vtkAbstractWidget *w, CallbackType f);
-  void SetCallbackMethod(unsigned long VTKEvent, int modifiers, char keyCode,
-                         int repeatCount, const char* keySym,
-                         unsigned long widgetEvent,
-                         vtkAbstractWidget *w, CallbackType f);
-  //void SetCallbackMethod(vtkWidgetEvent *vtkEvent, unsigned long widgetEvent,
+  void SetCallbackMethod(
+    unsigned long VTKEvent, unsigned long widgetEvent, vtkAbstractWidget* w, CallbackType f);
+  void SetCallbackMethod(unsigned long VTKEvent, int modifiers, char keyCode, int repeatCount,
+    const char* keySym, unsigned long widgetEvent, vtkAbstractWidget* w, CallbackType f);
+  void SetCallbackMethod(unsigned long VTKEvent, vtkEventData* ed, unsigned long widgetEvent,
+    vtkAbstractWidget* w, CallbackType f);
+  // void SetCallbackMethod(vtkWidgetEvent *vtkEvent, unsigned long widgetEvent,
   //                       vtkAbstractWidget *w, CallbackType f);
-  //@}
+  ///@}
 
   /**
    * This method invokes the callback given a widget event. A non-zero value
@@ -96,29 +96,24 @@ public:
 
 protected:
   vtkWidgetCallbackMapper();
-  ~vtkWidgetCallbackMapper() VTK_OVERRIDE;
+  ~vtkWidgetCallbackMapper() override;
 
   // Translates VTK events into widget events
-  vtkWidgetEventTranslator *EventTranslator;
+  vtkWidgetEventTranslator* EventTranslator;
 
   // Invoke the method associated with a particular widget event
-  vtkCallbackMap *CallbackMap;
+  vtkCallbackMap* CallbackMap;
 
   /**
    * This method is used to assign a callback (implemented as a static class
    * method) to a particular widget event. This is an internal method used by
    * widgets to map widget events into invocations of class methods.
    */
-  void SetCallbackMethod(unsigned long widgetEvent,
-                         vtkAbstractWidget *w, CallbackType f);
-
+  void SetCallbackMethod(unsigned long widgetEvent, vtkAbstractWidget* w, CallbackType f);
 
 private:
-  vtkWidgetCallbackMapper(const vtkWidgetCallbackMapper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkWidgetCallbackMapper&) VTK_DELETE_FUNCTION;
-
+  vtkWidgetCallbackMapper(const vtkWidgetCallbackMapper&) = delete;
+  void operator=(const vtkWidgetCallbackMapper&) = delete;
 };
 
-
 #endif /* vtkWidgetCallbackMapper_h */
-

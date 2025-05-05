@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    DatabaseSchemaWith2Tables.cxx
+  Module:    DatabaseSchemaWith2Tables.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -19,19 +19,19 @@ class vtkSQLDatabaseSchema;
 
 class VTKTESTINGIOSQL_EXPORT DatabaseSchemaWith2Tables
 {
-  public:
-    DatabaseSchemaWith2Tables();
-    ~DatabaseSchemaWith2Tables();
-    vtkSQLDatabaseSchema* GetSchema() { return Schema; };
-    int GetTableAHandle() { return TableAHandle; };
-    int GetTableBHandle() { return TableBHandle; };
-    vtkSQLDatabaseSchema* operator->() const { return this->Schema; };
+public:
+  DatabaseSchemaWith2Tables();
+  ~DatabaseSchemaWith2Tables();
+  vtkSQLDatabaseSchema* GetSchema() { return Schema; }
+  int GetTableAHandle() { return TableAHandle; }
+  int GetTableBHandle() { return TableBHandle; }
+  vtkSQLDatabaseSchema* operator->() const { return this->Schema; }
 
-  private:
-    void Create();
-    vtkSQLDatabaseSchema* Schema;
-    int TableAHandle;
-    int TableBHandle;
+private:
+  void Create();
+  vtkSQLDatabaseSchema* Schema;
+  int TableAHandle;
+  int TableBHandle;
 };
 
 // VTK-HeaderTest-Exclude: DatabaseSchemaWith2Tables.h

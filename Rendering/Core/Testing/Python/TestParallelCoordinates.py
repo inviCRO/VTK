@@ -3,7 +3,7 @@ import vtk
 from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
-# This example converts data to a field and then displays it using 
+# This example converts data to a field and then displays it using
 # parallel coordinates,
 # Create a reader and write out the field
 reader = vtk.vtkUnstructuredGridReader()
@@ -12,6 +12,7 @@ reader.SetVectorsName("displacement9")
 reader.SetScalarsName("thickness9")
 ds2do = vtk.vtkDataSetToDataObjectFilter()
 ds2do.SetInputConnection(reader.GetOutputPort())
+ds2do.ModernTopologyOff() # Backwards compatibility
 ds2do.Update()
 actor = vtk.vtkParallelCoordinatesActor()
 actor.SetInputConnection(ds2do.GetOutputPort())

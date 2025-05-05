@@ -1,45 +1,52 @@
 #!/usr/bin/env python
 import vtk
 from vtk.util.misc import vtkGetDataRoot
+
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 res = 50
 
-# Create the RenderWindow, Renderer and both Actors
-#
+# Create the RenderWindow, Renderers and both Actors
 ren0 = vtk.vtkRenderer()
 ren1 = vtk.vtkRenderer()
+ren2 = vtk.vtkRenderer()
 renWin = vtk.vtkRenderWindow()
 renWin.SetMultiSamples(0)
 renWin.AddRenderer(ren0)
 renWin.AddRenderer(ren1)
+renWin.AddRenderer(ren2)
 iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 
 # Create a synthetic source: sample a sphere across a volume
 sphere = vtk.vtkSphere()
-sphere.SetCenter( 0.0,0.0,0.0)
+sphere.SetCenter(0.0, 0.0, 0.0)
 sphere.SetRadius(0.25)
 
 sample = vtk.vtkSampleFunction()
 sample.SetImplicitFunction(sphere)
-sample.SetModelBounds(-0.5,0.5, -0.5,0.5, -0.5,0.5)
-sample.SetSampleDimensions(res,res,res)
+sample.SetModelBounds(-0.5, 0.5, -0.5, 0.5, -0.5, 0.5)
+sample.SetSampleDimensions(res, res, res)
 sample.Update()
+
+# Adds random attributes
+random = vtk.vtkRandomAttributeGenerator()
+random.SetGenerateCellScalars(True)
+random.SetInputConnection(sample.GetOutputPort())
 
 # Convert the image data to unstructured grid
 extractionSphere = vtk.vtkSphere()
 extractionSphere.SetRadius(100)
-extractionSphere.SetCenter(0,0,0)
+extractionSphere.SetCenter(0, 0, 0)
 extract = vtk.vtkExtractGeometry()
 extract.SetImplicitFunction(extractionSphere)
-extract.SetInputConnection(sample.GetOutputPort())
+extract.SetInputConnection(random.GetOutputPort())
 extract.Update()
 
 # The cut plane
 plane = vtk.vtkPlane()
-plane.SetOrigin(0,0,0)
-plane.SetNormal(1,1,1)
+plane.SetOrigin(0, 0, 0)
+plane.SetNormal(1, 1, 1)
 
 # Now create the usual cutter
 cutter = vtk.vtkCutter()
@@ -52,7 +59,7 @@ cutterMapper.ScalarVisibilityOff()
 
 cutterActor = vtk.vtkActor()
 cutterActor.SetMapper(cutterMapper)
-cutterActor.GetProperty().SetColor(1,1,1)
+cutterActor.GetProperty().SetColor(1, 1, 1)
 
 # Throw in an outline
 outline = vtk.vtkOutlineFilter()
@@ -70,13 +77,28 @@ cut.SetInputConnection(extract.GetOutputPort())
 cut.SetPlane(plane)
 cut.ComputeNormalsOff()
 
-sCutterMapper = vtk.vtkCompositePolyDataMapper()
+sCutterMapper = vtk.vtkPolyDataMapper()
 sCutterMapper.SetInputConnection(cut.GetOutputPort())
 sCutterMapper.ScalarVisibilityOff()
 
 sCutterActor = vtk.vtkActor()
 sCutterActor.SetMapper(sCutterMapper)
-sCutterActor.GetProperty().SetColor(1,1,1)
+sCutterActor.GetProperty().SetColor(1, 1, 1)
+
+# Accelerated cutter without tree
+ncut = vtk.vtkPlaneCutter()
+ncut.SetInputConnection(extract.GetOutputPort())
+ncut.SetPlane(plane)
+ncut.ComputeNormalsOff()
+ncut.BuildTreeOff()
+
+snCutterMapper = vtk.vtkPolyDataMapper()
+snCutterMapper.SetInputConnection(ncut.GetOutputPort())
+snCutterMapper.ScalarVisibilityOff()
+
+snCutterActor = vtk.vtkActor()
+snCutterActor.SetMapper(snCutterMapper)
+snCutterActor.GetProperty().SetColor(1, 1, 1)
 
 outlineT = vtk.vtkOutlineFilter()
 outlineT.SetInputConnection(sample.GetOutputPort())
@@ -92,38 +114,42 @@ cutter_timer = vtk.vtkExecutionTimer()
 cutter_timer.SetFilter(cutter)
 cutter.Update()
 CT = cutter_timer.GetElapsedWallClockTime()
-print ("vtkCutter:", CT)
+print("vtkCutter:", CT)
 
 # Time the execution of the filter w/ sphere tree
 sCutter_timer = vtk.vtkExecutionTimer()
 sCutter_timer.SetFilter(cut)
 cut.Update()
 ST = sCutter_timer.GetElapsedWallClockTime()
-print ("Build sphere tree + execute once:", ST)
+print("Build sphere tree + execute once:", ST)
 
 # Time subsequent cuts
 sCutter_timer.SetFilter(cut)
 plane.Modified()
 cut.Update()
 SC = sCutter_timer.GetElapsedWallClockTime()
-print ("vtkPlaneCutter:", SC)
+print("vtkPlaneCutter:", SC)
 
 # Add the actors to the renderer, set the background and size
-#
 ren0.AddActor(outlineActor)
 ren0.AddActor(cutterActor)
 ren1.AddActor(outlineActorT)
 ren1.AddActor(sCutterActor)
+ren2.AddActor(outlineActorT)
+ren2.AddActor(snCutterActor)
 
-ren0.SetBackground(0,0,0)
-ren1.SetBackground(0,0,0)
-ren0.SetViewport(0,0,0.5,1);
-ren1.SetViewport(0.5,0,1,1);
-renWin.SetSize(600,300)
+ren0.SetBackground(0, 0, 0)
+ren1.SetBackground(0, 0, 0)
+ren2.SetBackground(0, 0, 0)
+ren0.SetViewport(0, 0, 0.33, 1)
+ren1.SetViewport(0.33, 0, 0.66, 1)
+ren2.SetViewport(0.66, 0, 1, 1)
+renWin.SetSize(900, 300)
 ren0.ResetCamera()
 ren1.ResetCamera()
+ren2.ResetCamera()
 iren.Initialize()
 
 renWin.Render()
-#iren.Start()
+iren.Start()
 # --- end of script --

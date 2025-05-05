@@ -25,43 +25,58 @@
  * Note: this filter uses `vtkCompositeDataSet::ShallowCopy`, as a result, datasets at
  * leaf nodes are simply passed through, rather than being shallow-copied
  * themselves.
-*/
+ *
+ * @deprecated vtkExtractSelectedBlock is deprecated in VTK 9.2 and will be removed.
+ * Use `vtkExtractSelection` instead of `vtkExtractSelectedBlock`.
+ *
+ * Example using vtkExtractSelectedBlock:
+ *
+ * vtkNew<vtkExtractSelectedBlock> selFilter;
+ * selFilter->SetInputConnection(0, sphereSource->GetOutputPort());
+ * selFilter->SetInputConnection(1, selectionSource->GetOutputPort());
+ *
+ * Example using vtkExtractSelection:
+ *
+ * vtkNew<vtkExtractSelection> selFilter;
+ * selFilter->SetInputConnection(0, sphereSource->GetOutputPort());
+ * selFilter->SetInputConnection(1, selectionSource->GetOutputPort());
+ */
 
 #ifndef vtkExtractSelectedBlock_h
 #define vtkExtractSelectedBlock_h
 
-#include "vtkFiltersExtractionModule.h" // For export macro
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkExtractSelectionBase.h"
+#include "vtkFiltersExtractionModule.h" // For export macro
 
-class VTKFILTERSEXTRACTION_EXPORT vtkExtractSelectedBlock : public vtkExtractSelectionBase
+class VTK_DEPRECATED_IN_9_2_0("Use vtkExtractSelection instead of vtkExtractSelectedBlock.")
+  VTKFILTERSEXTRACTION_EXPORT vtkExtractSelectedBlock : public vtkExtractSelectionBase
 {
 public:
   static vtkExtractSelectedBlock* New();
   vtkTypeMacro(vtkExtractSelectedBlock, vtkExtractSelectionBase);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
   vtkExtractSelectedBlock();
-  ~vtkExtractSelectedBlock() VTK_OVERRIDE;
+  ~vtkExtractSelectedBlock() override;
 
   // Generate the output.
-  int RequestData(vtkInformation *,
-    vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   /**
    * Sets up empty output dataset
    */
-  int RequestDataObject(vtkInformation* request,
-                                vtkInformationVector** inputVector,
-                                vtkInformationVector* outputVector) VTK_OVERRIDE;
+  int RequestDataObject(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+
 private:
-  vtkExtractSelectedBlock(const vtkExtractSelectedBlock&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkExtractSelectedBlock&) VTK_DELETE_FUNCTION;
-
+  vtkExtractSelectedBlock(const vtkExtractSelectedBlock&) = delete;
+  void operator=(const vtkExtractSelectedBlock&) = delete;
 };
 
 #endif
 
-
+// VTK-HeaderTest-Exclude: vtkExtractSelectedBlock.h

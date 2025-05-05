@@ -19,14 +19,14 @@
  *
  *
  *
-*/
+ */
 
 #ifndef vtkQtStringToImage_h
 #define vtkQtStringToImage_h
 
 #include "vtkRenderingQtModule.h" // For export macro
+#include "vtkSmartPointer.h"      // For SP ivars
 #include "vtkStringToImage.h"
-#include "vtkSmartPointer.h" // For SP ivars
 
 class vtkQImageToImageSource;
 
@@ -34,11 +34,11 @@ class VTKRENDERINGQT_EXPORT vtkQtStringToImage : public vtkStringToImage
 {
 public:
   vtkTypeMacro(vtkQtStringToImage, vtkStringToImage);
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  static vtkQtStringToImage *New();
+  static vtkQtStringToImage* New();
 
-  //@{
+  ///@{
   /**
    * Given a text property and a string, get the bounding box [xmin, xmax] x
    * [ymin, ymax]. Note that this is the bounding box of the area
@@ -52,36 +52,27 @@ public:
    * is valid (it may not if GetBoundingBox() failed or if the string
    * was empty).
    */
-  vtkVector2i GetBounds(vtkTextProperty *property,
-                                const vtkUnicodeString& string, int dpi) VTK_OVERRIDE;
-  vtkVector2i GetBounds(vtkTextProperty *property,
-                                const vtkStdString& string, int dpi) VTK_OVERRIDE;
-  //@}
+  vtkVector2i GetBounds(vtkTextProperty* property, const vtkStdString& string, int dpi) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Given a text property and a string, this function initializes the
    * vtkImageData *data and renders it in a vtkImageData. textDims, if provided,
    * will be overwritten by the pixel width and height of the rendered string.
    */
-  int RenderString(vtkTextProperty *property,
-                           const vtkUnicodeString& string, int dpi,
-                           vtkImageData *data,
-                           int textDims[2] = NULL) VTK_OVERRIDE;
-  int RenderString(vtkTextProperty *property,
-                           const vtkStdString& string, int dpi,
-                           vtkImageData *data,
-                           int textDims[2] = NULL) VTK_OVERRIDE;
-  //@}
+  int RenderString(vtkTextProperty* property, const vtkStdString& string, int dpi,
+    vtkImageData* data, int textDims[2] = nullptr) override;
+  ///@}
 
   /**
    * Make a deep copy of the supplied utility class.
    */
-  void DeepCopy(vtkQtStringToImage *utility);
+  void DeepCopy(vtkQtStringToImage* utility);
 
 protected:
   vtkQtStringToImage();
-  ~vtkQtStringToImage() VTK_OVERRIDE;
+  ~vtkQtStringToImage() override;
 
   class Internals;
   Internals* Implementation;
@@ -89,8 +80,8 @@ protected:
   vtkSmartPointer<vtkQImageToImageSource> QImageToImage;
 
 private:
-  vtkQtStringToImage(const vtkQtStringToImage &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkQtStringToImage &) VTK_DELETE_FUNCTION;
+  vtkQtStringToImage(const vtkQtStringToImage&) = delete;
+  void operator=(const vtkQtStringToImage&) = delete;
 };
 
-#endif //vtkQtStringToImage_h
+#endif // vtkQtStringToImage_h

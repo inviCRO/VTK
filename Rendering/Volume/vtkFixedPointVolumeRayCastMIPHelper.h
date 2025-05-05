@@ -23,13 +23,13 @@
  *
  * @sa
  * vtkFixedPointVolumeRayCastMapper
-*/
+ */
 
 #ifndef vtkFixedPointVolumeRayCastMIPHelper_h
 #define vtkFixedPointVolumeRayCastMIPHelper_h
 
-#include "vtkRenderingVolumeModule.h" // For export macro
 #include "vtkFixedPointVolumeRayCastHelper.h"
+#include "vtkRenderingVolumeModule.h" // For export macro
 
 #include <array>
 #include "vtkMath.h"
@@ -38,25 +38,24 @@
 class vtkFixedPointVolumeRayCastMapper;
 class vtkVolume;
 
-class VTKRENDERINGVOLUME_EXPORT vtkFixedPointVolumeRayCastMIPHelper : public vtkFixedPointVolumeRayCastHelper
+class VTKRENDERINGVOLUME_EXPORT vtkFixedPointVolumeRayCastMIPHelper
+  : public vtkFixedPointVolumeRayCastHelper
 {
 public:
-  static vtkFixedPointVolumeRayCastMIPHelper *New();
-  vtkTypeMacro(vtkFixedPointVolumeRayCastMIPHelper,vtkFixedPointVolumeRayCastHelper);
-  void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
+  static vtkFixedPointVolumeRayCastMIPHelper* New();
+  vtkTypeMacro(vtkFixedPointVolumeRayCastMIPHelper, vtkFixedPointVolumeRayCastHelper);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  void  GenerateImage( int threadID,
-                               int threadCount,
-                               vtkVolume *vol,
-                               vtkFixedPointVolumeRayCastMapper *mapper) VTK_OVERRIDE;
+  void GenerateImage(int threadID, int threadCount, vtkVolume* vol,
+    vtkFixedPointVolumeRayCastMapper* mapper) override;
 
 protected:
   vtkFixedPointVolumeRayCastMIPHelper();
-  ~vtkFixedPointVolumeRayCastMIPHelper() VTK_OVERRIDE;
+  ~vtkFixedPointVolumeRayCastMIPHelper() override;
 
 private:
-  vtkFixedPointVolumeRayCastMIPHelper(const vtkFixedPointVolumeRayCastMIPHelper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkFixedPointVolumeRayCastMIPHelper&) VTK_DELETE_FUNCTION;
+  vtkFixedPointVolumeRayCastMIPHelper(const vtkFixedPointVolumeRayCastMIPHelper&) = delete;
+  void operator=(const vtkFixedPointVolumeRayCastMIPHelper&) = delete;
 };
 
 class VTKRENDERINGVOLUME_EXPORT vqFixedPointVolumeRayCastAIPHelper : public vtkFixedPointVolumeRayCastHelper
@@ -271,6 +270,3 @@ private:
 };
 
 #endif
-
-
-

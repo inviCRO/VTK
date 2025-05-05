@@ -19,30 +19,26 @@
 
 vtkStandardNewMacro(vtkVolumetricPass);
 
-// ----------------------------------------------------------------------------
-vtkVolumetricPass::vtkVolumetricPass()
-{
-}
+//------------------------------------------------------------------------------
+vtkVolumetricPass::vtkVolumetricPass() = default;
 
-// ----------------------------------------------------------------------------
-vtkVolumetricPass::~vtkVolumetricPass()
-{
-}
+//------------------------------------------------------------------------------
+vtkVolumetricPass::~vtkVolumetricPass() = default;
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkVolumetricPass::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Perform rendering according to a render state \p s.
 // \pre s_exists: s!=0
-void vtkVolumetricPass::Render(const vtkRenderState *s)
+void vtkVolumetricPass::Render(const vtkRenderState* s)
 {
-  assert("pre: s_exists" && s!=0);
+  assert("pre: s_exists" && s != nullptr);
 
-  this->NumberOfRenderedProps=0;
+  this->NumberOfRenderedProps = 0;
   this->RenderFilteredVolumetricGeometry(s);
 }

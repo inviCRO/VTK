@@ -39,84 +39,82 @@
  * pass through.
  * @sa
  * vtkImageReslice
-*/
+ */
 
 #ifndef vtkImageSlabReslice_h
 #define vtkImageSlabReslice_h
 
-#include "vtkImagingGeneralModule.h" // For export macro
 #include "vtkImageReslice.h"
+#include "vtkImagingGeneralModule.h" // For export macro
 
 class VTKIMAGINGGENERAL_EXPORT vtkImageSlabReslice : public vtkImageReslice
 {
 public:
-
-  static vtkImageSlabReslice *New();
+  static vtkImageSlabReslice* New();
   vtkTypeMacro(vtkImageSlabReslice, vtkImageReslice);
 
   /**
    * Printself method.
    */
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set/Get the blend mode. Default is MIP (ie Max)
    */
-  vtkSetMacro( BlendMode, int );
-  vtkGetMacro( BlendMode, int );
-  void SetBlendModeToMin()  { this->SetBlendMode(VTK_IMAGE_SLAB_MIN ); }
-  void SetBlendModeToMax()  { this->SetBlendMode(VTK_IMAGE_SLAB_MAX ); }
+  vtkSetMacro(BlendMode, int);
+  vtkGetMacro(BlendMode, int);
+  void SetBlendModeToMin() { this->SetBlendMode(VTK_IMAGE_SLAB_MIN); }
+  void SetBlendModeToMax() { this->SetBlendMode(VTK_IMAGE_SLAB_MAX); }
   void SetBlendModeToMean() { this->SetBlendMode(VTK_IMAGE_SLAB_MEAN); }
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Number of sample points used across the slab cross-section. If equal to
    * 1, this ends up being a thin reslice through the data a.k.a.
    * vtkImageReslice
    */
-  vtkGetMacro( NumBlendSamplePoints, int );
-  //@}
+  vtkGetMacro(NumBlendSamplePoints, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * SlabThickness of slab in world coords. SlabThickness must be non-zero and
    * positive.
    */
-  vtkSetMacro( SlabThickness, double );
-  vtkGetMacro( SlabThickness, double );
-  //@}
+  vtkSetMacro(SlabThickness, double);
+  vtkGetMacro(SlabThickness, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Spacing between slabs in world units. (Number of Slices, ie samples to
    * blend is computed from SlabThickness and SlabResolution).
    */
-  vtkSetMacro( SlabResolution, double );
-  vtkGetMacro( SlabResolution, double );
-  //@}
+  vtkSetMacro(SlabResolution, double);
+  vtkGetMacro(SlabResolution, double);
+  ///@}
 
 protected:
   vtkImageSlabReslice();
-  ~vtkImageSlabReslice() VTK_OVERRIDE;
+  ~vtkImageSlabReslice() override;
 
   /**
    * This method simply calls the superclass method. In addition, it also
    * precomputes the NumBlendSamplePoints based on the SlabThickness and
    * SlabResolution.
    */
-  int RequestInformation(vtkInformation *, vtkInformationVector **,
-                                 vtkInformationVector *) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int    BlendMode; // can be MIN, MIP, MAX
+  int BlendMode; // can be MIN, MIP, MAX
   double SlabThickness;
   double SlabResolution;
-  int    NumBlendSamplePoints;
+  int NumBlendSamplePoints;
 
 private:
-  vtkImageSlabReslice(const vtkImageSlabReslice&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageSlabReslice&) VTK_DELETE_FUNCTION;
+  vtkImageSlabReslice(const vtkImageSlabReslice&) = delete;
+  void operator=(const vtkImageSlabReslice&) = delete;
 };
 
 #endif

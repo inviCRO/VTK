@@ -33,7 +33,6 @@
 #include "vtkEdgeCenters.h"
 #include "vtkExtractEdges.h"
 #include "vtkExtractSelectedGraph.h"
-#include "vtkExtractSelectedPolyDataIds.h"
 #include "vtkGraphHierarchicalBundleEdges.h"
 #include "vtkGraphLayout.h"
 #include "vtkGraphMapper.h"
@@ -50,10 +49,10 @@
 #include "vtkPolyDataMapper.h"
 #include "vtkProp.h"
 #include "vtkProperty.h"
-#include "vtkRenderer.h"
 #include "vtkRenderView.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
+#include "vtkRenderer.h"
 #include "vtkScalarBarActor.h"
 #include "vtkScalarBarWidget.h"
 #include "vtkSectorSource.h"
@@ -80,7 +79,7 @@
 class vtkRenderedTreeAreaRepresentation::Internals
 {
 public:
-  std::vector<vtkSmartPointer<vtkHierarchicalGraphPipeline> > Graphs;
+  std::vector<vtkSmartPointer<vtkHierarchicalGraphPipeline>> Graphs;
 };
 
 vtkStandardNewMacro(vtkRenderedTreeAreaRepresentation);
@@ -90,32 +89,32 @@ vtkRenderedTreeAreaRepresentation::vtkRenderedTreeAreaRepresentation()
   this->Implementation = new Internals;
   this->SetNumberOfInputPorts(2);
   // Processing objects
-  this->ApplyColors            = vtkSmartPointer<vtkApplyColors>::New();
-  this->VertexDegree           = vtkSmartPointer<vtkVertexDegree>::New();
-  this->TreeAggregation        = vtkSmartPointer<vtkTreeFieldAggregator>::New();
-  this->TreeLevels             = vtkSmartPointer<vtkTreeLevelsFilter>::New();
-  this->Picker                 = vtkSmartPointer<vtkWorldPointPicker>::New();
-  this->EdgeScalarBar          = vtkSmartPointer<vtkScalarBarWidget>::New();
+  this->ApplyColors = vtkSmartPointer<vtkApplyColors>::New();
+  this->VertexDegree = vtkSmartPointer<vtkVertexDegree>::New();
+  this->TreeAggregation = vtkSmartPointer<vtkTreeFieldAggregator>::New();
+  this->TreeLevels = vtkSmartPointer<vtkTreeLevelsFilter>::New();
+  this->Picker = vtkSmartPointer<vtkWorldPointPicker>::New();
+  this->EdgeScalarBar = vtkSmartPointer<vtkScalarBarWidget>::New();
 
   // Area objects
-  this->AreaLayout         = vtkSmartPointer<vtkAreaLayout>::New();
-  this->AreaToPolyData     = vtkTreeRingToPolyData::New();
-  this->AreaMapper         = vtkSmartPointer<vtkPolyDataMapper>::New();
-  this->AreaActor          = vtkSmartPointer<vtkActor>::New();
-  this->AreaLabelMapper    = vtkDynamic2DLabelMapper::New();
-  this->AreaLabelActor     = vtkSmartPointer<vtkActor2D>::New();
-  this->HighlightData      = vtkSmartPointer<vtkPolyData>::New();
-  this->HighlightMapper    = vtkSmartPointer<vtkPolyDataMapper>::New();
-  this->HighlightActor     = vtkSmartPointer<vtkActor>::New();
+  this->AreaLayout = vtkSmartPointer<vtkAreaLayout>::New();
+  this->AreaToPolyData = vtkTreeRingToPolyData::New();
+  this->AreaMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  this->AreaActor = vtkSmartPointer<vtkActor>::New();
+  this->AreaLabelMapper = vtkDynamic2DLabelMapper::New();
+  this->AreaLabelActor = vtkSmartPointer<vtkActor2D>::New();
+  this->HighlightData = vtkSmartPointer<vtkPolyData>::New();
+  this->HighlightMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  this->HighlightActor = vtkSmartPointer<vtkActor>::New();
   this->AreaLabelHierarchy = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
-  this->EmptyPolyData      = vtkSmartPointer<vtkPolyData>::New();
+  this->EmptyPolyData = vtkSmartPointer<vtkPolyData>::New();
 
-  this->AreaSizeArrayNameInternal = 0;
-  this->AreaColorArrayNameInternal = 0;
-  this->AreaLabelArrayNameInternal = 0;
-  this->AreaLabelPriorityArrayNameInternal = 0;
-  this->AreaHoverTextInternal = 0;
-  this->AreaHoverArrayName = 0;
+  this->AreaSizeArrayNameInternal = nullptr;
+  this->AreaColorArrayNameInternal = nullptr;
+  this->AreaLabelArrayNameInternal = nullptr;
+  this->AreaLabelPriorityArrayNameInternal = nullptr;
+  this->AreaHoverTextInternal = nullptr;
+  this->AreaHoverArrayName = nullptr;
   this->UseRectangularCoordinates = false;
 
   this->SetAreaColorArrayName("level");
@@ -135,7 +134,7 @@ vtkRenderedTreeAreaRepresentation::vtkRenderedTreeAreaRepresentation()
   this->AreaLayout->SetAreaArrayName("area");
   this->SetShrinkPercentage(0.1);
   this->AreaToPolyData->SetInputArrayToProcess(
-      0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_VERTICES, "area");
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_VERTICES, "area");
 
   // Set default parameters
   this->SetAreaLabelArrayName("id");
@@ -186,20 +185,21 @@ vtkRenderedTreeAreaRepresentation::vtkRenderedTreeAreaRepresentation()
   // Set the orientation array to be the text rotation array produced by
   // vtkStackedTreeLayoutStrategy.
   this->AreaLabelHierarchy->SetInputArrayToProcess(4, 0, 0, vtkDataObject::VERTEX, "TextRotation");
-  this->AreaLabelHierarchy->SetInputArrayToProcess(5, 0, 0, vtkDataObject::VERTEX, "TextBoundedSize");
+  this->AreaLabelHierarchy->SetInputArrayToProcess(
+    5, 0, 0, vtkDataObject::VERTEX, "TextBoundedSize");
 
-  //this->AreaLabelMapper->SetInputConnection(this->AreaLayout->GetOutputPort());
-  //this->AreaLabelActor->SetMapper(this->AreaLabelMapper);
+  // this->AreaLabelMapper->SetInputConnection(this->AreaLayout->GetOutputPort());
+  // this->AreaLabelActor->SetMapper(this->AreaLabelMapper);
 }
 
 vtkRenderedTreeAreaRepresentation::~vtkRenderedTreeAreaRepresentation()
 {
-  this->SetAreaSizeArrayNameInternal(0);
-  this->SetAreaColorArrayNameInternal(0);
-  this->SetAreaLabelArrayNameInternal(0);
-  this->SetAreaLabelPriorityArrayNameInternal(0);
-  this->SetAreaHoverTextInternal(0);
-  this->SetAreaHoverArrayName(0);
+  this->SetAreaSizeArrayNameInternal(nullptr);
+  this->SetAreaColorArrayNameInternal(nullptr);
+  this->SetAreaLabelArrayNameInternal(nullptr);
+  this->SetAreaLabelPriorityArrayNameInternal(nullptr);
+  this->SetAreaHoverTextInternal(nullptr);
+  this->SetAreaHoverArrayName(nullptr);
   delete this->Implementation;
   if (this->AreaLabelMapper)
   {
@@ -249,15 +249,14 @@ const char* vtkRenderedTreeAreaRepresentation::GetAreaColorArrayName()
 
 void vtkRenderedTreeAreaRepresentation::SetAreaColorArrayName(const char* name)
 {
-  this->ApplyColors->SetInputArrayToProcess(0, 0, 0,
-    vtkDataObject::FIELD_ASSOCIATION_VERTICES, name);
+  this->ApplyColors->SetInputArrayToProcess(
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_VERTICES, name);
   this->SetAreaColorArrayNameInternal(name);
 }
 
 bool vtkRenderedTreeAreaRepresentation::ValidIndex(int idx)
 {
-  return (idx >= 0 &&
-          idx < static_cast<int>(this->Implementation->Graphs.size()));
+  return (idx >= 0 && idx < static_cast<int>(this->Implementation->Graphs.size()));
 }
 
 const char* vtkRenderedTreeAreaRepresentation::GetGraphEdgeColorArrayName(int idx)
@@ -266,7 +265,7 @@ const char* vtkRenderedTreeAreaRepresentation::GetGraphEdgeColorArrayName(int id
   {
     return this->Implementation->Graphs[idx]->GetColorArrayName();
   }
-  return 0;
+  return nullptr;
 }
 
 void vtkRenderedTreeAreaRepresentation::SetGraphEdgeColorArrayName(const char* name, int idx)
@@ -334,7 +333,7 @@ void vtkRenderedTreeAreaRepresentation::SetEdgeScalarBarVisibility(bool b)
 
 bool vtkRenderedTreeAreaRepresentation::GetEdgeScalarBarVisibility()
 {
-  return this->EdgeScalarBar->GetScalarBarActor()->GetVisibility() ? true : false;
+  return this->EdgeScalarBar->GetScalarBarActor()->GetVisibility() != 0;
 }
 
 void vtkRenderedTreeAreaRepresentation::SetGraphHoverArrayName(const char* name, int idx)
@@ -351,7 +350,7 @@ const char* vtkRenderedTreeAreaRepresentation::GetGraphHoverArrayName(int idx)
   {
     return this->Implementation->Graphs[idx]->GetHoverArrayName();
   }
-  return 0;
+  return nullptr;
 }
 
 void vtkRenderedTreeAreaRepresentation::SetAreaLabelMapper(vtkLabeledDataMapper* mapper)
@@ -368,7 +367,7 @@ void vtkRenderedTreeAreaRepresentation::SetAreaLabelMapper(vtkLabeledDataMapper*
       if (oldMapper)
       {
         this->AreaLabelMapper->SetFieldDataName(oldMapper->GetFieldDataName());
-        this->SetAreaLabelTextProperty( oldMapper->GetLabelTextProperty() );
+        this->SetAreaLabelTextProperty(oldMapper->GetLabelTextProperty());
       }
       this->AreaLabelMapper->SetInputConnection(this->AreaLayout->GetOutputPort());
       this->AreaLabelActor->SetMapper(this->AreaLabelMapper);
@@ -400,7 +399,7 @@ void vtkRenderedTreeAreaRepresentation::SetAreaToPolyData(vtkPolyDataAlgorithm* 
   }
 }
 
-vtkUnicodeString vtkRenderedTreeAreaRepresentation::GetHoverTextInternal(vtkSelection* sel)
+std::string vtkRenderedTreeAreaRepresentation::GetHoverStringInternal(vtkSelection* sel)
 {
   vtkGraph* input = vtkGraph::SafeDownCast(this->GetInput());
   vtkSmartPointer<vtkIdTypeArray> selectedItems = vtkSmartPointer<vtkIdTypeArray>::New();
@@ -423,15 +422,15 @@ vtkUnicodeString vtkRenderedTreeAreaRepresentation::GetHoverTextInternal(vtkSele
   }
   if (selectedItems->GetNumberOfTuples() == 0 || !hoverArrName)
   {
-    return vtkUnicodeString();
+    return "";
   }
   vtkAbstractArray* arr = data->GetAbstractArray(hoverArrName);
   if (!arr)
   {
-    return vtkUnicodeString();
+    return "";
   }
   vtkIdType item = selectedItems->GetValue(0);
-  return arr->GetVariantValue(item).ToUnicodeString();
+  return arr->GetVariantValue(item).ToString();
 }
 
 void vtkRenderedTreeAreaRepresentation::UpdateHoverHighlight(vtkView* view, int x, int y)
@@ -453,29 +452,23 @@ void vtkRenderedTreeAreaRepresentation::UpdateHoverHighlight(vtkView* view, int 
   this->Picker->Pick(x, y, 0, r);
   double pos[3];
   this->Picker->GetPickPosition(pos);
-  float posFloat[3] =
-  {
-    static_cast<float>(pos[0]),
-    static_cast<float>(pos[1]),
-    static_cast<float>(pos[2])
-  };
+  float posFloat[3] = { static_cast<float>(pos[0]), static_cast<float>(pos[1]),
+    static_cast<float>(pos[2]) };
   this->AreaLayout->Update();
   vtkIdType id = this->AreaLayout->FindVertex(posFloat);
   if (id >= 0)
   {
-    float sinfo[4] = {0.0, 1.0, 0.0, 1.0};
+    float sinfo[4] = { 0.0, 1.0, 0.0, 1.0 };
     double z = 0.02;
     this->AreaLayout->GetBoundingArea(id, sinfo);
     if (this->UseRectangularCoordinates)
     {
-      vtkSmartPointer<vtkPoints> highlightPoints =
-        vtkSmartPointer<vtkPoints>::New();
+      vtkSmartPointer<vtkPoints> highlightPoints = vtkSmartPointer<vtkPoints>::New();
       highlightPoints->SetNumberOfPoints(5);
 
-      vtkSmartPointer<vtkCellArray> highA =
-        vtkSmartPointer<vtkCellArray>::New();
+      vtkSmartPointer<vtkCellArray> highA = vtkSmartPointer<vtkCellArray>::New();
       highA->InsertNextCell(5);
-      for( int i = 0; i < 5; ++i)
+      for (int i = 0; i < 5; ++i)
       {
         highA->InsertCellPoint(i);
       }
@@ -489,28 +482,25 @@ void vtkRenderedTreeAreaRepresentation::UpdateHoverHighlight(vtkView* view, int 
     }
     else
     {
-      if( sinfo[1] - sinfo[0] != 360. )
+      if (sinfo[1] - sinfo[0] != 360.)
       {
-        vtkSmartPointer<vtkSectorSource> sector =
-          vtkSmartPointer<vtkSectorSource>::New();
+        vtkSmartPointer<vtkSectorSource> sector = vtkSmartPointer<vtkSectorSource>::New();
         sector->SetInnerRadius(sinfo[2]);
         sector->SetOuterRadius(sinfo[3]);
         sector->SetZCoord(z);
         sector->SetStartAngle(sinfo[0]);
         sector->SetEndAngle(sinfo[1]);
 
-        int resolution = (int)((sinfo[1]-sinfo[0])/1);
-        if( resolution < 1 )
+        int resolution = (int)((sinfo[1] - sinfo[0]) / 1);
+        if (resolution < 1)
           resolution = 1;
         sector->SetCircumferentialResolution(resolution);
         sector->Update();
 
-        vtkSmartPointer<vtkExtractEdges> extract =
-          vtkSmartPointer<vtkExtractEdges>::New();
+        vtkSmartPointer<vtkExtractEdges> extract = vtkSmartPointer<vtkExtractEdges>::New();
         extract->SetInputConnection(sector->GetOutputPort());
 
-        vtkSmartPointer<vtkAppendPolyData> append =
-          vtkSmartPointer<vtkAppendPolyData>::New();
+        vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
         append->AddInputConnection(extract->GetOutputPort());
         append->Update();
 
@@ -518,40 +508,38 @@ void vtkRenderedTreeAreaRepresentation::UpdateHoverHighlight(vtkView* view, int 
       }
       else
       {
-        vtkSmartPointer<vtkPoints> highlightPoints =
-          vtkSmartPointer<vtkPoints>::New();
+        vtkSmartPointer<vtkPoints> highlightPoints = vtkSmartPointer<vtkPoints>::New();
         highlightPoints->SetNumberOfPoints(240);
 
-        double conversion = vtkMath::Pi()/180.;
+        double conversion = vtkMath::Pi() / 180.;
         double current_angle = 0.;
 
-        vtkSmartPointer<vtkCellArray> highA =
-          vtkSmartPointer<vtkCellArray>::New();
-        for( int i = 0; i < 120; ++i)
+        vtkSmartPointer<vtkCellArray> highA = vtkSmartPointer<vtkCellArray>::New();
+        for (int i = 0; i < 120; ++i)
         {
           highA->InsertNextCell(2);
-          double current_x = sinfo[2]*cos(conversion*current_angle);
-          double current_y = sinfo[2]*sin(conversion*current_angle);
-          highlightPoints->SetPoint( i, current_x, current_y, z );
+          double current_x = sinfo[2] * cos(conversion * current_angle);
+          double current_y = sinfo[2] * sin(conversion * current_angle);
+          highlightPoints->SetPoint(i, current_x, current_y, z);
 
           current_angle += 3.;
 
           highA->InsertCellPoint(i);
-          highA->InsertCellPoint((i+1)%120);
+          highA->InsertCellPoint((i + 1) % 120);
         }
 
         current_angle = 0.;
-        for( int i = 0; i < 120; ++i)
+        for (int i = 0; i < 120; ++i)
         {
           highA->InsertNextCell(2);
-          double current_x = sinfo[3]*cos(conversion*current_angle);
-          double current_y = sinfo[3]*sin(conversion*current_angle);
-          highlightPoints->SetPoint( 120+i, current_x, current_y, z );
+          double current_x = sinfo[3] * cos(conversion * current_angle);
+          double current_y = sinfo[3] * sin(conversion * current_angle);
+          highlightPoints->SetPoint(120 + i, current_x, current_y, z);
 
           current_angle += 3.;
 
-          highA->InsertCellPoint(120+i);
-          highA->InsertCellPoint(120+((i+1)%120));
+          highA->InsertCellPoint(120 + i);
+          highA->InsertCellPoint(120 + ((i + 1) % 120));
         }
         this->HighlightData->SetPoints(highlightPoints);
         this->HighlightData->SetLines(highA);
@@ -581,7 +569,7 @@ const char* vtkRenderedTreeAreaRepresentation::GetGraphEdgeLabelArrayName(int id
   {
     return this->Implementation->Graphs[idx]->GetLabelArrayName();
   }
-  return 0;
+  return nullptr;
 }
 
 void vtkRenderedTreeAreaRepresentation::SetGraphEdgeLabelArrayName(const char* name, int idx)
@@ -598,10 +586,11 @@ vtkTextProperty* vtkRenderedTreeAreaRepresentation::GetGraphEdgeLabelTextPropert
   {
     return this->Implementation->Graphs[idx]->GetLabelTextProperty();
   }
-  return 0;
+  return nullptr;
 }
 
-void vtkRenderedTreeAreaRepresentation::SetGraphEdgeLabelTextProperty(vtkTextProperty* prop, int idx)
+void vtkRenderedTreeAreaRepresentation::SetGraphEdgeLabelTextProperty(
+  vtkTextProperty* prop, int idx)
 {
   if (this->ValidIndex(idx))
   {
@@ -621,8 +610,7 @@ void vtkRenderedTreeAreaRepresentation::SetAreaLayoutStrategy(vtkAreaLayoutStrat
 
 bool vtkRenderedTreeAreaRepresentation::GetAreaLabelVisibility()
 {
-  return this->AreaLabelHierarchy->GetInputConnection(0, 0) ==
-         this->AreaLayout->GetOutputPort();
+  return this->AreaLabelHierarchy->GetInputConnection(0, 0) == this->AreaLayout->GetOutputPort();
 }
 
 void vtkRenderedTreeAreaRepresentation::SetAreaLabelVisibility(bool b)
@@ -723,7 +711,7 @@ bool vtkRenderedTreeAreaRepresentation::AddToView(vtkView* view)
   {
     this->EdgeScalarBar->SetInteractor(rv->GetInteractor());
     rv->GetRenderer()->AddActor(this->AreaActor);
-    //rv->GetRenderer()->AddActor(this->AreaLabelActor);
+    // rv->GetRenderer()->AddActor(this->AreaLabelActor);
     rv->GetRenderer()->AddActor(this->HighlightActor);
     rv->GetRenderer()->AddActor(this->EdgeScalarBar->GetScalarBarActor());
     rv->AddLabels(this->AreaLabelHierarchy->GetOutputPort());
@@ -765,8 +753,7 @@ bool vtkRenderedTreeAreaRepresentation::RemoveFromView(vtkView* view)
   return false;
 }
 
-vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
-  vtkView* view, vtkSelection* sel)
+vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(vtkView* view, vtkSelection* sel)
 {
   vtkSelection* converted = vtkSelection::New();
 
@@ -785,8 +772,7 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
   for (unsigned int i = 0; i < sel->GetNumberOfNodes(); ++i)
   {
     vtkSelectionNode* node = sel->GetNode(i);
-    vtkProp* prop = vtkProp::SafeDownCast(
-        node->GetProperties()->Get(vtkSelectionNode::PROP()));
+    vtkProp* prop = vtkProp::SafeDownCast(node->GetProperties()->Get(vtkSelectionNode::PROP()));
     if (prop == this->AreaActor.GetPointer())
     {
       vtkSmartPointer<vtkIdTypeArray> vertexIds;
@@ -798,8 +784,7 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
       if (rv && singleSelectMode)
       {
         vtkInteractorStyleAreaSelectHover* style =
-          vtkInteractorStyleAreaSelectHover::SafeDownCast(
-            rv->GetInteractorStyle());
+          vtkInteractorStyleAreaSelectHover::SafeDownCast(rv->GetInteractorStyle());
         if (style)
         {
           vtkIdType v = style->GetIdAtPos(rect[0], rect[1]);
@@ -812,10 +797,8 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
       }
 
       // Create a vertex selection.
-      vtkSmartPointer<vtkSelection> vertexIndexSelection =
-        vtkSmartPointer<vtkSelection>::New();
-      vtkSmartPointer<vtkSelectionNode> vertexIndexNode =
-        vtkSmartPointer<vtkSelectionNode>::New();
+      vtkSmartPointer<vtkSelection> vertexIndexSelection = vtkSmartPointer<vtkSelection>::New();
+      vtkSmartPointer<vtkSelectionNode> vertexIndexNode = vtkSmartPointer<vtkSelectionNode>::New();
       vertexIndexNode->SetContentType(vtkSelectionNode::INDICES);
       vertexIndexNode->SetFieldType(vtkSelectionNode::CELL);
       vertexIndexNode->SetSelectionList(vertexIds);
@@ -826,8 +809,7 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
       this->AreaToPolyData->Update();
       vtkSmartPointer<vtkSelection> vertexSelection;
       vertexSelection.TakeReference(vtkConvertSelection::ToSelectionType(
-        vertexIndexSelection, this->AreaToPolyData->GetOutput(),
-        vtkSelectionNode::PEDIGREEIDS));
+        vertexIndexSelection, this->AreaToPolyData->GetOutput(), vtkSelectionNode::PEDIGREEIDS));
       vtkSelectionNode* vnode = vertexSelection->GetNode(0);
       if (vnode && vnode->GetSelectionList()->GetNumberOfTuples() > 0)
       {
@@ -842,21 +824,22 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
         vtkSmartPointer<vtkOutEdgeIterator> iter = vtkSmartPointer<vtkOutEdgeIterator>::New();
         for (size_t k = 0; k < numGraphs; ++k)
         {
-          vtkSmartPointer<vtkSelection> edgeIndexSelection =
-            vtkSmartPointer<vtkSelection>::New();
+          vtkSmartPointer<vtkSelection> edgeIndexSelection = vtkSmartPointer<vtkSelection>::New();
           vtkSmartPointer<vtkSelectionNode> edgeIndexNode =
             vtkSmartPointer<vtkSelectionNode>::New();
           edgeIndexNode->SetContentType(vtkSelectionNode::INDICES);
           edgeIndexNode->SetFieldType(vtkSelectionNode::EDGE);
-          vtkSmartPointer<vtkIdTypeArray> edgeIds =
-            vtkSmartPointer<vtkIdTypeArray>::New();
+          vtkSmartPointer<vtkIdTypeArray> edgeIds = vtkSmartPointer<vtkIdTypeArray>::New();
           edgeIndexNode->SetSelectionList(edgeIds);
           edgeIndexSelection->AddNode(edgeIndexNode);
 
-          vtkGraph* g = vtkGraph::SafeDownCast(this->GetInternalOutputPort(1, static_cast<int>(k))->GetProducer()->GetOutputDataObject(0));
+          vtkGraph* g = vtkGraph::SafeDownCast(this->GetInternalOutputPort(1, static_cast<int>(k))
+                                                 ->GetProducer()
+                                                 ->GetOutputDataObject(0));
           vtkAbstractArray* arr2 = g->GetVertexData()->GetPedigreeIds();
-          vtkStringArray* domainArr = vtkArrayDownCast<vtkStringArray>(g->GetVertexData()->GetAbstractArray("domain"));
-          for(vtkIdType j=0; j<arr->GetNumberOfTuples(); ++j)
+          vtkStringArray* domainArr =
+            vtkArrayDownCast<vtkStringArray>(g->GetVertexData()->GetAbstractArray("domain"));
+          for (vtkIdType j = 0; j < arr->GetNumberOfTuples(); ++j)
           {
             vtkIdType id = arr2->LookupValue(arr->GetVariantValue(j));
             if (id == -1)
@@ -865,8 +848,8 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
             }
 
             // Before adding vertex's edges, make sure its in the same domain as selected vertex
-            vtkStdString domain;
-            if(domainArr)
+            std::string domain;
+            if (domainArr)
             {
               domain = domainArr->GetValue(id);
             }
@@ -874,13 +857,13 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
             {
               domain = arr2->GetName();
             }
-            if(domain != arr->GetName())
+            if (domain != arr->GetName())
             {
               continue;
             }
 
             g->GetOutEdges(id, iter);
-            while(iter->HasNext())
+            while (iter->HasNext())
             {
               edgeIds->InsertNextValue(iter->Next().Id);
             }
@@ -888,8 +871,7 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
 
           vtkSmartPointer<vtkSelection> edgeSelection;
           edgeSelection.TakeReference(vtkConvertSelection::ToSelectionType(
-            edgeIndexSelection, g,
-            vtkSelectionNode::PEDIGREEIDS));
+            edgeIndexSelection, g, vtkSelectionNode::PEDIGREEIDS));
           converted->AddNode(edgeSelection->GetNode(0));
         }
       }
@@ -909,16 +891,14 @@ vtkSelection* vtkRenderedTreeAreaRepresentation::ConvertSelection(
       conv->Delete();
     }
   }
-  //cerr << "Tree converted: " << endl;
-  //converted->Dump();
+  // cerr << "Tree converted: " << endl;
+  // converted->Dump();
 
   return converted;
 }
 
-int vtkRenderedTreeAreaRepresentation::RequestData(
-  vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** vtkNotUsed(inputVector),
-  vtkInformationVector* vtkNotUsed(outputVector))
+int vtkRenderedTreeAreaRepresentation::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* vtkNotUsed(outputVector))
 {
   // Tree area connections
   this->TreeLevels->SetInputConnection(this->GetInternalOutputPort());
@@ -928,8 +908,7 @@ int vtkRenderedTreeAreaRepresentation::RequestData(
   size_t numGraphs = static_cast<size_t>(this->GetNumberOfInputConnections(1));
   while (numGraphs > this->Implementation->Graphs.size())
   {
-    this->Implementation->Graphs.push_back(
-      vtkSmartPointer<vtkHierarchicalGraphPipeline>::New());
+    this->Implementation->Graphs.push_back(vtkSmartPointer<vtkHierarchicalGraphPipeline>::New());
   }
 
   // Keep track of actors to remove if the number of input connections
@@ -947,8 +926,7 @@ int vtkRenderedTreeAreaRepresentation::RequestData(
     this->AddPropOnNextRender(this->Implementation->Graphs[i]->GetActor());
     this->AddPropOnNextRender(this->Implementation->Graphs[i]->GetLabelActor());
     vtkHierarchicalGraphPipeline* p = this->Implementation->Graphs[i];
-    p->PrepareInputConnections(
-      this->GetInternalOutputPort(1, static_cast<int>(i)),
+    p->PrepareInputConnections(this->GetInternalOutputPort(1, static_cast<int>(i)),
       this->AreaLayout->GetOutputPort(1),
       this->GetInternalAnnotationOutputPort(1, static_cast<int>(i)));
   }
@@ -1006,8 +984,7 @@ void vtkRenderedTreeAreaRepresentation::ApplyViewTheme(vtkViewTheme* theme)
   this->GetAreaLabelTextProperty()->ShallowCopy(theme->GetPointTextProperty());
 
   // Make sure we have the right number of graphs
-  if (this->GetNumberOfInputConnections(1) !=
-      static_cast<int>(this->Implementation->Graphs.size()))
+  if (this->GetNumberOfInputConnections(1) != static_cast<int>(this->Implementation->Graphs.size()))
   {
     this->Update();
   }
@@ -1040,7 +1017,9 @@ void vtkRenderedTreeAreaRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "UseRectangularCoordinates: " << this->UseRectangularCoordinates << endl;
-  os << indent << "AreaHoverArrayName: " << (this->AreaHoverArrayName ? this->AreaHoverArrayName : "(none)") << endl;
+  os << indent
+     << "AreaHoverArrayName: " << (this->AreaHoverArrayName ? this->AreaHoverArrayName : "(none)")
+     << endl;
   os << indent << "AreaToPolyData: ";
   if (this->AreaToPolyData)
   {

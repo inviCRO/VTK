@@ -26,7 +26,7 @@
  * Use SetInputArrayToProcess(0, ...) to set the array to that has
  * the network ip addresses.
  * Currently this array must be a vtkStringArray.
-*/
+ */
 
 #ifndef vtkNetworkHierarchy_h
 #define vtkNetworkHierarchy_h
@@ -40,43 +40,36 @@ class VTKINFOVISCORE_EXPORT vtkNetworkHierarchy : public vtkTreeAlgorithm
 {
 public:
   static vtkNetworkHierarchy* New();
-  vtkTypeMacro(vtkNetworkHierarchy,vtkTreeAlgorithm);
+  vtkTypeMacro(vtkNetworkHierarchy, vtkTreeAlgorithm);
 
-  //@{
+  ///@{
   /**
    * Used to store the ip array name
    */
   vtkGetStringMacro(IPArrayName);
   vtkSetStringMacro(IPArrayName);
-  //@}
+  ///@}
 
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
   vtkNetworkHierarchy();
-  ~vtkNetworkHierarchy() VTK_OVERRIDE;
+  ~vtkNetworkHierarchy() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int FillOutputPortInformation(
-    int vtkNotUsed(port), vtkInformation* info) VTK_OVERRIDE;
-  int FillInputPortInformation(
-    int vtkNotUsed(port), vtkInformation* info) VTK_OVERRIDE;
+  int FillOutputPortInformation(int vtkNotUsed(port), vtkInformation* info) override;
+  int FillInputPortInformation(int vtkNotUsed(port), vtkInformation* info) override;
 
 private:
-  vtkNetworkHierarchy(const vtkNetworkHierarchy&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkNetworkHierarchy&) VTK_DELETE_FUNCTION;
+  vtkNetworkHierarchy(const vtkNetworkHierarchy&) = delete;
+  void operator=(const vtkNetworkHierarchy&) = delete;
 
   // Internal helper functions
-  unsigned int ITON(vtkStdString ip);
-  void GetSubnets(unsigned int packedIP, int *subnets);
+  unsigned int ITON(const vtkStdString& ip);
+  void GetSubnets(unsigned int packedIP, int* subnets);
 
-  char *IPArrayName;
-
+  char* IPArrayName;
 };
 
 #endif
-

@@ -23,81 +23,33 @@
  * This is based on vtkSplineWidget.
  * @sa
  * vtkSplineWidget, vtkSplineWidget2
-*/
+ */
 
 #ifndef vtkSplineRepresentation_h
 #define vtkSplineRepresentation_h
 
+#include "vtkAbstractSplineRepresentation.h"
 #include "vtkInteractionWidgetsModule.h" // For export macro
-#include "vtkCurveRepresentation.h"
 
-class vtkActor;
-class vtkCellPicker;
-class vtkDoubleArray;
-class vtkParametricFunctionSource;
-class vtkParametricSpline;
-class vtkPlaneSource;
-class vtkPoints;
-class vtkPolyData;
-class vtkProp;
-class vtkProperty;
-class vtkSphereSource;
-class vtkTransform;
+class vtkPointHandleSource;
 
-class VTKINTERACTIONWIDGETS_EXPORT vtkSplineRepresentation : public vtkCurveRepresentation
+class VTKINTERACTIONWIDGETS_EXPORT vtkSplineRepresentation : public vtkAbstractSplineRepresentation
 {
 public:
   static vtkSplineRepresentation* New();
-  vtkTypeMacro(vtkSplineRepresentation, vtkCurveRepresentation);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkSplineRepresentation, vtkAbstractSplineRepresentation);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
-   * Grab the polydata (including points) that defines the spline.  The
-   * polydata consists of points and line segments numbering Resolution + 1
-   * and Resolution, respectively. Points are guaranteed to be up-to-date when
-   * either the InteractionEvent or  EndInteraction events are invoked. The
-   * user provides the vtkPolyData and the points and polyline are added to it.
+   * Set the number of handles for this widget,
+   *  while keeping a similar spline.
    */
-  void GetPolyData(vtkPolyData *pd) VTK_OVERRIDE;
+  virtual void SetNumberOfHandles(int npts) override;
 
   /**
-   * Set the number of handles for this widget.
+   * Set the parametric spline object.
    */
-  void SetNumberOfHandles(int npts) VTK_OVERRIDE;
-
-  //@{
-  /**
-   * Set/Get the number of line segments representing the spline for
-   * this widget.
-   */
-  void SetResolution(int resolution);
-  vtkGetMacro(Resolution,int);
-  //@}
-
-  //@{
-  /**
-   * Set the parametric spline object. Through vtkParametricSpline's API, the
-   * user can supply and configure one of two types of spline:
-   * vtkCardinalSpline, vtkKochanekSpline. The widget controls the open
-   * or closed configuration of the spline.
-   * WARNING: The widget does not enforce internal consistency so that all
-   * three are of the same type.
-   */
-  virtual void SetParametricSpline(vtkParametricSpline*);
-  vtkGetObjectMacro(ParametricSpline,vtkParametricSpline);
-  //@}
-
-  /**
-   * Get the position of the spline handles.
-   */
-  vtkDoubleArray* GetHandlePositions() VTK_OVERRIDE;
-
-  /**
-   * Get the approximate vs. the true arc length of the spline. Calculated as
-   * the summed lengths of the individual straight line segments. Use
-   * SetResolution to control the accuracy.
-   */
-  double GetSummedLength() VTK_OVERRIDE;
+  void SetParametricSpline(vtkParametricSpline* spline) override;
 
   /**
    * Convenience method to allocate and set the handles from a vtkPoints
@@ -105,35 +57,63 @@ public:
    * Closed to the on InteractionState and disregards the last point, otherwise Closed
    * remains unchanged.
    */
-  void InitializeHandles(vtkPoints* points) VTK_OVERRIDE;
+  void InitializeHandles(vtkPoints* points) override;
 
- /**
-  * These are methods that satisfy vtkWidgetRepresentation's API. Note that a
-  * version of place widget is available where the center and handle position
-  * are specified.
-  */
-  void BuildRepresentation() VTK_OVERRIDE;
+  /**
+   * Method that satisfy vtkWidgetRepresentation API.
+   * Updates the spline in relation with the handles positions
+   * and updates vtkWidgetRepresentation::InitialLength
+   * (useful for the sizing methods).
+   */
+  void BuildRepresentation() override;
 
 protected:
   vtkSplineRepresentation();
-  ~vtkSplineRepresentation() VTK_OVERRIDE;
+  ~vtkSplineRepresentation() override;
 
-  // The spline
-  vtkParametricSpline *ParametricSpline;
-  vtkParametricFunctionSource *ParametricFunctionSource;
+  /**
+   * Specialized method to insert a handle on the spline.
+   */
+  int InsertHandleOnLine(double* pos) override;
 
-  // The number of line segments used to represent the spline.
-  int Resolution;
+  /**
+   * Delete all the handles.
+   */
+  void ClearHandles();
 
-  // Specialized method to insert a handle on the poly line.
-  void InsertHandleOnLine(double* pos) VTK_OVERRIDE;
+  /**
+   * Allocate/Reallocate the handles according
+   * to npts.
+   */
+  void AllocateHandles(int npts);
+
+  /**
+   * Create npts default handles.
+   */
+  void CreateDefaultHandles(int npts);
+
+  /**
+   * Recreate the handles according to a
+   * number of points equal to npts.
+   * It uses the current spline to recompute
+   * the positions of the new handles.
+   */
+  void ReconfigureHandles(int npts);
+
+  // Specialized methods to access handles
+  vtkActor* GetHandleActor(int index) override;
+  vtkHandleSource* GetHandleSource(int index) override;
+  virtual int GetHandleIndex(vtkProp* prop) override;
 
 private:
-  vtkSplineRepresentation(const vtkSplineRepresentation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSplineRepresentation&) VTK_DELETE_FUNCTION;
+  vtkSplineRepresentation(const vtkSplineRepresentation&) = delete;
+  void operator=(const vtkSplineRepresentation&) = delete;
 
+  void RebuildRepresentation();
+
+  // Glyphs representing hot spots (e.g., handles)
+  std::vector<vtkSmartPointer<vtkPointHandleSource>> PointHandles;
+  std::vector<vtkSmartPointer<vtkActor>> HandleActors;
 };
 
 #endif
-
-

@@ -18,6 +18,7 @@
   the U.S. Government retains certain rights in this software.
 -------------------------------------------------------------------------*/
 
+#include "vtkArrayData.h"
 #include "vtkArrayPrint.h"
 #include "vtkDenseArray.h"
 #include "vtkDoubleArray.h"
@@ -30,14 +31,14 @@
 
 #include <stdexcept>
 
-#define VTK_CREATE(type, name) \
-  vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
+#define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
-#define test_expression(expression) \
-{ \
-  if(!(expression)) \
-    throw std::runtime_error("Expression failed: " #expression); \
-}
+#define test_expression(expression)                                                                \
+  do                                                                                               \
+  {                                                                                                \
+    if (!(expression))                                                                             \
+      throw std::runtime_error("Expression failed: " #expression);                                 \
+  } while (false)
 
 int TestTableToArray(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
@@ -79,7 +80,8 @@ int TestTableToArray(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
     table_to_array->Update();
     test_expression(table_to_array->GetOutput());
     test_expression(1 == table_to_array->GetOutput()->GetNumberOfArrays());
-    vtkDenseArray<double>* const array = vtkDenseArray<double>::SafeDownCast(table_to_array->GetOutput()->GetArray(0));
+    vtkDenseArray<double>* const array =
+      vtkDenseArray<double>::SafeDownCast(table_to_array->GetOutput()->GetArray(0));
     test_expression(array);
     test_expression(2 == array->GetDimensions());
     test_expression(4 == array->GetExtent(0).GetSize());
@@ -96,7 +98,7 @@ int TestTableToArray(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
     return 0;
   }
-  catch(std::exception& e)
+  catch (std::exception& e)
   {
     cerr << e.what() << endl;
     return 1;

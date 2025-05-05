@@ -29,34 +29,36 @@
  * Uses the XDMF API (http://www.xdmf.org)
  * @sa
  * vtkDataReader
-*/
+ */
 
 #ifndef vtkXdmfReader_h
 #define vtkXdmfReader_h
 
+#include "vtkDataObjectAlgorithm.h"
 #include "vtkIOXdmf2Module.h" // For export macro
-#include "vtkDataReader.h"
-#include <map> // for caching
+#include <map>                // for caching
+#include <string>             // needed for string API
 
 class vtkXdmfArraySelection;
 class vtkXdmfDocument;
 class vtkGraph;
+class vtkCharArray;
 
-class VTKIOXDMF2_EXPORT vtkXdmfReader : public vtkDataReader
+class VTKIOXDMF2_EXPORT vtkXdmfReader : public vtkDataObjectAlgorithm
 {
 public:
   static vtkXdmfReader* New();
-  vtkTypeMacro(vtkXdmfReader, vtkDataReader);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkXdmfReader, vtkDataObjectAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   // Until needed, multiple domains are not supported.
   //// Description:
   //// Returns the number of domains present in the data file. This in valid after
   //// the filename has been set and UpdateInformation() has been called .i.e. the
   //// RequestInformation pipeline pass has happened.
-  //unsigned int GetNumberOfDomains();
+  // unsigned int GetNumberOfDomains();
 
-  //@{
+  ///@{
   /**
    * Set the active domain. Only one domain can be selected at a time. By
    * default the first domain in the datafile is chosen. Setting this to null
@@ -66,12 +68,20 @@ public:
    */
   vtkSetStringMacro(DomainName);
   vtkGetStringMacro(DomainName);
-  //@}
+  ///@}
 
   //// Description:
   //// Returns the name for the active domain. Note that this may be different
-  //// from what GetDomainName() returns if DomainName is NULL or invalid.
+  //// from what GetDomainName() returns if DomainName is nullptr or invalid.
   // vtkGetStringMacro(ActiveDomainName);
+
+  ///@{
+  /**
+   * Name of the file to read.
+   */
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
   /**
    * Get information about point-based arrays. As is typical with readers this
@@ -81,20 +91,20 @@ public:
   int GetNumberOfPointArrays();
 
   /**
-   * Returns the name of point array at the give index. Returns NULL if index is
+   * Returns the name of point array at the give index. Returns nullptr if index is
    * invalid.
    */
   const char* GetPointArrayName(int index);
 
-  //@{
+  ///@{
   /**
    * Get/Set the point array status.
    */
   int GetPointArrayStatus(const char* name);
   void SetPointArrayStatus(const char* name, int status);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get information about cell-based arrays.  As is typical with readers this
    * in only valid after the filename is set and UpdateInformation() has been
@@ -104,9 +114,9 @@ public:
   const char* GetCellArrayName(int index);
   void SetCellArrayStatus(const char* name, int status);
   int GetCellArrayStatus(const char* name);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set information about grids. As is typical with readers this is valid
    * only after the filename as been set and UpdateInformation() has been
@@ -116,9 +126,9 @@ public:
   const char* GetGridName(int index);
   void SetGridStatus(const char* gridname, int status);
   int GetGridStatus(const char* gridname);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set information about sets. As is typical with readers this is valid
    * only after the filename as been set and UpdateInformation() has been
@@ -129,37 +139,40 @@ public:
   const char* GetSetName(int index);
   void SetSetStatus(const char* gridname, int status);
   int GetSetStatus(const char* gridname);
-  //@}
+  ///@}
 
+  ///@{
   /**
-   * These methods are provided to make it easier to use the Sets in ParaView.
+   * These methods are provided to make it easier to use the Sets/Grids in ParaView.
    */
   int GetNumberOfSetArrays() { return this->GetNumberOfSets(); }
-  const char* GetSetArrayName(int index)
-    { return this->GetSetName(index); }
-  int GetSetArrayStatus(const char* name)
-    { return this->GetSetStatus(name); }
+  const char* GetSetArrayName(int index) { return this->GetSetName(index); }
+  int GetSetArrayStatus(const char* name) { return this->GetSetStatus(name); }
+  int GetNumberOfGridArrays() { return this->GetNumberOfGrids(); }
+  const char* GetGridArrayName(int index) { return this->GetGridName(index); }
+  int GetGridArrayStatus(const char* name) { return this->GetGridStatus(name); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the stride used to skip points when reading structured datasets.
    * This affects all grids being read.
    */
   vtkSetVector3Macro(Stride, int);
   vtkGetVector3Macro(Stride, int);
-  //@}
+  ///@}
 
   /**
    * Determine if the file can be read with this reader.
    */
-  virtual int CanReadFile(const char* filename);
+  virtual int CanReadFile(VTK_FILEPATH const char* filename);
 
-  //@{
+  ///@{
   /**
    * Every time the SIL is updated a this will return a different value.
    */
   vtkGetMacro(SILUpdateStamp, int);
-  //@}
+  ///@}
 
   /**
    * SIL describes organization of/relationships between classifications
@@ -170,7 +183,12 @@ public:
   class XdmfDataSetTopoGeoPath
   {
   public:
-    XdmfDataSetTopoGeoPath() : dataset(0), topologyPath(), geometryPath() {}
+    XdmfDataSetTopoGeoPath()
+      : dataset(nullptr)
+      , topologyPath()
+      , geometryPath()
+    {
+    }
     vtkDataSet* dataset;
     std::string topologyPath;
     std::string geometryPath;
@@ -183,19 +201,66 @@ public:
    */
   XdmfReaderCachedData& GetDataSetCache();
 
+  ///@{
+  /**
+   * Enable reading from an InputString or InputArray instead of the default,
+   * a file.
+   */
+  vtkSetMacro(ReadFromInputString, bool);
+  vtkGetMacro(ReadFromInputString, bool);
+  vtkBooleanMacro(ReadFromInputString, bool);
+  ///@}
+
+  ///@{
+  /**
+   * Specify the vtkCharArray to be used  when reading from a string.
+   * If set, this array has precedence over InputString.
+   * Use this instead of InputString to avoid the extra memory copy.
+   * It should be noted that if the underlying char* is owned by the
+   * user ( vtkCharArray::SetArray(array, 1); ) and is deleted before
+   * the reader, bad things will happen during a pipeline update.
+   */
+  virtual void SetInputArray(vtkCharArray*);
+  vtkGetObjectMacro(InputArray, vtkCharArray);
+  ///@}
+
+  ///@{
+  /**
+   * Specify the InputString for use when reading from a character array.
+   * Optionally include the length for binary strings. Note that a copy
+   * of the string is made and stored. If this causes exceedingly large
+   * memory consumption, consider using InputArray instead.
+   */
+  void SetInputString(const char* in);
+  vtkGetStringMacro(InputString);
+  void SetInputString(const char* in, int len);
+  vtkGetMacro(InputStringLength, int);
+  void SetBinaryInputString(const char*, int len);
+  void SetInputString(const std::string& input)
+  {
+    this->SetBinaryInputString(input.c_str(), static_cast<int>(input.length()));
+  }
+  ///@}
+
 protected:
   vtkXdmfReader();
-  ~vtkXdmfReader();
+  ~vtkXdmfReader() override;
 
-  virtual int ProcessRequest(vtkInformation *request,
-    vtkInformationVector **inputVector,
-    vtkInformationVector *outputVector) VTK_OVERRIDE;
-  virtual int RequestDataObject(vtkInformationVector *outputVector);
-  virtual int RequestData(vtkInformation *, vtkInformationVector **,
-    vtkInformationVector *) VTK_OVERRIDE;
-  virtual int RequestInformation(vtkInformation *, vtkInformationVector **,
-    vtkInformationVector *) VTK_OVERRIDE;
-  virtual int FillOutputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  char* FileName;
+
+  bool ReadFromInputString;
+
+  vtkCharArray* InputArray;
+
+  char* InputString;
+  int InputStringLength;
+
+  vtkTypeBool ProcessRequest(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
+  virtual int RequestDataObjectInternal(vtkInformationVector* outputVector);
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
   vtkXdmfArraySelection* GetPointArraySelection();
   vtkXdmfArraySelection* GetCellArraySelection();
@@ -216,8 +281,8 @@ protected:
   // caches. These are passed on to the actual vtkXdmfArraySelection instances
   // used by the active vtkXdmfDomain in RequestInformation().
   // Note that these are only used until the first domain is setup, once that
-  // happens, the information set in these is passed to the domain and  these
-  // are cleared an no longer used, until the active domain becomes invalid
+  // happens, the information set in these is passed to the domain and these
+  // are cleared and no longer used, until the active domain becomes invalid
   // again.
   vtkXdmfArraySelection* PointArraysCache;
   vtkXdmfArraySelection* CellArraysCache;
@@ -243,9 +308,8 @@ private:
   int ChooseTimeStep(vtkInformation* outInfo);
 
 private:
-  vtkXdmfReader(const vtkXdmfReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkXdmfReader&) VTK_DELETE_FUNCTION;
-
+  vtkXdmfReader(const vtkXdmfReader&) = delete;
+  void operator=(const vtkXdmfReader&) = delete;
 };
 
 #endif

@@ -22,31 +22,31 @@
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
+#include "vtkEdgeLayoutStrategy.h"
 #include "vtkEventForwarderCommand.h"
 #include "vtkFloatArray.h"
-#include "vtkEdgeLayoutStrategy.h"
-#include "vtkMath.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
 
 vtkStandardNewMacro(vtkEdgeLayout);
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 vtkEdgeLayout::vtkEdgeLayout()
 {
-  this->LayoutStrategy = 0;
-  this->InternalGraph = NULL;
+  this->LayoutStrategy = nullptr;
+  this->InternalGraph = nullptr;
 
   this->ObserverTag = 0;
   this->EventForwarder = vtkEventForwarderCommand::New();
   this->EventForwarder->SetTarget(this);
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 vtkEdgeLayout::~vtkEdgeLayout()
 {
@@ -61,46 +61,44 @@ vtkEdgeLayout::~vtkEdgeLayout()
   this->EventForwarder->Delete();
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-void vtkEdgeLayout::SetLayoutStrategy(vtkEdgeLayoutStrategy *strategy)
+void vtkEdgeLayout::SetLayoutStrategy(vtkEdgeLayoutStrategy* strategy)
 {
   // This method is a cut and paste of vtkCxxSetObjectMacro
   // except for the call to SetEdge in the middle :)
   if (strategy != this->LayoutStrategy)
   {
-    vtkEdgeLayoutStrategy *tmp = this->LayoutStrategy;
+    vtkEdgeLayoutStrategy* tmp = this->LayoutStrategy;
     this->LayoutStrategy = strategy;
-    if (this->LayoutStrategy != NULL)
+    if (this->LayoutStrategy != nullptr)
     {
       this->LayoutStrategy->Register(this);
       this->ObserverTag =
-        this->LayoutStrategy->AddObserver(vtkCommand::ProgressEvent,
-                                          this->EventForwarder);
+        this->LayoutStrategy->AddObserver(vtkCommand::ProgressEvent, this->EventForwarder);
       if (this->InternalGraph)
       {
         // Set the graph in the layout strategy
         this->LayoutStrategy->SetGraph(this->InternalGraph);
       }
     }
-    if (tmp != NULL)
+    if (tmp != nullptr)
     {
       tmp->RemoveObserver(this->ObserverTag);
       tmp->UnRegister(this);
     }
     this->Modified();
   }
-
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 vtkMTimeType vtkEdgeLayout::GetMTime()
 {
   vtkMTimeType mTime = this->Superclass::GetMTime();
   vtkMTimeType time;
 
-  if (this->LayoutStrategy != NULL)
+  if (this->LayoutStrategy != nullptr)
   {
     time = this->LayoutStrategy->GetMTime();
     mTime = (time > mTime ? time : mTime);
@@ -108,27 +106,24 @@ vtkMTimeType vtkEdgeLayout::GetMTime()
   return mTime;
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-int vtkEdgeLayout::RequestData(vtkInformation *vtkNotUsed(request),
-                               vtkInformationVector **inputVector,
-                               vtkInformationVector *outputVector)
+int vtkEdgeLayout::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  if (this->LayoutStrategy == NULL)
+  if (this->LayoutStrategy == nullptr)
   {
     vtkErrorMacro(<< "Layout strategy must be non-null.");
     return 0;
   }
 
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // get the input and output
-  vtkGraph *input = vtkGraph::SafeDownCast(
-    inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkGraph *output = vtkGraph::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkGraph* input = vtkGraph::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkGraph* output = vtkGraph::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   if (this->InternalGraph)
   {
@@ -145,10 +140,10 @@ int vtkEdgeLayout::RequestData(vtkInformation *vtkNotUsed(request),
   this->InternalGraph->DeepCopyEdgePoints(input);
 
   // Give the layout strategy a pointer to the input.  We set it to
-  // NULL first to force the layout algorithm to re-initialize
+  // nullptr first to force the layout algorithm to re-initialize
   // itself.  This is necessary in case the input is the same data
   // object with a newer mtime.
-  this->LayoutStrategy->SetGraph(NULL);
+  this->LayoutStrategy->SetGraph(nullptr);
   this->LayoutStrategy->SetGraph(this->InternalGraph);
 
   // No matter whether the input is new or not, the layout strategy
@@ -160,19 +155,17 @@ int vtkEdgeLayout::RequestData(vtkInformation *vtkNotUsed(request),
   return 1;
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void vtkEdgeLayout::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "LayoutStrategy: "
-    << (this->LayoutStrategy ? "" : "(none)") << endl;
+  os << indent << "LayoutStrategy: " << (this->LayoutStrategy ? "" : "(none)") << endl;
   if (this->LayoutStrategy)
   {
     this->LayoutStrategy->PrintSelf(os, indent.GetNextIndent());
   }
-  os << indent << "InternalGraph: "
-    << (this->InternalGraph ? "" : "(none)") << endl;
+  os << indent << "InternalGraph: " << (this->InternalGraph ? "" : "(none)") << endl;
   if (this->InternalGraph)
   {
     this->InternalGraph->PrintSelf(os, indent.GetNextIndent());

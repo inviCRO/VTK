@@ -27,28 +27,26 @@
  * with objects other than vtkImplicitFunction.
  * @sa
  * vtkImplicitFunction vtkImageStencil vtkPolyDataToImageStencil
-*/
+ */
 
 #ifndef vtkImageStencilSource_h
 #define vtkImageStencilSource_h
 
-
-#include "vtkImagingCoreModule.h" // For export macro
 #include "vtkImageStencilAlgorithm.h"
+#include "vtkImagingCoreModule.h" // For export macro
 
 class vtkImageStencilData;
 class vtkImageData;
 
-class VTKIMAGINGCORE_EXPORT vtkImageStencilSource :
-  public vtkImageStencilAlgorithm
+class VTKIMAGINGCORE_EXPORT vtkImageStencilSource : public vtkImageStencilAlgorithm
 {
 public:
-  static vtkImageStencilSource *New();
+  static vtkImageStencilSource* New();
   vtkTypeMacro(vtkImageStencilSource, vtkImageStencilAlgorithm);
 
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set a vtkImageData that has the Spacing, Origin, and
    * WholeExtent that will be used for the stencil.  This
@@ -59,9 +57,9 @@ public:
    */
   virtual void SetInformationInput(vtkImageData*);
   vtkGetObjectMacro(InformationInput, vtkImageData);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the Origin to be used for the stencil.  It should be
    * set to the Origin of the image you intend to apply the
@@ -69,9 +67,9 @@ public:
    */
   vtkSetVector3Macro(OutputOrigin, double);
   vtkGetVector3Macro(OutputOrigin, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the Spacing to be used for the stencil. It should be
    * set to the Spacing of the image you intend to apply the
@@ -79,39 +77,37 @@ public:
    */
   vtkSetVector3Macro(OutputSpacing, double);
   vtkGetVector3Macro(OutputSpacing, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the whole extent for the stencil (anything outside
    * this extent will be considered to be "outside" the stencil).
    */
   vtkSetVector6Macro(OutputWholeExtent, int);
   vtkGetVector6Macro(OutputWholeExtent, int);
-  //@}
+  ///@}
 
   /**
    * Report object referenced by instances of this class.
    */
-  void ReportReferences(vtkGarbageCollector*) VTK_OVERRIDE;
+  void ReportReferences(vtkGarbageCollector*) override;
 
 protected:
   vtkImageStencilSource();
-  ~vtkImageStencilSource() VTK_OVERRIDE;
+  ~vtkImageStencilSource() override;
 
-  int RequestInformation(vtkInformation *, vtkInformationVector **,
-                                 vtkInformationVector *) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  vtkImageData *InformationInput;
+  vtkImageData* InformationInput;
 
   int OutputWholeExtent[6];
   double OutputOrigin[3];
   double OutputSpacing[3];
 
 private:
-  vtkImageStencilSource(const vtkImageStencilSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageStencilSource&) VTK_DELETE_FUNCTION;
+  vtkImageStencilSource(const vtkImageStencilSource&) = delete;
+  void operator=(const vtkImageStencilSource&) = delete;
 };
 
 #endif
-

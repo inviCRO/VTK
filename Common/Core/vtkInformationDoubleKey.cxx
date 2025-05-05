@@ -16,39 +16,35 @@
 
 #include "vtkInformation.h"
 
-
-//----------------------------------------------------------------------------
-vtkInformationDoubleKey::vtkInformationDoubleKey(const char* name, const char* location):
-  vtkInformationKey(name, location)
+//------------------------------------------------------------------------------
+vtkInformationDoubleKey::vtkInformationDoubleKey(const char* name, const char* location)
+  : vtkInformationKey(name, location)
 {
   vtkCommonInformationKeyManager::Register(this);
 }
 
-//----------------------------------------------------------------------------
-vtkInformationDoubleKey::~vtkInformationDoubleKey()
-{
-}
+//------------------------------------------------------------------------------
+vtkInformationDoubleKey::~vtkInformationDoubleKey() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationDoubleKey::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
-class vtkInformationDoubleValue: public vtkObjectBase
+//------------------------------------------------------------------------------
+class vtkInformationDoubleValue : public vtkObjectBase
 {
 public:
   vtkBaseTypeMacro(vtkInformationDoubleValue, vtkObjectBase);
   double Value;
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationDoubleKey::Set(vtkInformation* info, double value)
 {
-  if(vtkInformationDoubleValue* oldv =
-     static_cast<vtkInformationDoubleValue *>(
-       this->GetAsObjectBase(info)))
+  if (vtkInformationDoubleValue* oldv =
+        static_cast<vtkInformationDoubleValue*>(this->GetAsObjectBase(info)))
   {
     if (oldv->Value != value)
     {
@@ -71,16 +67,15 @@ void vtkInformationDoubleKey::Set(vtkInformation* info, double value)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkInformationDoubleKey::Get(vtkInformation* info)
 {
   vtkInformationDoubleValue* v =
-    static_cast<vtkInformationDoubleValue *>(
-      this->GetAsObjectBase(info));
-  return v?v->Value:0;
+    static_cast<vtkInformationDoubleValue*>(this->GetAsObjectBase(info));
+  return v ? v->Value : 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationDoubleKey::ShallowCopy(vtkInformation* from, vtkInformation* to)
 {
   if (this->Has(from))
@@ -89,28 +84,27 @@ void vtkInformationDoubleKey::ShallowCopy(vtkInformation* from, vtkInformation* 
   }
   else
   {
-    this->SetAsObjectBase(to, 0); // doesn't exist in from, so remove the key
+    this->SetAsObjectBase(to, nullptr); // doesn't exist in from, so remove the key
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationDoubleKey::Print(ostream& os, vtkInformation* info)
 {
   // Print the value.
-  if(this->Has(info))
+  if (this->Has(info))
   {
     os << this->Get(info);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double* vtkInformationDoubleKey::GetWatchAddress(vtkInformation* info)
 {
-  if(vtkInformationDoubleValue* v =
-     static_cast<vtkInformationDoubleValue *>(
-       this->GetAsObjectBase(info)))
+  if (vtkInformationDoubleValue* v =
+        static_cast<vtkInformationDoubleValue*>(this->GetAsObjectBase(info)))
   {
     return &v->Value;
   }
-  return 0;
+  return nullptr;
 }

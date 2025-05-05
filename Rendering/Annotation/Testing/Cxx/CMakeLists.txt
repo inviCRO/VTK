@@ -1,4 +1,4 @@
-vtk_add_test_cxx(${vtk-module}CxxTests tests
+vtk_add_test_cxx(vtkRenderingAnnotationCxxTests tests
   TestAxisActor.cxx
   TestAxisActor2D.cxx
   TestAxisActor3D.cxx
@@ -38,5 +38,7 @@ vtk_add_test_cxx(${vtk-module}CxxTests tests
   TestXYPlotActor.cxx
   )
 
-vtk_test_cxx_executable(${vtk-module}CxxTests tests
-  RENDERING_FACTORY)
+vtk_test_cxx_executable(vtkRenderingAnnotationCxxTests tests
+  DISABLE_FLOATING_POINT_EXCEPTIONS
+  RENDERING_FACTORY
+  )

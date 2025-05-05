@@ -1,0 +1,57 @@
+# Steps for uploading artifacts
+
+.rsync_upload:
+    image: "fedora:34"
+    stage: upload
+    tags:
+        - docker
+        - linux
+        - build
+    environment:
+        name: rsync-upload
+
+    script:
+        - ls build/
+        - dnf install -y --setopt=install_weak_deps=False rsync openssh-clients
+        - chmod 400 $RSYNC_KEY_PATH
+        - ssh-keygen -y -f $RSYNC_KEY_PATH > $RSYNC_KEY_PATH.pub
+        - rsync -tv --recursive -e "ssh -i $RSYNC_KEY_PATH -o StrictHostKeyChecking=no" $RSYNC_SOURCE kitware@web.kitware.com:$RSYNC_DESTINATION/
+    variables:
+        RSYNC_KEY_PATH: $RSYNC_BINARY_KEY
+
+.rsync_upload_wheel_sdk:
+    extends: .rsync_upload
+    environment:
+        name: rsync-upload-wheel-sdk
+    variables:
+        RSYNC_KEY_PATH: $RSYNC_WHEEL_SDK_KEY
+
+.pypi_upload:
+    image: "fedora:34"
+    stage: upload
+    tags:
+        - docker
+        - linux
+        - build
+    environment:
+        name: pypi-upload
+
+    script:
+        - cd build/
+        - ls dist
+        - dnf install -y --setopt=install_weak_deps=False twine
+        - twine upload -u __token__ -p $PYPI_UPLOAD_TOKEN dist/*
+
+.pypi_vtk_upload:
+    image: "fedora:34"
+    stage: upload
+    tags:
+        - docker
+        - linux
+        - build
+
+    script:
+        - cd build/
+        - ls dist
+        - dnf install -y --setopt=install_weak_deps=False twine
+        - twine upload -u gitlab-ci-token -p $CI_JOB_TOKEN --repository-url https://gitlab.kitware.com/api/v4/projects/$CI_PROJECT_ID/packages/pypi dist/*

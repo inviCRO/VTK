@@ -16,88 +16,89 @@
 
 #include "vtkGarbageCollector.h"
 
-//----------------------------------------------------------------------------
-vtkSmartPointerBase::vtkSmartPointerBase():
-  Object(0)
+//------------------------------------------------------------------------------
+vtkSmartPointerBase::vtkSmartPointerBase() noexcept
+  : Object(nullptr)
+{
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointerBase::vtkSmartPointerBase(vtkObjectBase* r)
+  : Object(r)
 {
   // Add a reference to the object.
   this->Register();
 }
 
-//----------------------------------------------------------------------------
-vtkSmartPointerBase::vtkSmartPointerBase(vtkObjectBase* r):
-  Object(r)
-{
-  // Add a reference to the object.
-  this->Register();
-}
-
-//----------------------------------------------------------------------------
-vtkSmartPointerBase::vtkSmartPointerBase(vtkObjectBase* r, const NoReference&):
-  Object(r)
+//------------------------------------------------------------------------------
+vtkSmartPointerBase::vtkSmartPointerBase(vtkObjectBase* r, const NoReference&)
+  : Object(r)
 {
   // Do not add a reference to the object because we received the
   // NoReference argument.
 }
 
-//----------------------------------------------------------------------------
-vtkSmartPointerBase::vtkSmartPointerBase(const vtkSmartPointerBase& r):
-  Object(r.Object)
+//------------------------------------------------------------------------------
+vtkSmartPointerBase::vtkSmartPointerBase(const vtkSmartPointerBase& r)
+  : Object(r.Object)
 {
   // Add a reference to the object.
   this->Register();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSmartPointerBase::~vtkSmartPointerBase()
 {
-  // The main pointer must be set to NULL before calling UnRegister,
+  // The main pointer must be set to nullptr before calling UnRegister,
   // so use a local variable to save the pointer.  This is because the
   // garbage collection reference graph traversal may make it back to
   // this smart pointer, and we do not want to include this reference.
   vtkObjectBase* object = this->Object;
-  if(object)
+  if (object)
   {
-    this->Object = 0;
-    object->UnRegister(0);
+    this->Object = nullptr;
+    object->UnRegister(nullptr);
   }
 }
 
-//----------------------------------------------------------------------------
-vtkSmartPointerBase&
-vtkSmartPointerBase::operator=(vtkObjectBase* r)
+//------------------------------------------------------------------------------
+vtkSmartPointerBase& vtkSmartPointerBase::operator=(vtkObjectBase* r)
 {
-  // This is an exception-safe assignment idiom that also gives the
-  // correct order of register/unregister calls to all objects
-  // involved.  A temporary is constructed that references the new
-  // object.  Then the main pointer and temporary are swapped and the
-  // temporary's destructor unreferences the old object.
-  vtkSmartPointerBase(r).Swap(*this);
+  if (r != this->Object)
+  {
+    // This is an exception-safe assignment idiom that also gives the
+    // correct order of register/unregister calls to all objects
+    // involved.  A temporary is constructed that references the new
+    // object.  Then the main pointer and temporary are swapped and the
+    // temporary's destructor unreferences the old object.
+    vtkSmartPointerBase(r).Swap(*this);
+  }
   return *this;
 }
 
-//----------------------------------------------------------------------------
-vtkSmartPointerBase&
-vtkSmartPointerBase::operator=(const vtkSmartPointerBase& r)
+//------------------------------------------------------------------------------
+vtkSmartPointerBase& vtkSmartPointerBase::operator=(const vtkSmartPointerBase& r)
 {
-  // This is an exception-safe assignment idiom that also gives the
-  // correct order of register/unregister calls to all objects
-  // involved.  A temporary is constructed that references the new
-  // object.  Then the main pointer and temporary are swapped and the
-  // temporary's destructor unreferences the old object.
-  vtkSmartPointerBase(r).Swap(*this);
+  if (&r != this && r.Object != this->Object)
+  {
+    // This is an exception-safe assignment idiom that also gives the
+    // correct order of register/unregister calls to all objects
+    // involved.  A temporary is constructed that references the new
+    // object.  Then the main pointer and temporary are swapped and the
+    // temporary's destructor unreferences the old object.
+    vtkSmartPointerBase(r).Swap(*this);
+  }
   return *this;
 }
 
-//----------------------------------------------------------------------------
-void vtkSmartPointerBase::Report(vtkGarbageCollector* collector,
-                                 const char* desc)
+//------------------------------------------------------------------------------
+void vtkSmartPointerBase::Report(vtkGarbageCollector* collector, const char* desc)
 {
   vtkGarbageCollectorReport(collector, this->Object, desc);
 }
 
-//----------------------------------------------------------------------------
-void vtkSmartPointerBase::Swap(vtkSmartPointerBase& r)
+//------------------------------------------------------------------------------
+void vtkSmartPointerBase::Swap(vtkSmartPointerBase& r) noexcept
 {
   // Just swap the pointers.  This is used internally by the
   // assignment operator.
@@ -106,18 +107,18 @@ void vtkSmartPointerBase::Swap(vtkSmartPointerBase& r)
   this->Object = temp;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSmartPointerBase::Register()
 {
-  // Add a reference only if the object is not NULL.
-  if(this->Object)
+  // Add a reference only if the object is not nullptr.
+  if (this->Object)
   {
-    this->Object->Register(0);
+    this->Object->Register(nullptr);
   }
 }
 
-//----------------------------------------------------------------------------
-ostream& operator << (ostream& os, const vtkSmartPointerBase& p)
+//------------------------------------------------------------------------------
+ostream& operator<<(ostream& os, const vtkSmartPointerBase& p)
 {
   // Just print the pointer value into the stream.
   return os << static_cast<void*>(p.GetPointer());

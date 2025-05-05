@@ -60,13 +60,13 @@ patches before they are merged.
 
 Our [Wiki] is used to document features, flesh out designs and host other
 documentation. Our API is documented using [Doxygen] with updated
-documentation generated nightly. We have several [Mailing Lists]
+documentation generated nightly. We have a [VTK Discourse] forum
 to coordinate development and to provide support.
 
 [VTK Git README]: Documentation/dev/git/README.md
 [developer instructions]: Documentation/dev/git/develop.md
 [Create an account]: https://gitlab.kitware.com/users/sign_in
-[Fork VTK]: https://gitlab.kitware.com/vtk/vtk/forks/new
+[Fork VTK]: https://gitlab.kitware.com/vtk/vtk/-/forks/new
 [download instructions]: Documentation/dev/git/download.md#clone
 [developer setup script]: /Utilities/SetupForDevelopment.sh
 [Setup]: Documentation/dev/git/develop.md#Setup
@@ -76,4 +76,4 @@ to coordinate development and to provide support.
 
 [Wiki]: http://www.vtk.org/Wiki/VTK
 [Doxygen]: http://www.vtk.org/doc/nightly/html
-[Mailing Lists]: http://www.vtk.org/VTK/help/mailing.html
+[VTK Discourse]: https://discourse.vtk.org/

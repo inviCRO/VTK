@@ -17,10 +17,10 @@
  * @brief   adjust point positions using a windowed sinc function interpolation kernel
  *
  * vtkWindowedSincPolyDataFiler adjust point coordinate using a windowed
- * sinc function interpolation kernel.  The effect is to "relax" the mesh,
+ * sinc function interpolation kernel. The effect is to "relax" the mesh,
  * making the cells better shaped and the vertices more evenly distributed.
  * Note that this filter operates the lines, polygons, and triangle strips
- * composing an instance of vtkPolyData.  Vertex or poly-vertex cells are
+ * composing an instance of vtkPolyData. Vertex or poly-vertex cells are
  * never modified.
  *
  * The algorithm proceeds as follows. For each vertex v, a topological and
@@ -33,7 +33,7 @@
  * Taubin describes this methodology is the IBM tech report RC-20404
  * (#90237, dated 3/12/96) "Optimal Surface Smoothing as Filter Design"
  * G. Taubin, T. Zhang and G. Golub. (Zhang and Golub are at Stanford
- * University).
+ * University.)
  *
  * This report discusses using standard signal processing low-pass filters
  * (in particular windowed sinc functions) to smooth polyhedra. The
@@ -112,7 +112,7 @@
  * amount of smoothing increases.
  *
  * The second ivar is the specification of the PassBand for the windowed
- * sinc filter.  By design, the PassBand is specified as a doubleing point
+ * sinc filter.  By design, the PassBand is specified as a doubling point
  * number between 0 and 2.  Lower PassBand values produce more smoothing.
  * A good default value for the PassBand is 0.1 (for those interested, the
  * PassBand (and frequencies) for PolyData are based on the valence of the
@@ -120,10 +120,10 @@
  * between 0 and 2.)
  *
  * There are two instance variables that control the generation of error
- * data. If the ivar GenerateErrorScalars is on, then a scalar value indicating
- * the distance of each vertex from its original position is computed. If the
- * ivar GenerateErrorVectors is on, then a vector representing change in
- * position is computed.
+ * data. If the ivar GenerateErrorScalars is on, then a scalar value
+ * indicating the distance of each vertex from its original position is
+ * computed. If the ivar GenerateErrorVectors is on, then a vector
+ * representing change in position is computed.
  *
  * @warning
  * The smoothing operation reduces high frequency information in the
@@ -131,13 +131,30 @@
  * lost. Enabling FeatureEdgeSmoothing helps reduce this effect, but cannot
  * entirely eliminate it.
  *
+ * @warning
+ * For maximum performance, do not enable BoundarySmoothing,
+ * NonManifoldSmoothing, or FeatureEdgeSmoothing. FeatureEdgeSmoothing is
+ * particularly expensive as it requires building topological links and
+ * computing local polygon normals which are relatively expensive
+ * operations. BoundarySmoothing and NonManifoldSmoothing have a modest
+ * impact on performance.
+ *
+ * @warning
+ * This class has been threaded with vtkSMPTools. Using TBB or other
+ * non-sequential execution type (set in the CMake variable
+ * VTK_SMP_IMPLEMENTATION_TYPE) may improve performance significantly.
+ *
  * @sa
- * vtkSmoothPolyDataFilter vtkDecimate vtkDecimatePro
-*/
+ * Another useful documentation resource is this SIGGRAPH publication:
+ * Gabriel Taubin. "A Signal Processing Approach To Fair Surface Design".
+ *
+ * @sa
+ * vtkSmoothPolyDataFilter vtkPointSmoothingFilter vtkDecimate vtkDecimatePro
+ * vtkQuadricDecimation
+ */
 
 #ifndef vtkWindowedSincPolyDataFilter_h
 #define vtkWindowedSincPolyDataFilter_h
-
 
 #include "vtkFiltersCoreModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
@@ -145,131 +162,139 @@
 class VTKFILTERSCORE_EXPORT vtkWindowedSincPolyDataFilter : public vtkPolyDataAlgorithm
 {
 public:
-  vtkTypeMacro(vtkWindowedSincPolyDataFilter,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkWindowedSincPolyDataFilter, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
-   * Construct object with number of iterations 20; passband .1;
-   * feature edge smoothing turned off; feature
-   * angle 45 degrees; edge angle 15 degrees; and boundary smoothing turned
-   * on. Error scalars and vectors are not generated (by default). The
-   * convergence criterion is 0.0 of the bounding box diagonal.
+   * Construct object with number of iterations 20; passband .1; feature edge
+   * smoothing turned off; feature angle 45 degrees; edge angle 15 degrees;
+   * and boundary smoothing turned on. Error scalars and vectors are not
+   * generated (by default).
    */
-  static vtkWindowedSincPolyDataFilter *New();
+  static vtkWindowedSincPolyDataFilter* New();
 
-  //@{
+  ///@{
   /**
-   * Specify the number of iterations (or degree of the polynomial
-   * approximating the windowed sinc function).
+   * Specify the number of iterations (i.e., the degree of the polynomial
+   * approximating the windowed sinc function). Typically values around 20
+   * are used.
    */
-  vtkSetClampMacro(NumberOfIterations,int,0,VTK_INT_MAX);
-  vtkGetMacro(NumberOfIterations,int);
-  //@}
+  vtkSetClampMacro(NumberOfIterations, int, 0, VTK_INT_MAX);
+  vtkGetMacro(NumberOfIterations, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set the passband value for the windowed sinc filter
+   * Set the passband value for the windowed sinc filter.
    */
-  vtkSetClampMacro(PassBand,double, 0.0, 2.0);
-  vtkGetMacro(PassBand,double);
-  //@}
+  vtkSetClampMacro(PassBand, double, 0.0, 2.0);
+  vtkGetMacro(PassBand, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Turn on/off coordinate normalization.  The positions can be
-   * translated and scaled such that they fit within a [-1, 1] prior
-   * to the smoothing computation. The default is off.  The numerical
-   * stability of the solution can be improved by turning
-   * normalization on.  If normalization is on, the coordinates will
-   * be rescaled to the original coordinate system after smoothing has
-   * completed.
+   * Turn on/off coordinate normalization.  The positions can be translated
+   * and scaled such that they fit within a [-1, 1] prior to the smoothing
+   * computation. The default is off.  The numerical stability of the
+   * solution can be improved by turning normalization on.  If normalization
+   * is on, the coordinates will be rescaled to the original coordinate
+   * system after smoothing has completed.
    */
-  vtkSetMacro(NormalizeCoordinates, int);
-  vtkGetMacro(NormalizeCoordinates, int);
-  vtkBooleanMacro(NormalizeCoordinates, int);
-  //@}
+  vtkSetMacro(NormalizeCoordinates, vtkTypeBool);
+  vtkGetMacro(NormalizeCoordinates, vtkTypeBool);
+  vtkBooleanMacro(NormalizeCoordinates, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Turn on/off smoothing along sharp interior edges.
+   * Turn on/off smoothing points along sharp interior edges. Enabling this
+   * option has a performance impact on the algorithm since neihborhood
+   * information (cell links) and polygon normals must be computed.
    */
-  vtkSetMacro(FeatureEdgeSmoothing,int);
-  vtkGetMacro(FeatureEdgeSmoothing,int);
-  vtkBooleanMacro(FeatureEdgeSmoothing,int);
-  //@}
+  vtkSetMacro(FeatureEdgeSmoothing, vtkTypeBool);
+  vtkGetMacro(FeatureEdgeSmoothing, vtkTypeBool);
+  vtkBooleanMacro(FeatureEdgeSmoothing, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Specify the feature angle for sharp edge identification.
+   * Specify the feature angle for sharp edge identification. It only affects
+   * the filter when FeatureEdgeSmoothing is enabled.
    */
-  vtkSetClampMacro(FeatureAngle,double,0.0,180.0);
-  vtkGetMacro(FeatureAngle,double);
-  //@}
+  vtkSetClampMacro(FeatureAngle, double, 0.0, 180.0);
+  vtkGetMacro(FeatureAngle, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the edge angle to control smoothing along edges (either interior
    * or boundary).
    */
-  vtkSetClampMacro(EdgeAngle,double,0.0,180.0);
-  vtkGetMacro(EdgeAngle,double);
-  //@}
+  vtkSetClampMacro(EdgeAngle, double, 0.0, 180.0);
+  vtkGetMacro(EdgeAngle, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Turn on/off the smoothing of vertices on the boundary of the mesh.
+   * Turn on/off the smoothing of points on the boundary of the mesh.
+   * Enabled this option has a modest impact on performance.
    */
-  vtkSetMacro(BoundarySmoothing,int);
-  vtkGetMacro(BoundarySmoothing,int);
-  vtkBooleanMacro(BoundarySmoothing,int);
-  //@}
+  vtkSetMacro(BoundarySmoothing, vtkTypeBool);
+  vtkGetMacro(BoundarySmoothing, vtkTypeBool);
+  vtkBooleanMacro(BoundarySmoothing, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Smooth non-manifold vertices.
+   * Smooth non-manifold points. Enabling this option has a modest
+   * impact on performance.
    */
-  vtkSetMacro(NonManifoldSmoothing,int);
-  vtkGetMacro(NonManifoldSmoothing,int);
-  vtkBooleanMacro(NonManifoldSmoothing,int);
-  //@}
+  vtkSetMacro(NonManifoldSmoothing, vtkTypeBool);
+  vtkGetMacro(NonManifoldSmoothing, vtkTypeBool);
+  vtkBooleanMacro(NonManifoldSmoothing, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on/off the generation of scalar distance values.
    */
-  vtkSetMacro(GenerateErrorScalars,int);
-  vtkGetMacro(GenerateErrorScalars,int);
-  vtkBooleanMacro(GenerateErrorScalars,int);
-  //@}
+  vtkSetMacro(GenerateErrorScalars, vtkTypeBool);
+  vtkGetMacro(GenerateErrorScalars, vtkTypeBool);
+  vtkBooleanMacro(GenerateErrorScalars, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on/off the generation of error vectors.
    */
-  vtkSetMacro(GenerateErrorVectors,int);
-  vtkGetMacro(GenerateErrorVectors,int);
-  vtkBooleanMacro(GenerateErrorVectors,int);
-  //@}
+  vtkSetMacro(GenerateErrorVectors, vtkTypeBool);
+  vtkGetMacro(GenerateErrorVectors, vtkTypeBool);
+  vtkBooleanMacro(GenerateErrorVectors, vtkTypeBool);
+  ///@}
 
- protected:
+protected:
   vtkWindowedSincPolyDataFilter();
-  ~vtkWindowedSincPolyDataFilter() VTK_OVERRIDE {}
+  ~vtkWindowedSincPolyDataFilter() override = default;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int NumberOfIterations;
   double PassBand;
-  int FeatureEdgeSmoothing;
+
+  vtkTypeBool NormalizeCoordinates;
+
+  vtkTypeBool FeatureEdgeSmoothing;
   double FeatureAngle;
   double EdgeAngle;
-  int BoundarySmoothing;
-  int NonManifoldSmoothing;
-  int GenerateErrorScalars;
-  int GenerateErrorVectors;
-  int NormalizeCoordinates;
+  vtkTypeBool BoundarySmoothing;
+  vtkTypeBool NonManifoldSmoothing;
+
+  vtkTypeBool GenerateErrorScalars;
+  vtkTypeBool GenerateErrorVectors;
+
 private:
-  vtkWindowedSincPolyDataFilter(const vtkWindowedSincPolyDataFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkWindowedSincPolyDataFilter&) VTK_DELETE_FUNCTION;
+  vtkWindowedSincPolyDataFilter(const vtkWindowedSincPolyDataFilter&) = delete;
+  void operator=(const vtkWindowedSincPolyDataFilter&) = delete;
 };
 
 #endif

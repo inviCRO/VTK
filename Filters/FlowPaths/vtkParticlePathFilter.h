@@ -21,31 +21,28 @@
  *
  * @sa
  * vtkParticlePathFilterBase has the details of the algorithms
-*/
+ */
 
 #ifndef vtkParticlePathFilter_h
 #define vtkParticlePathFilter_h
 
 #include "vtkFiltersFlowPathsModule.h" // For export macro
-#include "vtkSmartPointer.h" // For protected ivars.
 #include "vtkParticleTracerBase.h"
-#include <vector> // For protected ivars
+#include "vtkSmartPointer.h" // For protected ivars.
+#include <vector>            // For protected ivars
 
 class VTKFILTERSFLOWPATHS_EXPORT ParticlePathFilterInternal
 {
 public:
-  ParticlePathFilterInternal():Filter(NULL){}
+  ParticlePathFilterInternal()
+    : Filter(nullptr)
+  {
+  }
   void Initialize(vtkParticleTracerBase* filter);
-  virtual ~ParticlePathFilterInternal(){}
-  virtual int OutputParticles(vtkPolyData* poly);
-  void SetClearCache(bool clearCache)
-  {
-    this->ClearCache = clearCache;
-  }
-  bool GetClearCache()
-  {
-    return this->ClearCache;
-  }
+  virtual ~ParticlePathFilterInternal() = default;
+  virtual int OutputParticles(vtkPolyData* particles);
+  void SetClearCache(bool clearCache) { this->ClearCache = clearCache; }
+  bool GetClearCache() { return this->ClearCache; }
   void Finalize();
   void Reset();
 
@@ -53,30 +50,38 @@ private:
   vtkParticleTracerBase* Filter;
   // Paths doesn't seem to work properly. it is meant to make connecting lines
   // for the particles
-  std::vector<vtkSmartPointer<vtkIdList> > Paths;
+  std::vector<vtkSmartPointer<vtkIdList>> Paths;
   bool ClearCache; // false by default
 };
 
-class VTKFILTERSFLOWPATHS_EXPORT vtkParticlePathFilter: public vtkParticleTracerBase
+class VTKFILTERSFLOWPATHS_EXPORT vtkParticlePathFilter : public vtkParticleTracerBase
 {
 public:
-  vtkTypeMacro(vtkParticlePathFilter,vtkParticleTracerBase)
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkParticlePathFilter, vtkParticleTracerBase);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  static vtkParticlePathFilter *New();
+  static vtkParticlePathFilter* New();
 
 protected:
   vtkParticlePathFilter();
-  ~vtkParticlePathFilter() VTK_OVERRIDE;
-  vtkParticlePathFilter(const vtkParticlePathFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkParticlePathFilter&) VTK_DELETE_FUNCTION;
+  ~vtkParticlePathFilter() override;
+  vtkParticlePathFilter(const vtkParticlePathFilter&) = delete;
+  void operator=(const vtkParticlePathFilter&) = delete;
 
-  void ResetCache() VTK_OVERRIDE;
-  int OutputParticles(vtkPolyData* poly) VTK_OVERRIDE;
-  void InitializeExtraPointDataArrays(vtkPointData* outputPD) VTK_OVERRIDE;
-  void AppendToExtraPointDataArrays(vtkParticleTracerBaseNamespace::ParticleInformation &) VTK_OVERRIDE;
+  void ResetCache() override;
+  int OutputParticles(vtkPolyData* particles) override;
+  void InitializeExtraPointDataArrays(vtkPointData* outputPD) override;
+  void SetToExtraPointDataArrays(
+    vtkIdType particleId, vtkParticleTracerBaseNamespace::ParticleInformation&) override;
 
-  void Finalize() VTK_OVERRIDE;
+  void Finalize() override;
+
+  //
+  // Store any information we need in the output and fetch what we can
+  // from the input
+  //
+  int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   ParticlePathFilterInternal It;
 

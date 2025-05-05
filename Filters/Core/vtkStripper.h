@@ -44,6 +44,9 @@
  *    the input.
  * The field data order is same as cell data i.e. (verts,line,polys,tsrips).
  *
+ * If there is a ghost cell array in the input, the ghost array is discarded.
+ * Any cell tagged as ghost is skipped when stripping. Ghost points are kept.
+ *
  * @warning
  * If triangle strips or poly-lines exist in the input data they will
  * be passed through to the output data. This filter will only construct
@@ -52,7 +55,7 @@
  *
  * @sa
  * vtkTriangleFilter
-*/
+ */
 
 #ifndef vtkStripper_h
 #define vtkStripper_h
@@ -63,84 +66,84 @@
 class VTKFILTERSCORE_EXPORT vtkStripper : public vtkPolyDataAlgorithm
 {
 public:
-  vtkTypeMacro(vtkStripper,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkStripper, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Construct object with MaximumLength set to 1000.
    */
-  static vtkStripper *New();
+  static vtkStripper* New();
 
-  //@{
+  ///@{
   /**
    * Specify the maximum number of triangles in a triangle strip,
    * and/or the maximum number of lines in a poly-line.
    */
-  vtkSetClampMacro(MaximumLength,int,4,100000);
-  vtkGetMacro(MaximumLength,int);
-  //@}
+  vtkSetClampMacro(MaximumLength, int, 4, 100000);
+  vtkGetMacro(MaximumLength, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable/Disable passing of the CellData in the input to
    * the output as FieldData. Note the field data is transformed.
    */
-  vtkBooleanMacro(PassCellDataAsFieldData, int);
-  vtkSetMacro(PassCellDataAsFieldData, int);
-  vtkGetMacro(PassCellDataAsFieldData, int);
-  //@}
+  vtkBooleanMacro(PassCellDataAsFieldData, vtkTypeBool);
+  vtkSetMacro(PassCellDataAsFieldData, vtkTypeBool);
+  vtkGetMacro(PassCellDataAsFieldData, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on, the output polygonal dataset will have a celldata array that
    * holds the cell index of the original 3D cell that produced each output
    * cell. This is useful for picking. The default is off to conserve
    * memory.
    */
-  vtkSetMacro(PassThroughCellIds,int);
-  vtkGetMacro(PassThroughCellIds,int);
-  vtkBooleanMacro(PassThroughCellIds,int);
-  //@}
+  vtkSetMacro(PassThroughCellIds, vtkTypeBool);
+  vtkGetMacro(PassThroughCellIds, vtkTypeBool);
+  vtkBooleanMacro(PassThroughCellIds, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on, the output polygonal dataset will have a pointdata array that
    * holds the point index of the original vertex that produced each output
    * vertex. This is useful for picking. The default is off to conserve
    * memory.
    */
-  vtkSetMacro(PassThroughPointIds,int);
-  vtkGetMacro(PassThroughPointIds,int);
-  vtkBooleanMacro(PassThroughPointIds,int);
-  //@}
+  vtkSetMacro(PassThroughPointIds, vtkTypeBool);
+  vtkGetMacro(PassThroughPointIds, vtkTypeBool);
+  vtkBooleanMacro(PassThroughPointIds, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on, the output polygonal segments will be joined if they are
    * contiguous. This is useful after slicing a surface. The default
    * is off.
    */
-  vtkSetMacro(JoinContiguousSegments,int);
-  vtkGetMacro(JoinContiguousSegments,int);
-  vtkBooleanMacro(JoinContiguousSegments,int);
-  //@}
+  vtkSetMacro(JoinContiguousSegments, vtkTypeBool);
+  vtkGetMacro(JoinContiguousSegments, vtkTypeBool);
+  vtkBooleanMacro(JoinContiguousSegments, vtkTypeBool);
+  ///@}
 
 protected:
   vtkStripper();
-  ~vtkStripper() VTK_OVERRIDE {}
+  ~vtkStripper() override = default;
 
   // Usual data generation method
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int MaximumLength;
-  int PassCellDataAsFieldData;
-  int PassThroughCellIds;
-  int PassThroughPointIds;
-  int JoinContiguousSegments;
+  vtkTypeBool PassCellDataAsFieldData;
+  vtkTypeBool PassThroughCellIds;
+  vtkTypeBool PassThroughPointIds;
+  vtkTypeBool JoinContiguousSegments;
 
 private:
-  vtkStripper(const vtkStripper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkStripper&) VTK_DELETE_FUNCTION;
+  vtkStripper(const vtkStripper&) = delete;
+  void operator=(const vtkStripper&) = delete;
 };
 
 #endif

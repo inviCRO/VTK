@@ -25,15 +25,15 @@
  *
  * vtkGraphMapper is a mapper to map vtkGraph
  * (and all derived classes) to graphics primitives.
-*/
+ */
 
 #ifndef vtkGraphMapper_h
 #define vtkGraphMapper_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkMapper.h"
+#include "vtkRenderingCoreModule.h" // For export macro
 
-#include "vtkSmartPointer.h"    // Required for smart pointer internal ivars.
+#include "vtkSmartPointer.h" // Required for smart pointer internal ivars.
 
 class vtkActor2D;
 class vtkMapArrayValues;
@@ -56,20 +56,20 @@ class vtkVertexGlyphFilter;
 class VTKRENDERINGCORE_EXPORT vtkGraphMapper : public vtkMapper
 {
 public:
-  static vtkGraphMapper *New();
+  static vtkGraphMapper* New();
   vtkTypeMacro(vtkGraphMapper, vtkMapper);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  void Render(vtkRenderer *ren, vtkActor *act) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  void Render(vtkRenderer* ren, vtkActor* act) override;
 
-  //@{
+  ///@{
   /**
    * The array to use for coloring vertices.  Default is "color".
    */
   void SetVertexColorArrayName(const char* name);
   const char* GetVertexColorArrayName();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to color vertices.  Default is off.
    */
@@ -77,9 +77,9 @@ public:
   bool GetColorVertices();
   void ColorVerticesOn();
   void ColorVerticesOff();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether scaled glyphs are on or not.  Default is off.
    * By default this mapper uses vertex glyphs that do not
@@ -89,34 +89,34 @@ public:
   void SetScaledGlyphs(bool arg);
   vtkGetMacro(ScaledGlyphs, bool);
   vtkBooleanMacro(ScaledGlyphs, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Glyph scaling array name. Default is "scale"
    */
   vtkSetStringMacro(ScalingArrayName);
   vtkGetStringMacro(ScalingArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to show edges or not.  Default is on.
    */
   void SetEdgeVisibility(bool vis);
   bool GetEdgeVisibility();
   vtkBooleanMacro(EdgeVisibility, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The array to use for coloring edges.  Default is "color".
    */
   void SetEdgeColorArrayName(const char* name);
   const char* GetEdgeColorArrayName();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to color edges.  Default is off.
    */
@@ -124,69 +124,69 @@ public:
   bool GetColorEdges();
   void ColorEdgesOn();
   void ColorEdgesOff();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The array to use for coloring edges.  Default is "color".
    */
   vtkSetStringMacro(EnabledEdgesArrayName);
   vtkGetStringMacro(EnabledEdgesArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to enable/disable edges using array values.  Default is off.
    */
-  vtkSetMacro(EnableEdgesByArray, int);
-  vtkGetMacro(EnableEdgesByArray, int);
-  vtkBooleanMacro(EnableEdgesByArray, int);
-  //@}
+  vtkSetMacro(EnableEdgesByArray, vtkTypeBool);
+  vtkGetMacro(EnableEdgesByArray, vtkTypeBool);
+  vtkBooleanMacro(EnableEdgesByArray, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The array to use for coloring edges.  Default is "color".
    */
   vtkSetStringMacro(EnabledVerticesArrayName);
   vtkGetStringMacro(EnabledVerticesArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to enable/disable vertices using array values.  Default is off.
    */
-  vtkSetMacro(EnableVerticesByArray, int);
-  vtkGetMacro(EnableVerticesByArray, int);
-  vtkBooleanMacro(EnableVerticesByArray, int);
-  //@}
+  vtkSetMacro(EnableVerticesByArray, vtkTypeBool);
+  vtkGetMacro(EnableVerticesByArray, vtkTypeBool);
+  vtkBooleanMacro(EnableVerticesByArray, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The array to use for assigning icons.
    */
   void SetIconArrayName(const char* name);
   const char* GetIconArrayName();
-  //@}
+  ///@}
 
   /**
    * Associate the icon at index "index" in the vtkTexture to all vertices
    * containing "type" as a value in the vertex attribute array specified by
    * IconArrayName.
    */
-  void AddIconType(char *type, int index);
+  void AddIconType(const char* type, int index);
 
   /**
    * Clear all icon mappings.
    */
   void ClearIconTypes();
 
-  //@{
+  ///@{
   /**
    * Specify the Width and Height, in pixels, of an icon in the icon sheet.
    */
-  void SetIconSize(int *size);
-  int *GetIconSize();
-  //@}
+  void SetIconSize(int* size);
+  int* GetIconSize();
+  ///@}
 
   /**
    * Specify where the icons should be placed in relation to the vertex.
@@ -194,80 +194,79 @@ public:
    */
   void SetIconAlignment(int alignment);
 
-  //@{
+  ///@{
   /**
    * The texture containing the icon sheet.
    */
-  vtkTexture *GetIconTexture();
-  void SetIconTexture(vtkTexture *texture);
-  //@}
+  vtkTexture* GetIconTexture();
+  void SetIconTexture(vtkTexture* texture);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to show icons.  Default is off.
    */
   void SetIconVisibility(bool vis);
   bool GetIconVisibility();
   vtkBooleanMacro(IconVisibility, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the vertex point size
    */
-  vtkGetMacro(VertexPointSize,float);
+  vtkGetMacro(VertexPointSize, float);
   void SetVertexPointSize(float size);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the edge line width
    */
-  vtkGetMacro(EdgeLineWidth,float);
+  vtkGetMacro(EdgeLineWidth, float);
   void SetEdgeLineWidth(float width);
-  //@}
+  ///@}
 
   /**
    * Release any graphics resources that are being consumed by this mapper.
    * The parameter window could be used to determine which graphic
    * resources to release.
    */
-  void ReleaseGraphicsResources(vtkWindow *) VTK_OVERRIDE;
+  void ReleaseGraphicsResources(vtkWindow*) override;
 
   /**
    * Get the mtime also considering the lookup table.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
-  //@{
+  ///@{
   /**
    * Set the Input of this mapper.
    */
-  void SetInputData(vtkGraph *input);
-  vtkGraph *GetInput();
-  //@}
+  void SetInputData(vtkGraph* input);
+  vtkGraph* GetInput();
+  ///@}
 
   /**
    * Return bounding box (array of six doubles) of data expressed as
    * (xmin,xmax, ymin,ymax, zmin,zmax).
    */
-  double *GetBounds() VTK_OVERRIDE;
-  void GetBounds(double* bounds) VTK_OVERRIDE
-    { Superclass::GetBounds(bounds); }
+  double* GetBounds() VTK_SIZEHINT(6) override;
+  void GetBounds(double* bounds) override { Superclass::GetBounds(bounds); }
 
-  //@{
+  ///@{
   /**
    * Access to the lookup tables used by the vertex and edge mappers.
    */
   vtkGetObjectMacro(EdgeLookupTable, vtkLookupTable);
   vtkGetObjectMacro(VertexLookupTable, vtkLookupTable);
-  //@}
+  ///@}
 
 protected:
   vtkGraphMapper();
-  ~vtkGraphMapper() VTK_OVERRIDE;
+  ~vtkGraphMapper() override;
 
-  //@{
+  ///@{
   /**
    * Used to store the vertex and edge color array names
    */
@@ -277,12 +276,12 @@ protected:
   vtkSetStringMacro(EdgeColorArrayNameInternal);
   char* VertexColorArrayNameInternal;
   char* EdgeColorArrayNameInternal;
-  //@}
+  ///@}
 
   char* EnabledEdgesArrayName;
   char* EnabledVerticesArrayName;
-  int EnableEdgesByArray;
-  int EnableVerticesByArray;
+  vtkTypeBool EnableEdgesByArray;
+  vtkTypeBool EnableVerticesByArray;
 
   vtkGetStringMacro(IconArrayNameInternal);
   vtkSetStringMacro(IconArrayNameInternal);
@@ -311,14 +310,14 @@ protected:
   vtkLookupTable* EdgeLookupTable;
   vtkLookupTable* VertexLookupTable;
 
-  void ReportReferences(vtkGarbageCollector*) VTK_OVERRIDE;
+  void ReportReferences(vtkGarbageCollector*) override;
 
   // see algorithm for more info
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkGraphMapper(const vtkGraphMapper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGraphMapper&) VTK_DELETE_FUNCTION;
+  vtkGraphMapper(const vtkGraphMapper&) = delete;
+  void operator=(const vtkGraphMapper&) = delete;
 
   // Helper function
   vtkPolyData* CreateCircle(bool filled);

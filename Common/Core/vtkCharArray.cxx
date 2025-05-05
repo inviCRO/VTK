@@ -21,21 +21,18 @@ VTK_AOS_DATA_ARRAY_TEMPLATE_INSTANTIATE(char);
 
 #include "vtkObjectFactory.h"
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkCharArray);
+vtkStandardExtendedNewMacro(vtkCharArray);
 
-//----------------------------------------------------------------------------
-vtkCharArray::vtkCharArray()
-{
-}
+//------------------------------------------------------------------------------
+vtkCharArray::vtkCharArray() = default;
 
-//----------------------------------------------------------------------------
-vtkCharArray::~vtkCharArray()
-{
-}
+//------------------------------------------------------------------------------
+vtkCharArray::~vtkCharArray() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkCharArray::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->RealSuperclass::PrintSelf(os,indent);
+  this->RealSuperclass::PrintSelf(os, indent);
 }

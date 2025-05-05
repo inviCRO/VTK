@@ -33,7 +33,7 @@
  *
  * @sa
  * vtkPolyDataWriter vtkPointDataToCellData
-*/
+ */
 
 #ifndef vtkCGMWriter_h
 #define vtkCGMWriter_h
@@ -54,12 +54,12 @@ public:
    * Instantiate with no viewport defined and sorting on. The default
    * resolution is 10,000, and the color mode is set to default.
    */
-  static vtkCGMWriter *New();
+  static vtkCGMWriter* New();
 
-  vtkTypeMacro(vtkCGMWriter,vtkPolyDataWriter);
+  vtkTypeMacro(vtkCGMWriter, vtkPolyDataWriter);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  //@{
+  ///@{
   /**
    * Specify a vtkViewport object to be used to transform the vtkPolyData
    * points into 2D coordinates. By default (no vtkViewport specified), the
@@ -68,28 +68,28 @@ public:
    */
   virtual void SetViewport(vtkViewport*);
   vtkGetObjectMacro(Viewport, vtkViewport);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on/off the sorting of the cells via depth. If enabled, polygonal
    * cells will be sorted from back to front, i.e., a Painter's algorithm
    * sort.
    */
-  vtkSetMacro(Sort,int);
-  vtkGetMacro(Sort,int);
-  //@}
+  vtkSetMacro(Sort, int);
+  vtkGetMacro(Sort, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the resolution of the CGM file. This number is used to integerize
    * the maximum coordinate range of the plot file.
    */
   vtkSetClampMacro(Resolution, int, 100, VTK_INT_MAX);
   vtkGetMacro(Resolution, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Control how output polydata is colored. By default (ColorModeToDefault),
    * if per cell colors are defined (unsigned chars of 1-4 components), then
@@ -100,17 +100,14 @@ public:
    * the primitives will all be set to this color. If ColorModeToRandomColors
    * is set, each cell will be randomly assigned a color.
    */
-  vtkSetMacro(ColorMode,int);
-  vtkGetMacro(ColorMode,int);
-  void SetColorModeToDefault() {
-    this->SetColorMode(VTK_COLOR_MODE_DEFAULT);};
-  void SetColorModeToSpecifiedColor() {
-    this->SetColorMode(VTK_COLOR_MODE_SPECIFIED_COLOR);};
-  void SetColorModeToRandomColors() {
-    this->SetColorMode(VTK_COLOR_MODE_RANDOM_COLORS);};
-  //@}
+  vtkSetMacro(ColorMode, int);
+  vtkGetMacro(ColorMode, int);
+  void SetColorModeToDefault() { this->SetColorMode(VTK_COLOR_MODE_DEFAULT); }
+  void SetColorModeToSpecifiedColor() { this->SetColorMode(VTK_COLOR_MODE_SPECIFIED_COLOR); }
+  void SetColorModeToRandomColors() { this->SetColorMode(VTK_COLOR_MODE_RANDOM_COLORS); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the specified color to color the polydata cells. This
    * color is only used when the color mode is set to
@@ -119,25 +116,24 @@ public:
    * values ranging from (0,1). (Note: CGM will map this color to the
    * closest color it supports.)
    */
-  vtkSetVector3Macro(SpecifiedColor,float);
-  vtkGetVectorMacro(SpecifiedColor,float,3);
-  //@}
+  vtkSetVector3Macro(SpecifiedColor, float);
+  vtkGetVectorMacro(SpecifiedColor, float, 3);
+  ///@}
 
 protected:
   vtkCGMWriter();
-  ~vtkCGMWriter();
+  ~vtkCGMWriter() override;
   void WriteData();
 
-  vtkViewport *Viewport;
-  int         ColorMode;
-  float       SpecifiedColor[3];
-  int         Resolution;
-  int         Sort;
+  vtkViewport* Viewport;
+  int ColorMode;
+  float SpecifiedColor[3];
+  int Resolution;
+  int Sort;
 
 private:
-  vtkCGMWriter(const vtkCGMWriter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCGMWriter&) VTK_DELETE_FUNCTION;
+  vtkCGMWriter(const vtkCGMWriter&) = delete;
+  void operator=(const vtkCGMWriter&) = delete;
 };
 
 #endif
-

@@ -24,18 +24,20 @@
 class vtkRegressionTester : public vtkTesting
 {
 protected:
-  vtkRegressionTester() {}
-  ~vtkRegressionTester() {}
+  vtkRegressionTester() = default;
+  ~vtkRegressionTester() override = default;
+
 private:
-  vtkRegressionTester(const vtkRegressionTester&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRegressionTester&) VTK_DELETE_FUNCTION;
+  vtkRegressionTester(const vtkRegressionTester&) = delete;
+  void operator=(const vtkRegressionTester&) = delete;
 };
 
-#define vtkRegressionTestImage(rw) \
-vtkTesting::Test(argc, argv, rw, 10)
+// 0.15 threshold is arbitrary but found to
+// allow most graphics system variances to pass
+// when they should and fail when they should
+#define vtkRegressionTestImage(rw) vtkTesting::Test(argc, argv, rw, 0.15)
 
-#define vtkRegressionTestImageThreshold(rw, t) \
-vtkTesting::Test(argc, argv, rw, t)
+#define vtkRegressionTestImageThreshold(rw, t) vtkTesting::Test(argc, argv, rw, t)
 
 #endif // vtkRegressionTestImage_h
 // VTK-HeaderTest-Exclude: vtkRegressionTestImage.h

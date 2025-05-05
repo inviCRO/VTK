@@ -21,12 +21,12 @@
  * giving the number of bytes within the block.  The number of data
  * variables dumped varies.  There are 3 output ports with the first
  * being a structured grid with irregular spacing in the Z dimension.
- * The second is an unstructured grid only read on on process 0 and
+ * The second is an unstructured grid only read on process 0 and
  * used to represent the blade.  The third is also a structured grid
  * with irregular spacing on the Z dimension.  Only the first and
  * second output ports have time dependent data.
  * Parallel version of vtkWindBladeReader.h
-*/
+ */
 
 #ifndef vtkPWindBladeReader_h
 #define vtkPWindBladeReader_h
@@ -39,33 +39,31 @@ class PWindBladeReaderInternal;
 class VTKIOMPIPARALLEL_EXPORT vtkPWindBladeReader : public vtkWindBladeReader
 {
 public:
-  static vtkPWindBladeReader *New();
+  static vtkPWindBladeReader* New();
   vtkTypeMacro(vtkPWindBladeReader, vtkWindBladeReader);
 
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
   vtkPWindBladeReader();
-  ~vtkPWindBladeReader();
+  ~vtkPWindBladeReader() override;
 
-  virtual int RequestData(vtkInformation *, vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  virtual void CalculatePressure(int pressure, int prespre,
-                                 int tempg, int density) VTK_OVERRIDE;
-  virtual void CalculateVorticity(int vort, int uvw, int density) VTK_OVERRIDE;
-  virtual void LoadVariableData(int var) VTK_OVERRIDE;
-  virtual bool ReadGlobalData() VTK_OVERRIDE;
-  virtual bool FindVariableOffsets() VTK_OVERRIDE;
-  virtual void CreateZTopography(float* zValues) VTK_OVERRIDE;
-  virtual void SetupBladeData() VTK_OVERRIDE;
-  virtual void LoadBladeData(int timeStep) VTK_OVERRIDE;
+  void CalculatePressure(int pressure, int prespre, int tempg, int density) override;
+  void CalculateVorticity(int vort, int uvw, int density) override;
+  void LoadVariableData(int var) override;
+  bool ReadGlobalData() override;
+  bool FindVariableOffsets() override;
+  void CreateZTopography(float* zValues) override;
+  void SetupBladeData() override;
+  void LoadBladeData(int timeStep) override;
 
 private:
-  PWindBladeReaderInternal * PInternal;
+  PWindBladeReaderInternal* PInternal;
 
-  vtkPWindBladeReader(const vtkPWindBladeReader &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPWindBladeReader &) VTK_DELETE_FUNCTION;
+  vtkPWindBladeReader(const vtkPWindBladeReader&) = delete;
+  void operator=(const vtkPWindBladeReader&) = delete;
 };
 
 #endif

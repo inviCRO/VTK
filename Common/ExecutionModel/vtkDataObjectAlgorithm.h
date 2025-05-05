@@ -28,14 +28,14 @@
  * isn't the case then please override this method in your subclass.
  * You should implement the subclass's algorithm into
  * RequestData( request, inputVec, outputVec).
-*/
+ */
 
 #ifndef vtkDataObjectAlgorithm_h
 #define vtkDataObjectAlgorithm_h
 
-#include "vtkCommonExecutionModelModule.h" // For export macro
 #include "vtkAlgorithm.h"
-#include "vtkDataObject.h" // makes things a bit easier
+#include "vtkCommonExecutionModelModule.h" // For export macro
+#include "vtkDataObject.h"                 // makes things a bit easier
 
 class vtkDataSet;
 class vtkDataObject;
@@ -43,67 +43,63 @@ class vtkDataObject;
 class VTKCOMMONEXECUTIONMODEL_EXPORT vtkDataObjectAlgorithm : public vtkAlgorithm
 {
 public:
-  static vtkDataObjectAlgorithm *New();
-  vtkTypeMacro(vtkDataObjectAlgorithm,vtkAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkDataObjectAlgorithm* New();
+  vtkTypeMacro(vtkDataObjectAlgorithm, vtkAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Get the output data object for a port on this algorithm.
    */
   vtkDataObject* GetOutput();
   vtkDataObject* GetOutput(int);
   virtual void SetOutput(vtkDataObject* d);
-  //@}
+  ///@}
 
   /**
    * see vtkAlgorithm for details
    */
-  int ProcessRequest(vtkInformation*,
-                             vtkInformationVector**,
-                             vtkInformationVector*) VTK_OVERRIDE;
+  vtkTypeBool ProcessRequest(
+    vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   // this method is not recommended for use, but lots of old style filters
   // use it
   vtkDataObject* GetInput();
-  vtkDataObject *GetInput(int port);
+  vtkDataObject* GetInput(int port);
 
-  //@{
+  ///@{
   /**
    * Assign a data object as input. Note that this method does not
    * establish a pipeline connection. Use SetInputConnection() to
    * setup a pipeline connection.
    */
-  void SetInputData(vtkDataObject *);
+  void SetInputData(vtkDataObject*);
   void SetInputData(int, vtkDataObject*);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Assign a data object as input. Note that this method does not
    * establish a pipeline connection. Use AddInputConnection() to
    * setup a pipeline connection.
    */
-  void AddInputData(vtkDataObject *);
+  void AddInputData(vtkDataObject*);
   void AddInputData(int, vtkDataObject*);
-  //@}
+  ///@}
 
 protected:
   vtkDataObjectAlgorithm();
-  ~vtkDataObjectAlgorithm() VTK_OVERRIDE;
+  ~vtkDataObjectAlgorithm() override;
 
   // convenience method
-  virtual int RequestInformation(vtkInformation* request,
-                                 vtkInformationVector** inputVector,
-                                 vtkInformationVector* outputVector);
+  virtual int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector);
 
   /**
    * This is called by the superclass.
    * This is the method you should override.
    */
-  virtual int RequestDataObject(vtkInformation*,
-                                vtkInformationVector**,
-                                vtkInformationVector*)
+  virtual int RequestDataObject(vtkInformation*, vtkInformationVector**, vtkInformationVector*)
   {
     return 1;
   }
@@ -112,27 +108,34 @@ protected:
    * This is called by the superclass.
    * This is the method you should override.
    */
-  virtual int RequestUpdateExtent(vtkInformation*,
-                                  vtkInformationVector**,
-                                  vtkInformationVector*)
+  virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*)
   {
     return 1;
   }
 
-  virtual int RequestData(vtkInformation*,
-                          vtkInformationVector**,
-                          vtkInformationVector*)
+  virtual int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*)
   {
     return 1;
   }
 
   // see algorithm for more info
-  int FillOutputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+
+  /**
+   * A helper method that can be used by subclasses in
+   * `RequestDataObject` to create an output data object of the given type if
+   * not already present.
+   *
+   * Note, this uses `vtkDataObjectTypes::TypeIdIsA` to test types. For exact
+   * match, set `exact` to true.
+   */
+  static bool SetOutputDataObject(
+    int dataType, vtkInformation* outputInformation, bool exact = false);
 
 private:
-  vtkDataObjectAlgorithm(const vtkDataObjectAlgorithm&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDataObjectAlgorithm&) VTK_DELETE_FUNCTION;
+  vtkDataObjectAlgorithm(const vtkDataObjectAlgorithm&) = delete;
+  void operator=(const vtkDataObjectAlgorithm&) = delete;
 };
 
 #endif

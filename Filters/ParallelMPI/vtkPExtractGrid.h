@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkPExtractGrid.cxx
+  Module:    vtkPExtractGrid.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -26,41 +26,39 @@
  *
  * @sa
  *  vtkExtractGrid
-*/
+ */
 
 #ifndef vtkPExtractGrid_h
 #define vtkPExtractGrid_h
 
-#include "vtkFiltersParallelMPIModule.h" // For export macro
 #include "vtkExtractGrid.h"
+#include "vtkFiltersParallelMPIModule.h" // For export macro
 
 // Forward declarations
 class vtkMPIController;
 
-class VTKFILTERSPARALLELMPI_EXPORT vtkPExtractGrid: public vtkExtractGrid
+class VTKFILTERSPARALLELMPI_EXPORT vtkPExtractGrid : public vtkExtractGrid
 {
 public:
-    static vtkPExtractGrid* New();
-    vtkTypeMacro(vtkPExtractGrid,vtkExtractGrid);
-    void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkPExtractGrid* New();
+  vtkTypeMacro(vtkPExtractGrid, vtkExtractGrid);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
-    vtkPExtractGrid();
-    virtual ~vtkPExtractGrid();
+  vtkPExtractGrid();
+  ~vtkPExtractGrid() override;
 
-    // Standard VTK Pipeline methods
-    virtual int RequestData(
-        vtkInformation*, vtkInformationVector**,vtkInformationVector*) VTK_OVERRIDE;
-    virtual int RequestInformation(
-        vtkInformation*, vtkInformationVector**, vtkInformationVector*) VTK_OVERRIDE;
-    virtual int RequestUpdateExtent(
-        vtkInformation*, vtkInformationVector**, vtkInformationVector*) VTK_OVERRIDE;
+  // Standard VTK Pipeline methods
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-    vtkMPIController* Controller;
+  void SetController(vtkMPIController*);
+  vtkMPIController* Controller;
 
 private:
-    vtkPExtractGrid(const vtkPExtractGrid&) VTK_DELETE_FUNCTION;
-    void operator=(const vtkPExtractGrid&) VTK_DELETE_FUNCTION;
+  vtkPExtractGrid(const vtkPExtractGrid&) = delete;
+  void operator=(const vtkPExtractGrid&) = delete;
 };
 
 #endif

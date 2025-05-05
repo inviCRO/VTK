@@ -21,7 +21,7 @@
  * the StartElement method.  Each element end tag is sent to the
  * EndElement method.  Subclasses should replace these methods to actually
  * use the tags.
-*/
+ */
 
 #ifndef vtkXMLParser_h
 #define vtkXMLParser_h
@@ -39,20 +39,20 @@ extern "C"
 class VTKIOXMLPARSER_EXPORT vtkXMLParser : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkXMLParser,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkXMLParser, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   static vtkXMLParser* New();
 
-  //@{
+  ///@{
   /**
    * Get/Set the input stream.
    */
   vtkSetMacro(Stream, istream*);
   vtkGetMacro(Stream, istream*);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Used by subclasses and their supporting classes.  These methods
    * wrap around the tellg and seekg methods of the input stream to
@@ -60,23 +60,23 @@ public:
    */
   vtkTypeInt64 TellG();
   void SeekG(vtkTypeInt64 position);
-  //@}
+  ///@}
 
   /**
    * Parse the XML input.
    */
   virtual int Parse();
 
-  //@{
+  ///@{
   /**
    * Parse the XML message. If length is specified, parse only the
    * first "length" characters
    */
   virtual int Parse(const char* inputString);
   virtual int Parse(const char* inputString, unsigned int length);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When parsing fragments of XML, or when streaming XML,
    * use the following three methods:
@@ -90,17 +90,17 @@ public:
   virtual int InitializeParser();
   virtual int ParseChunk(const char* inputString, unsigned int length);
   virtual int CleanupParser();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set and get file name.
    */
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
-  //@}
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If this is off (the default), CharacterDataHandler will be called to
    * process text within XML Elements. If this is on, the text will be
@@ -108,22 +108,22 @@ public:
    */
   vtkSetMacro(IgnoreCharacterData, int);
   vtkGetMacro(IgnoreCharacterData, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set and get the encoding the parser should expect (NULL defaults to
+   * Set and get the encoding the parser should expect (nullptr defaults to
    * Expat's own default encoder, i.e UTF-8).
    * This should be set before parsing (i.e. a call to Parse()) or
    * even initializing the parser (i.e. a call to InitializeParser())
    */
   vtkSetStringMacro(Encoding);
   vtkGetStringMacro(Encoding);
-  //@}
+  ///@}
 
 protected:
   vtkXMLParser();
-  ~vtkXMLParser() VTK_OVERRIDE;
+  ~vtkXMLParser() override;
 
   // Input stream.  Set by user.
   istream* Stream;
@@ -173,15 +173,13 @@ protected:
   virtual void CharacterDataHandler(const char* data, int length);
 
   // Called by begin handlers to report any stray attribute values.
-  virtual void ReportStrayAttribute(const char* element, const char* attr,
-                                    const char* value);
+  virtual void ReportStrayAttribute(const char* element, const char* attr, const char* value);
 
   // Called by begin handlers to report any missing attribute values.
   virtual void ReportMissingAttribute(const char* element, const char* attr);
 
   // Called by begin handlers to report bad attribute values.
-  virtual void ReportBadAttribute(const char* element, const char* attr,
-                                  const char* value);
+  virtual void ReportBadAttribute(const char* element, const char* attr, const char* value);
 
   // Called by StartElement to report unknown element type.
   virtual void ReportUnknownElement(const char* element);
@@ -209,16 +207,12 @@ protected:
   int IgnoreCharacterData;
 
 private:
-  vtkXMLParser(const vtkXMLParser&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkXMLParser&) VTK_DELETE_FUNCTION;
+  vtkXMLParser(const vtkXMLParser&) = delete;
+  void operator=(const vtkXMLParser&) = delete;
 };
 
 //----------------------------------------------------------------------------
-inline
-void vtkXMLParserCharacterDataHandler(
-        void* parser,
-        const char* data,
-        int length)
+inline void vtkXMLParserCharacterDataHandler(void* parser, const char* data, int length)
 {
   // Character data handler that is registered with the XML_Parser.
   // This just casts the user data to a vtkXMLParser and calls

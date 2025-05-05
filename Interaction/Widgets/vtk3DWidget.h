@@ -51,7 +51,7 @@
  * @sa
  * vtkBoxWidget vtkPlaneWidget vtkLineWidget vtkPointWidget
  * vtkSphereWidget vtkImplicitPlaneWidget
-*/
+ */
 
 #ifndef vtk3DWidget_h
 #define vtk3DWidget_h
@@ -67,10 +67,10 @@ class vtkProp3D;
 class VTKINTERACTIONWIDGETS_EXPORT vtk3DWidget : public vtkInteractorObserver
 {
 public:
-  vtkTypeMacro(vtk3DWidget,vtkInteractorObserver);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtk3DWidget, vtkInteractorObserver);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * This method is used to initially place the widget.  The placement of the
    * widget depends on whether a Prop3D or input dataset is provided. If one
@@ -82,21 +82,21 @@ public:
    */
   virtual void PlaceWidget(double bounds[6]) = 0;
   virtual void PlaceWidget();
-  virtual void PlaceWidget(double xmin, double xmax, double ymin, double ymax,
-                           double zmin, double zmax);
-  //@}
+  virtual void PlaceWidget(
+    double xmin, double xmax, double ymin, double ymax, double zmin, double zmax);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify a vtkProp3D around which to place the widget. This
    * is not required, but if supplied, it is used to initially
    * position the widget.
    */
   virtual void SetProp3D(vtkProp3D*);
-  vtkGetObjectMacro(Prop3D,vtkProp3D);
-  //@}
+  vtkGetObjectMacro(Prop3D, vtkProp3D);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the input dataset. This is not required, but if supplied,
    * and no vtkProp3D is specified, it is used to initially position
@@ -104,10 +104,10 @@ public:
    */
   virtual void SetInputData(vtkDataSet*);
   virtual void SetInputConnection(vtkAlgorithmOutput*);
-  virtual vtkDataSet *GetInput();
-  //@}
+  virtual vtkDataSet* GetInput();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get a factor representing the scaling of the widget upon placement
    * (via the PlaceWidget() method). Normally the widget is placed so that
@@ -115,52 +115,51 @@ public:
    * The PlaceFactor will make the widget larger (PlaceFactor > 1) or smaller
    * (PlaceFactor < 1). By default, PlaceFactor is set to 0.5.
    */
-  vtkSetClampMacro(PlaceFactor,double,0.01,VTK_DOUBLE_MAX);
-  vtkGetMacro(PlaceFactor,double);
-  //@}
+  vtkSetClampMacro(PlaceFactor, double, 0.01, VTK_DOUBLE_MAX);
+  vtkGetMacro(PlaceFactor, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the factor that controls the size of the handles that
    * appear as part of the widget. These handles (like spheres, etc.)
    * are used to manipulate the widget, and are sized as a fraction of
    * the screen diagonal.
    */
-  vtkSetClampMacro(HandleSize,double,0.001,0.5);
-  vtkGetMacro(HandleSize,double);
-  //@}
+  vtkSetClampMacro(HandleSize, double, 0.001, 0.5);
+  vtkGetMacro(HandleSize, double);
+  ///@}
 
 protected:
   vtk3DWidget();
-  ~vtk3DWidget() VTK_OVERRIDE;
+  ~vtk3DWidget() override;
 
   // Used to position and scale the widget initially
-  vtkProp3D *Prop3D;
+  vtkProp3D* Prop3D;
 
-  vtk3DWidgetConnection *ConnectionHolder;
+  vtk3DWidgetConnection* ConnectionHolder;
 
-  //has the widget ever been placed
+  // has the widget ever been placed
   double PlaceFactor;
   int Placed;
   void AdjustBounds(double bounds[6], double newBounds[6], double center[3]);
 
-  //control the size of handles (if there are any)
+  // control the size of handles (if there are any)
   double InitialBounds[6];
   double InitialLength;
   double HandleSize;
   double SizeHandles(double factor);
-  virtual void SizeHandles() {}//subclass in turn invokes parent's SizeHandles()
+  virtual void SizeHandles() {} // subclass in turn invokes parent's SizeHandles()
 
-  //used to track the depth of the last pick; also interacts with handle sizing
-  int   ValidPick;
+  // used to track the depth of the last pick; also interacts with handle sizing
+  int ValidPick;
   double LastPickPosition[3];
 
   void UpdateInput();
 
 private:
-  vtk3DWidget(const vtk3DWidget&) VTK_DELETE_FUNCTION;
-  void operator=(const vtk3DWidget&) VTK_DELETE_FUNCTION;
-
+  vtk3DWidget(const vtk3DWidget&) = delete;
+  void operator=(const vtk3DWidget&) = delete;
 };
 
 #endif

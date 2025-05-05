@@ -42,13 +42,13 @@
  * @warning
  * This filter is not "domain-aware". Pedigree ids are assumed to be globally
  * unique, regardless of their domain.
-*/
+ */
 
 #ifndef vtkMergeGraphs_h
 #define vtkMergeGraphs_h
 
-#include "vtkInfovisCoreModule.h" // For export macro
 #include "vtkGraphAlgorithm.h"
+#include "vtkInfovisCoreModule.h" // For export macro
 
 class vtkBitArray;
 class vtkMutableGraphHelper;
@@ -59,8 +59,8 @@ class VTKINFOVISCORE_EXPORT vtkMergeGraphs : public vtkGraphAlgorithm
 {
 public:
   static vtkMergeGraphs* New();
-  vtkTypeMacro(vtkMergeGraphs,vtkGraphAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkMergeGraphs, vtkGraphAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * This is the core functionality of the algorithm. Adds edges
@@ -68,7 +68,7 @@ public:
    */
   int ExtendGraph(vtkMutableGraphHelper* g1, vtkGraph* g2);
 
-  //@{
+  ///@{
   /**
    * Whether to use an edge window array. The default is to
    * not use a window array.
@@ -76,17 +76,17 @@ public:
   vtkSetMacro(UseEdgeWindow, bool);
   vtkGetMacro(UseEdgeWindow, bool);
   vtkBooleanMacro(UseEdgeWindow, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The edge window array. The default array name is "time".
    */
   vtkSetStringMacro(EdgeWindowArrayName);
   vtkGetStringMacro(EdgeWindowArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The time window amount. Edges with values lower
    * than the maximum value minus this window will be
@@ -95,27 +95,23 @@ public:
    */
   vtkSetMacro(EdgeWindow, double);
   vtkGetMacro(EdgeWindow, double);
-  //@}
+  ///@}
 
 protected:
   vtkMergeGraphs();
-  ~vtkMergeGraphs() VTK_OVERRIDE;
+  ~vtkMergeGraphs() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
   bool UseEdgeWindow;
   char* EdgeWindowArrayName;
   double EdgeWindow;
 
 private:
-  vtkMergeGraphs(const vtkMergeGraphs&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMergeGraphs&) VTK_DELETE_FUNCTION;
+  vtkMergeGraphs(const vtkMergeGraphs&) = delete;
+  void operator=(const vtkMergeGraphs&) = delete;
 };
 
 #endif
-

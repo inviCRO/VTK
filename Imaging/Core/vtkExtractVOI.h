@@ -34,13 +34,13 @@
  *
  * @sa
  * vtkGeometryFilter vtkExtractGeometry vtkExtractGrid
-*/
+ */
 
 #ifndef vtkExtractVOI_h
 #define vtkExtractVOI_h
 
-#include "vtkImagingCoreModule.h" // For export macro
 #include "vtkImageAlgorithm.h"
+#include "vtkImagingCoreModule.h" // For export macro
 
 // Forward Declarations
 class vtkExtractStructuredGridHelper;
@@ -48,25 +48,25 @@ class vtkExtractStructuredGridHelper;
 class VTKIMAGINGCORE_EXPORT vtkExtractVOI : public vtkImageAlgorithm
 {
 public:
-  vtkTypeMacro(vtkExtractVOI,vtkImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkExtractVOI, vtkImageAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Construct object to extract all of the input data.
    */
-  static vtkExtractVOI *New();
+  static vtkExtractVOI* New();
 
-  //@{
+  ///@{
   /**
    * Specify i-j-k (min,max) pairs to extract. The resulting structured points
    * dataset can be of any topological dimension (i.e., point, line, image,
    * or volume).
    */
-  vtkSetVector6Macro(VOI,int);
-  vtkGetVectorMacro(VOI,int,6);
-  //@}
+  vtkSetVector6Macro(VOI, int);
+  vtkGetVectorMacro(VOI, int, 6);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the sampling rate in the i, j, and k directions. If the rate is >
    * 1, then the resulting VOI will be subsampled representation of the
@@ -75,9 +75,9 @@ public:
    */
   vtkSetVector3Macro(SampleRate, int);
   vtkGetVectorMacro(SampleRate, int, 3);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Control whether to enforce that the "boundary" of the grid is output in
    * the subsampling process. (This ivar only has effect when the SampleRate
@@ -86,24 +86,19 @@ public:
    * though the sample rate is not an even multiple of the grid
    * dimensions. (By default IncludeBoundary is off.)
    */
-  vtkSetMacro(IncludeBoundary,int);
-  vtkGetMacro(IncludeBoundary,int);
-  vtkBooleanMacro(IncludeBoundary,int);
-  //@}
+  vtkSetMacro(IncludeBoundary, vtkTypeBool);
+  vtkGetMacro(IncludeBoundary, vtkTypeBool);
+  vtkBooleanMacro(IncludeBoundary, vtkTypeBool);
+  ///@}
 
 protected:
   vtkExtractVOI();
-  ~vtkExtractVOI() VTK_OVERRIDE;
+  ~vtkExtractVOI() override;
 
-  int RequestUpdateExtent(vtkInformation*,
-                                  vtkInformationVector**,
-                                  vtkInformationVector*) VTK_OVERRIDE;
-  int RequestInformation (vtkInformation*,
-                                  vtkInformationVector**,
-                                  vtkInformationVector*) VTK_OVERRIDE;
-  int RequestData(vtkInformation* request,
-                          vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector) VTK_OVERRIDE;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   /**
    * Implementation for RequestData using a specified VOI. This is because the
@@ -111,19 +106,17 @@ protected:
    * partitioning to play nice. The VOI is calculated from the output
    * data object's extents in this implementation.
    */
-  bool RequestDataImpl(vtkInformationVector **inputVector,
-                       vtkInformationVector *outputVector);
+  bool RequestDataImpl(vtkInformationVector** inputVector, vtkInformationVector* outputVector);
 
   int VOI[6];
   int SampleRate[3];
-  int IncludeBoundary;
+  vtkTypeBool IncludeBoundary;
 
   vtkExtractStructuredGridHelper* Internal;
+
 private:
-  vtkExtractVOI(const vtkExtractVOI&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkExtractVOI&) VTK_DELETE_FUNCTION;
+  vtkExtractVOI(const vtkExtractVOI&) = delete;
+  void operator=(const vtkExtractVOI&) = delete;
 };
 
 #endif
-
-

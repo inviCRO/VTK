@@ -23,7 +23,7 @@
  *
  * To use this representation, always begin by specifying the number of
  * button states.  Then provide a polydata (the polydata should have associated
- * texture coordinates), and a list of textures cooresponding to the button
+ * texture coordinates), and a list of textures corresponding to the button
  * states. Optionally, the HoveringProperty and SelectionProperty can be
  * adjusted to obtain the appropriate appearance.
  *
@@ -42,19 +42,19 @@
  * @sa
  * vtkButtonWidget vtkButtonRepresentation vtkButtonSource vtkEllipticalButtonSource
  * vtkRectangularButtonSource
-*/
+ */
 
 #ifndef vtkTexturedButtonRepresentation_h
 #define vtkTexturedButtonRepresentation_h
 
-#include "vtkInteractionWidgetsModule.h" // For export macro
 #include "vtkButtonRepresentation.h"
+#include "vtkInteractionWidgetsModule.h" // For export macro
 
 class vtkCellPicker;
 class vtkActor;
 class vtkProperty;
 class vtkImageData;
-class vtkTextureArray; //PIMPLd
+class vtkTextureArray; // PIMPLd
 class vtkPolyData;
 class vtkPolyDataMapper;
 class vtkAlgorithmOutput;
@@ -67,68 +67,68 @@ public:
   /**
    * Instantiate the class.
    */
-  static vtkTexturedButtonRepresentation *New();
+  static vtkTexturedButtonRepresentation* New();
 
-  //@{
+  ///@{
   /**
    * Standard methods for instances of the class.
    */
-  vtkTypeMacro(vtkTexturedButtonRepresentation,vtkButtonRepresentation);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkTexturedButtonRepresentation, vtkButtonRepresentation);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the polydata which defines the button geometry.
    */
-  void SetButtonGeometry(vtkPolyData *pd);
+  void SetButtonGeometry(vtkPolyData* pd);
   void SetButtonGeometryConnection(vtkAlgorithmOutput* algOutput);
-  vtkPolyData *GetButtonGeometry();
-  //@}
+  vtkPolyData* GetButtonGeometry();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify whether the button should always face the camera. If enabled,
    * the button rotates as the camera moves.
    */
-  vtkSetMacro(FollowCamera,int);
-  vtkGetMacro(FollowCamera,int);
-  vtkBooleanMacro(FollowCamera,int);
-  //@}
+  vtkSetMacro(FollowCamera, vtkTypeBool);
+  vtkGetMacro(FollowCamera, vtkTypeBool);
+  vtkBooleanMacro(FollowCamera, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the property to use when the button is to appear "normal"
    * i.e., the mouse pointer is not hovering or selecting the button.
    */
-  virtual void SetProperty(vtkProperty *p);
-  vtkGetObjectMacro(Property,vtkProperty);
-  //@}
+  virtual void SetProperty(vtkProperty* p);
+  vtkGetObjectMacro(Property, vtkProperty);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the property to use when the hovering over the button.
    */
-  virtual void SetHoveringProperty(vtkProperty *p);
-  vtkGetObjectMacro(HoveringProperty,vtkProperty);
-  //@}
+  virtual void SetHoveringProperty(vtkProperty* p);
+  vtkGetObjectMacro(HoveringProperty, vtkProperty);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the property to use when selecting the button.
    */
-  virtual void SetSelectingProperty(vtkProperty *p);
-  vtkGetObjectMacro(SelectingProperty,vtkProperty);
-  //@}
+  virtual void SetSelectingProperty(vtkProperty* p);
+  vtkGetObjectMacro(SelectingProperty, vtkProperty);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Add the ith texture corresponding to the ith button state.
    * The parameter i should be (0 <= i < NumberOfStates).
    */
-  void SetButtonTexture(int i, vtkImageData *image);
-  vtkImageData *GetButtonTexture(int i);
-  //@}
+  void SetButtonTexture(int i, vtkImageData* image);
+  vtkImageData* GetButtonTexture(int i);
+  ///@}
 
   /**
    * Alternative method for placing a button at a given position (defined by
@@ -140,61 +140,63 @@ public:
    */
   virtual void PlaceWidget(double scale, double point[3], double normal[3]);
 
-  //@{
+  ///@{
   /**
    * Provide the necessary methods to satisfy the vtkWidgetRepresentation API.
    */
-  int ComputeInteractionState(int X, int Y, int modify=0) VTK_OVERRIDE;
-  void PlaceWidget(double bounds[6]) VTK_OVERRIDE;
-  void BuildRepresentation() VTK_OVERRIDE;
-  void Highlight(int state) VTK_OVERRIDE;
-  //@}
+  int ComputeInteractionState(int X, int Y, int modify = 0) override;
+  void PlaceWidget(double bounds[6]) override;
+  void BuildRepresentation() override;
+  void Highlight(int state) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Provide the necessary methods to satisfy the rendering API.
    */
-  void ShallowCopy(vtkProp *prop) VTK_OVERRIDE;
-  double *GetBounds() VTK_OVERRIDE;
-  void GetActors(vtkPropCollection *pc) VTK_OVERRIDE;
-  void ReleaseGraphicsResources(vtkWindow*) VTK_OVERRIDE;
-  int RenderOpaqueGeometry(vtkViewport*) VTK_OVERRIDE;
-  int RenderTranslucentPolygonalGeometry(vtkViewport*) VTK_OVERRIDE;
-  int HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
-  //@}
+  void ShallowCopy(vtkProp* prop) override;
+  double* GetBounds() override;
+  void GetActors(vtkPropCollection* pc) override;
+  void ReleaseGraphicsResources(vtkWindow*) override;
+  int RenderOpaqueGeometry(vtkViewport*) override;
+  int RenderTranslucentPolygonalGeometry(vtkViewport*) override;
+  vtkTypeBool HasTranslucentPolygonalGeometry() override;
+  ///@}
+
+  /*
+   * Register internal Pickers within PickingManager
+   */
+  void RegisterPickers() override;
 
 protected:
   vtkTexturedButtonRepresentation();
-  ~vtkTexturedButtonRepresentation() VTK_OVERRIDE;
+  ~vtkTexturedButtonRepresentation() override;
 
   // Representing the button
-  vtkActor          *Actor;
-  vtkFollower       *Follower;
-  vtkPolyDataMapper *Mapper;
-  vtkTexture        *Texture;
+  vtkActor* Actor;
+  vtkFollower* Follower;
+  vtkPolyDataMapper* Mapper;
+  vtkTexture* Texture;
 
   // Camera
-  int FollowCamera;
+  vtkTypeBool FollowCamera;
 
   // Properties of the button
-  vtkProperty *Property;
-  vtkProperty *HoveringProperty;
-  vtkProperty *SelectingProperty;
+  vtkProperty* Property;
+  vtkProperty* HoveringProperty;
+  vtkProperty* SelectingProperty;
   void CreateDefaultProperties();
 
   // Keep track of the images (textures) associated with the N
   // states of the button. This is a PIMPLd stl map.
-  vtkTextureArray *TextureArray;
+  vtkTextureArray* TextureArray;
 
   // For picking the button
-  vtkCellPicker *Picker;
-
-  // Register internal Pickers within PickingManager
-  void RegisterPickers() VTK_OVERRIDE;
+  vtkCellPicker* Picker;
 
 private:
-  vtkTexturedButtonRepresentation(const vtkTexturedButtonRepresentation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTexturedButtonRepresentation&) VTK_DELETE_FUNCTION;
+  vtkTexturedButtonRepresentation(const vtkTexturedButtonRepresentation&) = delete;
+  void operator=(const vtkTexturedButtonRepresentation&) = delete;
 };
 
 #endif

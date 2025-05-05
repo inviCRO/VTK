@@ -19,28 +19,29 @@
 
 =========================================================================*/
 
-#include "vtkDenseArray.h"
 #include "vtkDiagonalMatrixSource.h"
+#include "vtkArrayData.h"
+#include "vtkDenseArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 #include "vtkSparseArray.h"
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 vtkStandardNewMacro(vtkDiagonalMatrixSource);
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-vtkDiagonalMatrixSource::vtkDiagonalMatrixSource() :
-  ArrayType(DENSE),
-  Extents(3),
-  Diagonal(1.0),
-  SuperDiagonal(0.0),
-  SubDiagonal(0.0),
-  RowLabel(0),
-  ColumnLabel(0)
+vtkDiagonalMatrixSource::vtkDiagonalMatrixSource()
+  : ArrayType(DENSE)
+  , Extents(3)
+  , Diagonal(1.0)
+  , SuperDiagonal(0.0)
+  , SubDiagonal(0.0)
+  , RowLabel(nullptr)
+  , ColumnLabel(nullptr)
 {
   this->SetRowLabel("rows");
   this->SetColumnLabel("columns");
@@ -49,15 +50,15 @@ vtkDiagonalMatrixSource::vtkDiagonalMatrixSource() :
   this->SetNumberOfOutputPorts(1);
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 vtkDiagonalMatrixSource::~vtkDiagonalMatrixSource()
 {
-  this->SetRowLabel(0);
-  this->SetColumnLabel(0);
+  this->SetRowLabel(nullptr);
+  this->SetColumnLabel(nullptr);
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void vtkDiagonalMatrixSource::PrintSelf(ostream& os, vtkIndent indent)
 {
@@ -71,21 +72,20 @@ void vtkDiagonalMatrixSource::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ColumnLabel: " << (this->ColumnLabel ? this->ColumnLabel : "") << endl;
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 int vtkDiagonalMatrixSource::RequestData(
-  vtkInformation*,
-  vtkInformationVector**,
-  vtkInformationVector* outputVector)
+  vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
-  if(this->Extents < 1)
+  if (this->Extents < 1)
   {
-    vtkErrorMacro(<< "Invalid matrix extents: " << this->Extents << "x" << this->Extents << " array is not supported.");
+    vtkErrorMacro(<< "Invalid matrix extents: " << this->Extents << "x" << this->Extents
+                  << " array is not supported.");
     return 0;
   }
 
-  vtkArray* array = 0;
-  switch(this->ArrayType)
+  vtkArray* array = nullptr;
+  switch (this->ArrayType)
   {
     case DENSE:
       array = this->GenerateDenseArray();
@@ -115,22 +115,22 @@ vtkArray* vtkDiagonalMatrixSource::GenerateDenseArray()
 
   array->Fill(0.0);
 
-  if(this->Diagonal != 0.0)
+  if (this->Diagonal != 0.0)
   {
-    for(vtkIdType i = 0; i != this->Extents; ++i)
+    for (vtkIdType i = 0; i != this->Extents; ++i)
       array->SetValue(vtkArrayCoordinates(i, i), this->Diagonal);
   }
 
-  if(this->SuperDiagonal != 0.0)
+  if (this->SuperDiagonal != 0.0)
   {
-    for(vtkIdType i = 0; i + 1 != this->Extents; ++i)
-      array->SetValue(vtkArrayCoordinates(i, i+1), this->SuperDiagonal);
+    for (vtkIdType i = 0; i + 1 != this->Extents; ++i)
+      array->SetValue(vtkArrayCoordinates(i, i + 1), this->SuperDiagonal);
   }
 
-  if(this->SubDiagonal != 0.0)
+  if (this->SubDiagonal != 0.0)
   {
-    for(vtkIdType i = 0; i + 1 != this->Extents; ++i)
-      array->SetValue(vtkArrayCoordinates(i+1, i), this->SubDiagonal);
+    for (vtkIdType i = 0; i + 1 != this->Extents; ++i)
+      array->SetValue(vtkArrayCoordinates(i + 1, i), this->SubDiagonal);
   }
 
   return array;
@@ -143,24 +143,23 @@ vtkArray* vtkDiagonalMatrixSource::GenerateSparseArray()
   array->SetDimensionLabel(0, this->RowLabel);
   array->SetDimensionLabel(1, this->ColumnLabel);
 
-  if(this->Diagonal != 0.0)
+  if (this->Diagonal != 0.0)
   {
-    for(vtkIdType i = 0; i != this->Extents; ++i)
+    for (vtkIdType i = 0; i != this->Extents; ++i)
       array->AddValue(vtkArrayCoordinates(i, i), this->Diagonal);
   }
 
-  if(this->SuperDiagonal != 0.0)
+  if (this->SuperDiagonal != 0.0)
   {
-    for(vtkIdType i = 0; i + 1 != this->Extents; ++i)
-      array->AddValue(vtkArrayCoordinates(i, i+1), this->SuperDiagonal);
+    for (vtkIdType i = 0; i + 1 != this->Extents; ++i)
+      array->AddValue(vtkArrayCoordinates(i, i + 1), this->SuperDiagonal);
   }
 
-  if(this->SubDiagonal != 0.0)
+  if (this->SubDiagonal != 0.0)
   {
-    for(vtkIdType i = 0; i + 1 != this->Extents; ++i)
-      array->AddValue(vtkArrayCoordinates(i+1, i), this->SubDiagonal);
+    for (vtkIdType i = 0; i + 1 != this->Extents; ++i)
+      array->AddValue(vtkArrayCoordinates(i + 1, i), this->SubDiagonal);
   }
 
   return array;
 }
-

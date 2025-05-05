@@ -34,47 +34,49 @@
  *
  * @par Thanks:
  * Developed by Timothy M. Shead (tshead@sandia.gov) at Sandia National Laboratories.
-*/
+ */
 
 #ifndef vtkArrayReader_h
 #define vtkArrayReader_h
 
-#include "vtkIOCoreModule.h" // For export macro
 #include "vtkArrayDataAlgorithm.h"
+#include "vtkIOCoreModule.h" // For export macro
+#include "vtkStdString.h"    // For vtkStdString
 
-class VTKIOCORE_EXPORT vtkArrayReader :
-  public vtkArrayDataAlgorithm
+class vtkArray;
+
+class VTKIOCORE_EXPORT vtkArrayReader : public vtkArrayDataAlgorithm
 {
 public:
   static vtkArrayReader* New();
   vtkTypeMacro(vtkArrayReader, vtkArrayDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set the filesystem location from which data will be read.
    */
-  vtkGetStringMacro(FileName);
-  vtkSetStringMacro(FileName);
-  //@}
+  vtkGetFilePathMacro(FileName);
+  vtkSetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The input string to parse. If you set the input string, you must also set
    * the ReadFromInputString flag to parse the string instead of a file.
    */
   virtual void SetInputString(const vtkStdString& string);
   virtual vtkStdString GetInputString();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to read from an input string as opposed to a file, which is the default.
    */
   vtkSetMacro(ReadFromInputString, bool);
   vtkGetMacro(ReadFromInputString, bool);
   vtkBooleanMacro(ReadFromInputString, bool);
-  //@}
+  ///@}
 
   /**
    * Read an arbitrary array from a stream.  Note: you MUST always
@@ -86,25 +88,21 @@ public:
   /**
    * Read an arbitrary array from a string.
    */
-  static vtkArray* Read(vtkStdString str);
+  static vtkArray* Read(const vtkStdString& str);
 
 protected:
   vtkArrayReader();
-  ~vtkArrayReader() VTK_OVERRIDE;
+  ~vtkArrayReader() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   char* FileName;
   vtkStdString InputString;
   bool ReadFromInputString;
 
 private:
-  vtkArrayReader(const vtkArrayReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkArrayReader&) VTK_DELETE_FUNCTION;
+  vtkArrayReader(const vtkArrayReader&) = delete;
+  void operator=(const vtkArrayReader&) = delete;
 };
 
 #endif
-

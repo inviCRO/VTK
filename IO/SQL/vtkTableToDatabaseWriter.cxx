@@ -28,80 +28,77 @@
 
 #include "vtkTableToDatabaseWriter.h"
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTableToDatabaseWriter::vtkTableToDatabaseWriter()
 {
-    this->Database = 0;
+  this->Database = nullptr;
 }
 
-//----------------------------------------------------------------------------
-vtkTableToDatabaseWriter::~vtkTableToDatabaseWriter()
-{
-}
+//------------------------------------------------------------------------------
+vtkTableToDatabaseWriter::~vtkTableToDatabaseWriter() = default;
 
-//----------------------------------------------------------------------------
-bool vtkTableToDatabaseWriter::SetDatabase(vtkSQLDatabase *db)
+//------------------------------------------------------------------------------
+bool vtkTableToDatabaseWriter::SetDatabase(vtkSQLDatabase* db)
 {
-  if(!db)
+  if (!db)
   {
     return false;
   }
   this->Database = db;
-  if(this->Database->IsOpen() == false)
+  if (!this->Database->IsOpen())
   {
-    vtkErrorMacro(<<"SetDatabase must be passed an open database connection");
-    this->Database = 0;
+    vtkErrorMacro(<< "SetDatabase must be passed an open database connection");
+    this->Database = nullptr;
     return false;
   }
 
-  if(this->TableName != "")
+  if (!this->TableName.empty())
   {
     return this->TableNameIsNew();
   }
   return true;
 }
 
-//----------------------------------------------------------------------------
-bool vtkTableToDatabaseWriter::SetTableName(const char *name)
+//------------------------------------------------------------------------------
+bool vtkTableToDatabaseWriter::SetTableName(const char* name)
 {
   std::string nameStr = name;
   this->TableName = nameStr;
-  if(this->Database != 0)
+  if (this->Database != nullptr)
   {
     return this->TableNameIsNew();
   }
   return true;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkTableToDatabaseWriter::TableNameIsNew()
 {
-  if(this->Database == 0)
+  if (this->Database == nullptr)
   {
-    vtkErrorMacro(<<"TableNameIsNew() called with no open database!");
+    vtkErrorMacro(<< "TableNameIsNew() called with no open database!");
     return false;
   }
 
-  if(this->TableName == "")
+  if (this->TableName.empty())
   {
-    vtkErrorMacro(<<"TableNameIsNew() called but no table name specified.");
+    vtkErrorMacro(<< "TableNameIsNew() called but no table name specified.");
     return false;
   }
 
-  vtkStringArray *tableNames = this->Database->GetTables();
-  if(tableNames->LookupValue(this->TableName) == -1)
+  vtkStringArray* tableNames = this->Database->GetTables();
+  if (tableNames->LookupValue(this->TableName) == -1)
   {
     return true;
   }
 
-  vtkErrorMacro(
-    << "Table " << this->TableName << " already exists in the database.  "
-    << "Please choose another name.");
+  vtkErrorMacro(<< "Table " << this->TableName << " already exists in the database.  "
+                << "Please choose another name.");
   this->TableName = "";
   return false;
 }
 
-int vtkTableToDatabaseWriter::FillInputPortInformation(int, vtkInformation *info)
+int vtkTableToDatabaseWriter::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkTable");
   return 1;
@@ -117,8 +114,8 @@ vtkTable* vtkTableToDatabaseWriter::GetInput(int port)
   return vtkTable::SafeDownCast(this->Superclass::GetInput(port));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTableToDatabaseWriter::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }

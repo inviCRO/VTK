@@ -32,7 +32,7 @@
  * adding points  (which do not have Sharpness and Midpoint parameters)
  * will default to Midpoint = 0.5 (halfway between the control points) and
  * Sharpness = 0.0 (linear).
-*/
+ */
 
 #ifndef vtkPiecewiseFunction_h
 #define vtkPiecewiseFunction_h
@@ -45,33 +45,51 @@ class vtkPiecewiseFunctionInternals;
 class VTKCOMMONDATAMODEL_EXPORT vtkPiecewiseFunction : public vtkDataObject
 {
 public:
-  static vtkPiecewiseFunction *New();
-  vtkTypeMacro(vtkPiecewiseFunction,vtkDataObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkPiecewiseFunction* New();
+  vtkTypeMacro(vtkPiecewiseFunction, vtkDataObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  void DeepCopy( vtkDataObject *f ) VTK_OVERRIDE;
-  void ShallowCopy( vtkDataObject *f ) VTK_OVERRIDE;
+  void DeepCopy(vtkDataObject* f) override;
+  void ShallowCopy(vtkDataObject* f) override;
 
   /**
    * Return what type of dataset this is.
    */
-  int GetDataObjectType() VTK_OVERRIDE {return VTK_PIECEWISE_FUNCTION;};
+  int GetDataObjectType() override { return VTK_PIECEWISE_FUNCTION; }
 
   /**
    * Get the number of points used to specify the function
    */
-  int  GetSize();
+  int GetSize();
 
-  //@{
+  ///@{
   /**
-   * Add/Remove points to/from the function. If a duplicate point is added
-   * then the function value is changed at that location.
+   * Add points to the function. If a duplicate point is added
+   * then the previous point is removed unless
+   * AllowDuplicateScalars is set to true
    * Return the index of the point (0 based), or -1 on error.
    */
-  int AddPoint( double x, double y );
-  int AddPoint( double x, double y, double midpoint, double sharpness );
-  int RemovePoint( double x );
-  //@}
+  int AddPoint(double x, double y);
+  int AddPoint(double x, double y, double midpoint, double sharpness);
+  ///@}
+
+  /**
+   * Remove a point from the function at a given id
+   * Return true if point has been found and removed, false other wise
+   */
+  bool RemovePointByIndex(size_t id);
+
+  /**
+   * Remove the first point found at the given x location
+   * Return the index of the remove point if any, -1 otherwise
+   */
+  int RemovePoint(double x);
+
+  /**
+   * Remove the first point found at the given x and y location
+   * Return the index of the remove point if any, -1 otherwise
+   */
+  int RemovePoint(double x, double y);
 
   /**
    * Removes all points from the function.
@@ -80,30 +98,29 @@ public:
 
   /**
    * Add a line segment to the function. All points defined between the
-   * two points specified are removed from the function. This is a legacy
-   * method that does not allow the specification of the sharpness and
-   * midpoint values for the two nodes.
+   * two points specified are removed from the function.
+   * To specify the sharpness and midpoint values, use AddPoint method instead.
    */
-  void AddSegment( double x1, double y1, double x2, double y2 );
+  void AddSegment(double x1, double y1, double x2, double y2);
 
   /**
    * Returns the value of the function at the specified location using
    * the specified interpolation.
    */
-  double GetValue( double x );
+  double GetValue(double x);
 
-  //@{
+  ///@{
   /**
    * For the node specified by index, set/get the
    * location (X), value (Y), midpoint, and sharpness
    * values at the node. Returns -1 if the index is
    * out of range, returns 1 otherwise.
    */
-  int GetNodeValue( int index, double val[4] );
-  int SetNodeValue( int index, double val[4] );
-  //@}
+  int GetNodeValue(int index, double val[4]);
+  int SetNodeValue(int index, double val[4]);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Returns a pointer to the data stored in the table.
    * Fills from a pointer to data stored in a similar table. These are
@@ -111,16 +128,16 @@ public:
    * note that the vtkPiecewiseFunction no longer stores the nodes
    * in a double array internally.
    */
-  double *GetDataPointer();
+  double* GetDataPointer();
   void FillFromDataPointer(int, double*);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Returns the min and max node locations of the function.
    */
-  vtkGetVector2Macro( Range, double );
-  //@}
+  vtkGetVector2Macro(Range, double);
+  ///@}
 
   /**
    * Remove all points out of the new range, and make sure there is a point
@@ -129,14 +146,18 @@ public:
    */
   int AdjustRange(double range[2]);
 
-  //@{
+  ///@{
   /**
    * Fills in an array of function values evaluated at regular intervals.
-   * Parameter "stride" is used to step through the output "table".
+   * Parameter "stride" is used to step through the output "table". If
+   * logIncrements is true, the intervals between entries will be constant in
+   * logarithmic space.
    */
-  void GetTable( double x1, double x2, int size, float *table, int stride=1 );
-  void GetTable( double x1, double x2, int size, double *table, int stride=1 );
-  //@}
+  void GetTable(
+    double x1, double x2, int size, float* table, int stride = 1, int logIncrements = 0);
+  void GetTable(
+    double x1, double x2, int size, double* table, int stride = 1, int logIncrements = 0);
+  ///@}
 
   /**
    * Constructs a piecewise function from a table.  Function range is
@@ -144,10 +165,9 @@ public:
    * are regularly spaced between x1 and x2.  Parameter "stride" is
    * is step through the input table.
    */
-  void BuildFunctionFromTable( double x1, double x2, int size,
-                               double *table, int stride=1 );
+  void BuildFunctionFromTable(double x1, double x2, int size, double* table, int stride = 1);
 
-  //@{
+  ///@{
   /**
    * When zero range clamping is Off, GetValue() returns 0.0 when a
    * value is requested outside of the points specified.
@@ -156,10 +176,20 @@ public:
    * specified and returns the value at the highest point for a request
    * above all points specified. On is the default.
    */
-  vtkSetMacro( Clamping, int );
-  vtkGetMacro( Clamping, int );
-  vtkBooleanMacro( Clamping, int );
-  //@}
+  vtkSetMacro(Clamping, vtkTypeBool);
+  vtkGetMacro(Clamping, vtkTypeBool);
+  vtkBooleanMacro(Clamping, vtkTypeBool);
+  ///@}
+
+  /**
+   * Interpolate between the control points in base-10 logrithmic space.
+   * Default is false.
+   * @{
+   */
+  vtkSetMacro(UseLogScale, bool);
+  vtkGetMacro(UseLogScale, bool);
+  vtkBooleanMacro(UseLogScale, bool);
+  /**@}*/
 
   /**
    * Return the type of function:
@@ -169,7 +199,7 @@ public:
    * 2 : NonIncreasing   (Always decreasing or zero slope)
    * 3 : Varied          (Contains both decreasing and increasing slopes)
    */
-  const char  *GetType();
+  const char* GetType();
 
   /**
    * Returns the first point location which precedes a non-zero segment of the
@@ -179,44 +209,49 @@ public:
 
   /**
    * Clears out the current function. A newly created vtkPiecewiseFunction
-   * is alreay initialized, so there is no need to call this method which
+   * is already initialized, so there is no need to call this method which
    * in turn simply calls RemoveAllPoints()
    */
-  void Initialize() VTK_OVERRIDE;
+  void Initialize() override;
 
-  //@{
+  ///@{
   /**
    * Retrieve an instance of this class from an information object.
    */
   static vtkPiecewiseFunction* GetData(vtkInformation* info);
-  static vtkPiecewiseFunction* GetData(vtkInformationVector* v, int i=0);
-  //@}
+  static vtkPiecewiseFunction* GetData(vtkInformationVector* v, int i = 0);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Toggle whether to allow duplicate scalar values in the piecewise
    * function (off by default).
    */
-  vtkSetMacro(AllowDuplicateScalars, int);
-  vtkGetMacro(AllowDuplicateScalars, int);
-  vtkBooleanMacro(AllowDuplicateScalars, int);
-  //@}
+  vtkSetMacro(AllowDuplicateScalars, vtkTypeBool);
+  vtkGetMacro(AllowDuplicateScalars, vtkTypeBool);
+  vtkBooleanMacro(AllowDuplicateScalars, vtkTypeBool);
+  ///@}
 
   /**
    * Estimates the minimum size of a table such that it would correctly sample this function.
    * The returned value should be passed as parameter 'n' when calling GetTable().
    */
-  int EstimateMinNumberOfSamples(double const & x1, double const & x2);
+  int EstimateMinNumberOfSamples(double const& x1, double const& x2);
 
 protected:
   vtkPiecewiseFunction();
-  ~vtkPiecewiseFunction() VTK_OVERRIDE;
+  ~vtkPiecewiseFunction() override;
 
-  // Internal method to sort the vector and update the
-  // Range whenever a node is added, edited or removed.
-  // It always calls Modified().
+  /**
+   * Internal method to sort the vector and update the
+   * Range whenever a node is added, edited or removed.
+   * It always calls Modified().
+   */
   void SortAndUpdateRange();
-  // Returns true if the range has been updated and Modified() has been called
+
+  /**
+   * Returns true if the range has been updated and Modified() has been called
+   */
   bool UpdateRange();
 
   /**
@@ -225,27 +260,27 @@ protected:
   double FindMinimumXDistance();
 
   // The internal STL structures
-  vtkPiecewiseFunctionInternals *Internal;
+  vtkPiecewiseFunctionInternals* Internal;
 
   // Determines the function value outside of defined points
   // Zero = always return 0.0 outside of defined points
   // One  = clamp to the lowest value below defined points and
   //        highest value above defined points
-  int   Clamping;
+  vtkTypeBool Clamping;
 
   // Array of points ((X,Y) pairs)
-  double *Function;
+  double* Function;
 
   // Min and max range of function point locations
   double Range[2];
 
-  int AllowDuplicateScalars;
+  vtkTypeBool AllowDuplicateScalars;
+
+  bool UseLogScale;
 
 private:
-  vtkPiecewiseFunction(const vtkPiecewiseFunction&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPiecewiseFunction&) VTK_DELETE_FUNCTION;
+  vtkPiecewiseFunction(const vtkPiecewiseFunction&) = delete;
+  void operator=(const vtkPiecewiseFunction&) = delete;
 };
 
 #endif
-
-

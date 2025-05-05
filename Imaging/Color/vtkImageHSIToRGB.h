@@ -22,7 +22,7 @@
  *
  * @sa
  * vtkImageRGBToHSI
-*/
+ */
 
 #ifndef vtkImageHSIToRGB_h
 #define vtkImageHSIToRGB_h
@@ -33,36 +33,33 @@
 class VTKIMAGINGCOLOR_EXPORT vtkImageHSIToRGB : public vtkThreadedImageAlgorithm
 {
 public:
-  static vtkImageHSIToRGB *New();
-  vtkTypeMacro(vtkImageHSIToRGB,vtkThreadedImageAlgorithm);
+  static vtkImageHSIToRGB* New();
+  vtkTypeMacro(vtkImageHSIToRGB, vtkThreadedImageAlgorithm);
 
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Hue is an angle. Maximum specifies when it maps back to 0.
    * HueMaximum defaults to 255 instead of 2PI, because unsigned char
    * is expected as input.
    * Maximum also specifies the maximum of the Saturation, and R, G, B.
    */
-  vtkSetMacro(Maximum,double);
-  vtkGetMacro(Maximum,double);
-  //@}
+  vtkSetMacro(Maximum, double);
+  vtkGetMacro(Maximum, double);
+  ///@}
 
 protected:
   vtkImageHSIToRGB();
-  ~vtkImageHSIToRGB() VTK_OVERRIDE {}
+  ~vtkImageHSIToRGB() override = default;
 
   double Maximum;
 
-  void ThreadedExecute (vtkImageData *inData, vtkImageData *outData,
-                       int ext[6], int id) VTK_OVERRIDE;
+  void ThreadedExecute(vtkImageData* inData, vtkImageData* outData, int ext[6], int id) override;
+
 private:
-  vtkImageHSIToRGB(const vtkImageHSIToRGB&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageHSIToRGB&) VTK_DELETE_FUNCTION;
+  vtkImageHSIToRGB(const vtkImageHSIToRGB&) = delete;
+  void operator=(const vtkImageHSIToRGB&) = delete;
 };
 
 #endif
-
-
-

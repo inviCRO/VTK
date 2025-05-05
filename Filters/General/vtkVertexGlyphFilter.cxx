@@ -28,29 +28,24 @@
 #include "vtkPolyData.h"
 
 #include "vtkSmartPointer.h"
-#define VTK_CREATE(type, name) \
-  vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
+#define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
 vtkStandardNewMacro(vtkVertexGlyphFilter);
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-vtkVertexGlyphFilter::vtkVertexGlyphFilter()
-{
-}
+vtkVertexGlyphFilter::vtkVertexGlyphFilter() = default;
 
-vtkVertexGlyphFilter::~vtkVertexGlyphFilter()
-{
-}
+vtkVertexGlyphFilter::~vtkVertexGlyphFilter() = default;
 
-void vtkVertexGlyphFilter::PrintSelf(ostream &os, vtkIndent indent)
+void vtkVertexGlyphFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-int vtkVertexGlyphFilter::FillInputPortInformation(int, vtkInformation *info)
+int vtkVertexGlyphFilter::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Remove(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE());
   info->Append(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkGraph");
@@ -58,25 +53,21 @@ int vtkVertexGlyphFilter::FillInputPortInformation(int, vtkInformation *info)
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-int vtkVertexGlyphFilter::RequestData(vtkInformation *vtkNotUsed(request),
-                                      vtkInformationVector **inputVector,
-                                      vtkInformationVector *outputVector)
+int vtkVertexGlyphFilter::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // Get the info objects.
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // Get the input and output.
-  vtkPointSet *psInput = vtkPointSet::SafeDownCast(
-                                     inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkGraph *graphInput = vtkGraph::SafeDownCast(
-                                     inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkPolyData *output = vtkPolyData::SafeDownCast(
-                                    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPointSet* psInput = vtkPointSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkGraph* graphInput = vtkGraph::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  vtkPoints *points = 0;
+  vtkPoints* points = nullptr;
   if (psInput)
   {
     points = psInput->GetPoints();
@@ -87,7 +78,7 @@ int vtkVertexGlyphFilter::RequestData(vtkInformation *vtkNotUsed(request),
   }
 
   // If no points, then nothing to do.
-  if (points == NULL)
+  if (points == nullptr)
   {
     return 1;
   }
@@ -105,7 +96,7 @@ int vtkVertexGlyphFilter::RequestData(vtkInformation *vtkNotUsed(request),
   }
 
   VTK_CREATE(vtkCellArray, cells);
-  cells->Allocate(2*numPoints);
+  cells->AllocateEstimate(numPoints, 1);
 
   for (vtkIdType i = 0; i < numPoints; i++)
   {

@@ -27,13 +27,13 @@
  * @par Thanks:
  * Thanks to David Gobbi at the Seaman Family MR Centre and Dept. of Clinical
  * Neurosciences, Foothills Medical Centre, Calgary, for providing this class.
-*/
+ */
 
 #ifndef vtkImageHistogramStatistics_h
 #define vtkImageHistogramStatistics_h
 
-#include "vtkImagingStatisticsModule.h" // For export macro
 #include "vtkImageHistogram.h"
+#include "vtkImagingStatisticsModule.h" // For export macro
 
 class vtkImageStencilData;
 class vtkIdTypeArray;
@@ -41,10 +41,10 @@ class vtkIdTypeArray;
 class VTKIMAGINGSTATISTICS_EXPORT vtkImageHistogramStatistics : public vtkImageHistogram
 {
 public:
-  static vtkImageHistogramStatistics *New();
-  vtkTypeMacro(vtkImageHistogramStatistics,vtkImageHistogram);
+  static vtkImageHistogramStatistics* New();
+  vtkTypeMacro(vtkImageHistogramStatistics, vtkImageHistogram);
 
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Get the minimum value present in the image.  This value is computed
@@ -75,7 +75,7 @@ public:
    */
   double GetStandardDeviation() { return this->StandardDeviation; }
 
-  //@{
+  ///@{
   /**
    * Set the percentiles to use for automatic view range computation.
    * This allows one to compute a range that does not include outliers
@@ -85,9 +85,9 @@ public:
    */
   vtkSetVector2Macro(AutoRangePercentiles, double);
   vtkGetVector2Macro(AutoRangePercentiles, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set lower and upper expansion factors to apply to the auto range
    * that was computed from the AutoRangePercentiles.  Any outliers that
@@ -100,9 +100,9 @@ public:
    */
   vtkSetVector2Macro(AutoRangeExpansionFactors, double);
   vtkGetVector2Macro(AutoRangeExpansionFactors, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get an automatically computed view range for the image, for use
    * with the lookup table or image property that is used when viewing
@@ -111,15 +111,13 @@ public:
    * than the rest.
    */
   vtkGetVector2Macro(AutoRange, double);
-  //@}
+  ///@}
 
 protected:
   vtkImageHistogramStatistics();
-  ~vtkImageHistogramStatistics() VTK_OVERRIDE;
+  ~vtkImageHistogramStatistics() override;
 
-  int RequestData(vtkInformation *,
-                          vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   double Minimum;
   double Maximum;
@@ -132,8 +130,8 @@ protected:
   double AutoRangeExpansionFactors[2];
 
 private:
-  vtkImageHistogramStatistics(const vtkImageHistogramStatistics&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageHistogramStatistics&) VTK_DELETE_FUNCTION;
+  vtkImageHistogramStatistics(const vtkImageHistogramStatistics&) = delete;
+  void operator=(const vtkImageHistogramStatistics&) = delete;
 };
 
 #endif

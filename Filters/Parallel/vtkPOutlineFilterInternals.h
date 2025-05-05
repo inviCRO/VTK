@@ -19,14 +19,17 @@
  * vtkPOutlineFilterInternals has common code for vtkOutlineFilter and
  * vtkOutlineCornerFilter. It assumes the filter is operated in a data parallel
  * pipeline.
-*/
+ *
+ * This class does not inherit from vtkObject and is not intended to be used
+ * outside of VTK.
+ */
 
 #ifndef vtkPOutlineFilterInternals_h
 #define vtkPOutlineFilterInternals_h
 
+#include "vtkBoundingBox.h"           //  needed for vtkBoundingBox.
 #include "vtkFiltersParallelModule.h" // For export macro
-#include "vtkBoundingBox.h" //  needed for vtkBoundingBox.
-#include <vector> // needed for std::vector
+#include <vector>                     // needed for std::vector
 
 class vtkBoundingBox;
 class vtkDataObject;
@@ -43,17 +46,38 @@ class vtkUniformGridAMR;
 class VTKFILTERSPARALLEL_EXPORT vtkPOutlineFilterInternals
 {
 public:
+  vtkPOutlineFilterInternals() = default;
+  virtual ~vtkPOutlineFilterInternals() = default;
 
-  vtkPOutlineFilterInternals();
-  virtual ~vtkPOutlineFilterInternals();
+  /**
+   * Behave like a vtkAlgorithm::RequestData and compute the outline geometry
+   * based on the parameters and provided inputs.
+   * Intended to be called in vtkOutlineCornerFilter::RequestData and in
+   * vtkOutlineFilter::RequestData.
+   */
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*);
+
+  /**
+   * Set the controller to be used.
+   * Default is nullptr.
+   */
   void SetController(vtkMultiProcessController*);
-  int RequestData(vtkInformation *,
-                  vtkInformationVector **,
-                  vtkInformationVector *);
-  void SetCornerFactor(double cornerFactor);
+
+  /**
+   * Set whether or not to generate a corner outline.
+   * Default is false.
+   */
   void SetIsCornerSource(bool value);
 
+  /**
+   * Set the corner factor to use when creating corner outline.
+   * Default is 0.2.
+   */
+  void SetCornerFactor(double cornerFactor);
+
 private:
+  vtkPOutlineFilterInternals(const vtkPOutlineFilterInternals&) = delete;
+  vtkPOutlineFilterInternals& operator=(const vtkPOutlineFilterInternals&) = delete;
 
   int RequestData(vtkOverlappingAMR* amr, vtkPolyData* output);
   int RequestData(vtkUniformGridAMR* amr, vtkPolyData* output);
@@ -61,14 +85,14 @@ private:
   int RequestData(vtkDataSet* ds, vtkPolyData* output);
   int RequestData(vtkGraph* graph, vtkPolyData* output);
 
-
   void CollectCompositeBounds(vtkDataObject* input);
+  vtkSmartPointer<vtkPolyData> GenerateOutlineGeometry(double bounds[6]);
 
   std::vector<vtkBoundingBox> BoundsList;
-  vtkMultiProcessController* Controller;
+  vtkMultiProcessController* Controller = nullptr;
 
-  bool IsCornerSource;
-  double CornerFactor;
+  bool IsCornerSource = false;
+  double CornerFactor = 0.2;
 };
 
 #endif

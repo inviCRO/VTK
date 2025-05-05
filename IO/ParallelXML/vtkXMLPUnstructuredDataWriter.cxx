@@ -14,37 +14,32 @@
 =========================================================================*/
 #include "vtkXMLPUnstructuredDataWriter.h"
 
+#include "vtkErrorCode.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkErrorCode.h"
 #include "vtkPointSet.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkXMLUnstructuredDataWriter.h"
 
+//------------------------------------------------------------------------------
+vtkXMLPUnstructuredDataWriter::vtkXMLPUnstructuredDataWriter() = default;
 
-//----------------------------------------------------------------------------
-vtkXMLPUnstructuredDataWriter::vtkXMLPUnstructuredDataWriter()
-{
-}
+//------------------------------------------------------------------------------
+vtkXMLPUnstructuredDataWriter::~vtkXMLPUnstructuredDataWriter() = default;
 
-//----------------------------------------------------------------------------
-vtkXMLPUnstructuredDataWriter::~vtkXMLPUnstructuredDataWriter()
-{
-}
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLPUnstructuredDataWriter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkPointSet* vtkXMLPUnstructuredDataWriter::GetInputAsPointSet()
 {
   return static_cast<vtkPointSet*>(this->GetInput());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLWriter* vtkXMLPUnstructuredDataWriter::CreatePieceWriter(int index)
 {
   vtkXMLUnstructuredDataWriter* pWriter = this->CreateUnstructuredPieceWriter();
@@ -55,7 +50,7 @@ vtkXMLWriter* vtkXMLPUnstructuredDataWriter::CreatePieceWriter(int index)
   return pWriter;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLPUnstructuredDataWriter::WritePData(vtkIndent indent)
 {
   this->Superclass::WritePData(indent);

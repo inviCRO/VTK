@@ -28,23 +28,18 @@
 //============================================================================
 vtkStandardNewMacro(vtkActorNode);
 
-//----------------------------------------------------------------------------
-vtkActorNode::vtkActorNode()
-{
-}
+//------------------------------------------------------------------------------
+vtkActorNode::vtkActorNode() = default;
 
-//----------------------------------------------------------------------------
-vtkActorNode::~vtkActorNode()
-{
-}
+//------------------------------------------------------------------------------
+vtkActorNode::~vtkActorNode() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkActorNode::Build(bool prepass)
 {
   if (prepass)
   {
-    vtkActor *mine = vtkActor::SafeDownCast
-      (this->GetRenderable());
+    vtkActor* mine = vtkActor::SafeDownCast(this->GetRenderable());
     if (!mine)
     {
       return;
@@ -60,7 +55,7 @@ void vtkActorNode::Build(bool prepass)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkActorNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

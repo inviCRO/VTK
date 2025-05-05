@@ -14,18 +14,18 @@
 =========================================================================*/
 #include "vtkImageSlabReslice.h"
 
+#include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkObjectFactory.h"
-#include "vtkImageData.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
 
 vtkStandardNewMacro(vtkImageSlabReslice);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkImageSlabReslice::vtkImageSlabReslice()
 {
-  // Input is 3D, ouptut is a 2D projection within the slab.
+  // Input is 3D, output is a 2D projection within the slab.
   this->OutputDimensionality = 2;
 
   // Number of sample points along the blendDirection to the resliced
@@ -39,26 +39,22 @@ vtkImageSlabReslice::vtkImageSlabReslice()
   this->SlabResolution = 1; // mm or world coords
 }
 
-//----------------------------------------------------------------------------
-vtkImageSlabReslice::~vtkImageSlabReslice()
-{
-}
+//------------------------------------------------------------------------------
+vtkImageSlabReslice::~vtkImageSlabReslice() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkImageSlabReslice::RequestInformation(
-  vtkInformation *request,
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  this->NumBlendSamplePoints = 2*(static_cast<
-      int >(this->SlabThickness/(2.0 * this->SlabResolution))) + 1;
+  this->NumBlendSamplePoints =
+    2 * (static_cast<int>(this->SlabThickness / (2.0 * this->SlabResolution))) + 1;
 
   this->SlabNumberOfSlices = this->NumBlendSamplePoints;
   this->SlabMode = this->BlendMode;
 
   this->Superclass::RequestInformation(request, inputVector, outputVector);
 
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
   double spacing[3];
   outInfo->Get(vtkDataObject::SPACING(), spacing);
   spacing[2] = this->SlabResolution;
@@ -67,14 +63,13 @@ int vtkImageSlabReslice::RequestInformation(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageSlabReslice::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "Blend mode: " <<  this->BlendMode << endl;
+  os << indent << "Blend mode: " << this->BlendMode << endl;
   os << indent << "SlabResolution (world units): " << this->SlabResolution << endl;
   os << indent << "SlabThickness (world units): " << this->SlabThickness << endl;
-  os << indent << "Max Number of slices blended: "
-     << this->NumBlendSamplePoints << endl;
+  os << indent << "Max Number of slices blended: " << this->NumBlendSamplePoints << endl;
 }

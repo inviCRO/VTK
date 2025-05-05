@@ -36,7 +36,7 @@ vtkStandardNewMacro(vtkRowQueryToTable);
 vtkRowQueryToTable::vtkRowQueryToTable()
 {
   this->SetNumberOfInputPorts(0);
-  this->Query = NULL;
+  this->Query = nullptr;
 }
 
 vtkRowQueryToTable::~vtkRowQueryToTable()
@@ -44,14 +44,14 @@ vtkRowQueryToTable::~vtkRowQueryToTable()
   if (this->Query)
   {
     this->Query->Delete();
-    this->Query = NULL;
+    this->Query = nullptr;
   }
 }
 
 void vtkRowQueryToTable::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "Query: " << (this->Query ? "" : "NULL") << endl;
+  os << indent << "Query: " << (this->Query ? "" : "nullptr") << endl;
   if (this->Query)
   {
     this->Query->PrintSelf(os, indent.GetNextIndent());
@@ -63,7 +63,7 @@ vtkCxxSetObjectMacro(vtkRowQueryToTable, Query, vtkRowQuery);
 vtkMTimeType vtkRowQueryToTable::GetMTime()
 {
   vtkMTimeType mTime = this->Superclass::GetMTime();
-  if (this->Query != NULL)
+  if (this->Query != nullptr)
   {
     vtkMTimeType time = this->Query->GetMTime();
     mTime = (time > mTime ? time : mTime);
@@ -71,12 +71,10 @@ vtkMTimeType vtkRowQueryToTable::GetMTime()
   return mTime;
 }
 
-int vtkRowQueryToTable::RequestData(
-  vtkInformation*,
-  vtkInformationVector** vtkNotUsed(inputVector),
+int vtkRowQueryToTable::RequestData(vtkInformation*, vtkInformationVector** vtkNotUsed(inputVector),
   vtkInformationVector* outputVector)
 {
-  if (this->Query == NULL)
+  if (this->Query == nullptr)
   {
     vtkErrorMacro("Query undefined.");
     return 0;
@@ -120,15 +118,15 @@ int vtkRowQueryToTable::RequestData(
     {
       int i = 1;
       std::ostringstream oss;
-      vtkStdString newName;
+      std::string newName;
       do
       {
         oss.str("");
         oss << name << "_" << i;
         newName = oss.str();
         ++i;
-      } while (output->GetColumnByName(newName));
-      arr->SetName(newName);
+      } while (output->GetColumnByName(newName.c_str()));
+      arr->SetName(newName.c_str());
     }
     else
     {
@@ -150,10 +148,10 @@ int vtkRowQueryToTable::RequestData(
 
     // Update progress every 100 rows
     numRows++;
-    if ((numRows%100)==0)
+    if ((numRows % 100) == 0)
     {
       // 1% for every 100 rows, and then 'spin around'
-      progressGuess = ((numRows/100)%100)*.01;
+      progressGuess = ((numRows / 100) % 100) * .01;
       this->UpdateProgress(progressGuess);
     }
   }
@@ -161,5 +159,3 @@ int vtkRowQueryToTable::RequestData(
 
   return 1;
 }
-
-

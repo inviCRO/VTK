@@ -32,76 +32,70 @@
  *
  * @par Thanks:
  * Developed by Timothy M. Shead (tshead@sandia.gov) at Sandia National Laboratories.
-*/
+ */
 
 #ifndef vtkArrayNorm_h
 #define vtkArrayNorm_h
 
-#include "vtkInfovisCoreModule.h" // For export macro
 #include "vtkArrayDataAlgorithm.h"
-#include "vtkArrayRange.h"
+#include "vtkArrayRange.h"        // for vtkArrayRange
+#include "vtkInfovisCoreModule.h" // For export macro
 
 class VTKINFOVISCORE_EXPORT vtkArrayNorm : public vtkArrayDataAlgorithm
 {
 public:
   static vtkArrayNorm* New();
   vtkTypeMacro(vtkArrayNorm, vtkArrayDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Controls the dimension along which norms will be computed.  For input matrices,
    * For input matrices, use "0" (rows) or "1" (columns). Default: 0
    */
   vtkGetMacro(Dimension, int);
   vtkSetMacro(Dimension, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Controls the L-value.  Default: 2
    */
   vtkGetMacro(L, int);
   void SetL(int value);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Controls whether to invert output values.  Default: false
    */
   vtkSetMacro(Invert, int);
   vtkGetMacro(Invert, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Defines an optional "window" used to compute the norm on a subset of the elements
    * in a vector.
    */
   void SetWindow(const vtkArrayRange& window);
   vtkArrayRange GetWindow();
-  //@}
+  ///@}
 
 protected:
   vtkArrayNorm();
-  ~vtkArrayNorm() VTK_OVERRIDE;
+  ~vtkArrayNorm() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkArrayNorm(const vtkArrayNorm&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkArrayNorm&) VTK_DELETE_FUNCTION;
+  vtkArrayNorm(const vtkArrayNorm&) = delete;
+  void operator=(const vtkArrayNorm&) = delete;
 
   int Dimension;
   int L;
   int Invert;
   vtkArrayRange Window;
-
 };
 
 #endif
-
-// VTK-HeaderTest-Exclude: vtkArrayNorm.h

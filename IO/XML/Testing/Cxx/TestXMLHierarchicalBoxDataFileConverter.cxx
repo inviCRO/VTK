@@ -4,15 +4,15 @@
 #include "vtkXMLGenericDataObjectReader.h"
 #include "vtkXMLHierarchicalBoxDataFileConverter.h"
 
-#include <vtksys/SystemTools.hxx>
 #include <string>
+#include <vtksys/SystemTools.hxx>
 
 #define VTK_SUCCESS 0
 #define VTK_FAILURE 1
 int TestXMLHierarchicalBoxDataFileConverter(int argc, char* argv[])
 {
-  char* temp_dir = vtkTestUtilities::GetArgOrEnvOrDefault(
-    "-T", argc, argv, "VTK_TEMP_DIR", "Testing/Temporary");
+  char* temp_dir =
+    vtkTestUtilities::GetArgOrEnvOrDefault("-T", argc, argv, "VTK_TEMP_DIR", "Testing/Temporary");
   if (!temp_dir)
   {
     cerr << "Could not determine temporary directory." << endl;
@@ -22,7 +22,7 @@ int TestXMLHierarchicalBoxDataFileConverter(int argc, char* argv[])
   char* data_dir = vtkTestUtilities::GetDataRoot(argc, argv);
   if (!data_dir)
   {
-    delete [] temp_dir;
+    delete[] temp_dir;
     cerr << "Could not determine data directory." << endl;
     return VTK_FAILURE;
   }
@@ -39,8 +39,8 @@ int TestXMLHierarchicalBoxDataFileConverter(int argc, char* argv[])
 
   if (!converter->Convert())
   {
-    delete [] temp_dir;
-    delete [] data_dir;
+    delete[] temp_dir;
+    delete[] data_dir;
     return VTK_FAILURE;
   }
 
@@ -52,12 +52,11 @@ int TestXMLHierarchicalBoxDataFileConverter(int argc, char* argv[])
   std::string output_dir = temp_dir;
   output_dir += "/HierarchicalBoxDataset.Converted.v1.1";
 
-  vtksys::SystemTools::RemoveADirectory(output_dir.c_str());
-  if (!vtksys::SystemTools::CopyADirectory(
-      input_dir.c_str(), output_dir.c_str()))
+  vtksys::SystemTools::RemoveADirectory(output_dir);
+  if (!vtksys::SystemTools::CopyADirectory(input_dir, output_dir))
   {
-    delete [] temp_dir;
-    delete [] data_dir;
+    delete[] temp_dir;
+    delete[] data_dir;
     cerr << "Failed to copy image data files over for testing." << endl;
     return VTK_FAILURE;
   }
@@ -67,8 +66,8 @@ int TestXMLHierarchicalBoxDataFileConverter(int argc, char* argv[])
   reader->Update();
   vtkOverlappingAMR::SafeDownCast(reader->GetOutputDataObject(0))->Audit();
 
-  delete []temp_dir;
-  delete []data_dir;
+  delete[] temp_dir;
+  delete[] data_dir;
 
   return VTK_SUCCESS;
 }

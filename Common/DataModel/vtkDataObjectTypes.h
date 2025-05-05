@@ -22,7 +22,7 @@
  * to be updated every time a new data type is added to VTK.
  * @sa
  * vtkDataObject
-*/
+ */
 
 #ifndef vtkDataObjectTypes_h
 #define vtkDataObjectTypes_h
@@ -35,10 +35,10 @@ class vtkDataObject;
 class VTKCOMMONDATAMODEL_EXPORT vtkDataObjectTypes : public vtkObject
 {
 public:
-  static vtkDataObjectTypes *New();
+  static vtkDataObjectTypes* New();
 
-  vtkTypeMacro(vtkDataObjectTypes,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkDataObjectTypes, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Given an int (as defined in vtkType.h) identifier for a class
@@ -62,9 +62,23 @@ public:
    */
   static vtkDataObject* NewDataObject(int typeId);
 
+  /*
+   * Returns true if the `typeId` is same or a subclass of
+   * `targetTypeId`.
+   */
+  static bool TypeIdIsA(int typeId, int targetTypeId);
+
+  /**
+   * Given two data types, returns the closest common data type.
+   * If both data types ids are valid, at worse, this will return
+   * `VTK_DATA_OBJECT`. If one of the types is invalid (or unknown),
+   * simply returns the valid (or known) type. If both are invalid, returns -1.
+   */
+  static int GetCommonBaseTypeId(int typeA, int typeB);
+
 protected:
-  vtkDataObjectTypes() {}
-  ~vtkDataObjectTypes() VTK_OVERRIDE {}
+  vtkDataObjectTypes() = default;
+  ~vtkDataObjectTypes() override = default;
 
   /**
    * Method used to validate data object types, for testing purposes
@@ -72,9 +86,8 @@ protected:
   static int Validate();
 
 private:
-  vtkDataObjectTypes(const vtkDataObjectTypes&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDataObjectTypes&) VTK_DELETE_FUNCTION;
+  vtkDataObjectTypes(const vtkDataObjectTypes&) = delete;
+  void operator=(const vtkDataObjectTypes&) = delete;
 };
 
 #endif
-

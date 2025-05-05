@@ -17,7 +17,7 @@
  * @brief   implicit function for a selection loop
  *
  * vtkImplicitSelectionLoop computes the implicit function value and
- * function gradient for a irregular, cylinder-like object whose cross
+ * function gradient for an irregular, cylinder-like object whose cross
  * section is defined by a set of points forming a loop. The loop need
  * not be convex nor its points coplanar. However, the loop must be
  * non-self-intersecting when projected onto the plane defined by the
@@ -43,7 +43,7 @@
  * @sa
  * vtkImplicitFunction vtkImplicitBoolean vtkExtractGeometry vtkClipPolyData
  * vtkConnectivityFilter vtkPolyDataConnectivityFilter
-*/
+ */
 
 #ifndef vtkImplicitSelectionLoop_h
 #define vtkImplicitSelectionLoop_h
@@ -57,80 +57,80 @@ class vtkPolygon;
 class VTKCOMMONDATAMODEL_EXPORT vtkImplicitSelectionLoop : public vtkImplicitFunction
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard VTK methods for printing and type information.
    */
-  vtkTypeMacro(vtkImplicitSelectionLoop,vtkImplicitFunction);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkImplicitSelectionLoop, vtkImplicitFunction);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Instantiate object with no initial loop.
    */
-  static vtkImplicitSelectionLoop *New();
+  static vtkImplicitSelectionLoop* New();
 
-  //@{
+  ///@{
   /**
    * Evaluate selection loop returning a signed distance.
    */
   using vtkImplicitFunction::EvaluateFunction;
-  double EvaluateFunction(double x[3]) VTK_OVERRIDE;
-  //@}
+  double EvaluateFunction(double x[3]) override;
+  ///@}
 
   /**
    * Evaluate selection loop returning the gradient.
    */
-  void EvaluateGradient(double x[3], double n[3]) VTK_OVERRIDE;
+  void EvaluateGradient(double x[3], double n[3]) override;
 
-  //@{
+  ///@{
   /**
    * Set/Get the array of point coordinates defining the loop. There must
    * be at least three points used to define a loop.
    */
   virtual void SetLoop(vtkPoints*);
-  vtkGetObjectMacro(Loop,vtkPoints);
-  //@}
+  vtkGetObjectMacro(Loop, vtkPoints);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on/off automatic normal generation. By default, the normal is
    * computed from the accumulated cross product of the edges. You can also
    * specify the normal to use.
    */
-  vtkSetMacro(AutomaticNormalGeneration,int);
-  vtkGetMacro(AutomaticNormalGeneration,int);
-  vtkBooleanMacro(AutomaticNormalGeneration,int);
-  //@}
+  vtkSetMacro(AutomaticNormalGeneration, vtkTypeBool);
+  vtkGetMacro(AutomaticNormalGeneration, vtkTypeBool);
+  vtkBooleanMacro(AutomaticNormalGeneration, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set / get the normal used to determine whether a point is inside or outside
    * the selection loop.
    */
-  vtkSetVector3Macro(Normal,double);
-  vtkGetVectorMacro(Normal,double,3);
-  //@}
+  vtkSetVector3Macro(Normal, double);
+  vtkGetVectorMacro(Normal, double, 3);
+  ///@}
 
   /**
    * Overload GetMTime() because we depend on the Loop
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
 protected:
   vtkImplicitSelectionLoop();
-  ~vtkImplicitSelectionLoop() VTK_OVERRIDE;
+  ~vtkImplicitSelectionLoop() override;
 
-  vtkPoints *Loop;
+  vtkPoints* Loop;
   double Normal[3];
-  int AutomaticNormalGeneration;
+  vtkTypeBool AutomaticNormalGeneration;
 
 private:
   void Initialize();
-  vtkPolygon *Polygon;
+  vtkPolygon* Polygon;
 
   double Origin[3];
-  double Bounds[6]; //bounds of the projected polyon
+  double Bounds[6]; // bounds of the projected polyon
   double DeltaX;
   double DeltaY;
   double DeltaZ;
@@ -138,10 +138,8 @@ private:
   vtkTimeStamp InitializationTime;
 
 private:
-  vtkImplicitSelectionLoop(const vtkImplicitSelectionLoop&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImplicitSelectionLoop&) VTK_DELETE_FUNCTION;
+  vtkImplicitSelectionLoop(const vtkImplicitSelectionLoop&) = delete;
+  void operator=(const vtkImplicitSelectionLoop&) = delete;
 };
 
 #endif
-
-

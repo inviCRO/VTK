@@ -23,7 +23,7 @@
  *
  * @sa
  * vtkContourFilter vtkSynchronizedTemplates3D
-*/
+ */
 
 #ifndef vtkSynchronizedTemplatesCutter3D_h
 #define vtkSynchronizedTemplatesCutter3D_h
@@ -36,25 +36,25 @@ class vtkImplicitFunction;
 class VTKFILTERSCORE_EXPORT vtkSynchronizedTemplatesCutter3D : public vtkSynchronizedTemplates3D
 {
 public:
-  static vtkSynchronizedTemplatesCutter3D *New();
+  static vtkSynchronizedTemplatesCutter3D* New();
 
-  vtkTypeMacro(vtkSynchronizedTemplatesCutter3D,vtkSynchronizedTemplates3D);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkSynchronizedTemplatesCutter3D, vtkSynchronizedTemplates3D);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Needed by templated functions.
    */
-  void ThreadedExecute(vtkImageData *data, vtkInformation *outInfo, int);
+  void ThreadedExecute(vtkImageData* data, vtkInformation* outInfo, int);
 
-  //@{
+  ///@{
   /**
    * Specify the implicit function to perform the cutting.
    */
   virtual void SetCutFunction(vtkImplicitFunction*);
-  vtkGetObjectMacro(CutFunction,vtkImplicitFunction);
-  //@}
+  vtkGetObjectMacro(CutFunction, vtkImplicitFunction);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the desired precision for the output types. See the documentation
    * for the vtkAlgorithm::DesiredOutputPrecision enum for an explanation of
@@ -62,23 +62,20 @@ public:
    */
   vtkSetClampMacro(OutputPointsPrecision, int, SINGLE_PRECISION, DEFAULT_PRECISION);
   vtkGetMacro(OutputPointsPrecision, int);
-  //@}
+  ///@}
 
 protected:
   vtkSynchronizedTemplatesCutter3D();
-  ~vtkSynchronizedTemplatesCutter3D() VTK_OVERRIDE;
+  ~vtkSynchronizedTemplatesCutter3D() override;
 
-  vtkImplicitFunction *CutFunction;
+  vtkImplicitFunction* CutFunction;
   int OutputPointsPrecision;
 
-  int RequestData(vtkInformation *,
-                  vtkInformationVector **,
-                  vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkSynchronizedTemplatesCutter3D(const vtkSynchronizedTemplatesCutter3D&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSynchronizedTemplatesCutter3D&) VTK_DELETE_FUNCTION;
+  vtkSynchronizedTemplatesCutter3D(const vtkSynchronizedTemplatesCutter3D&) = delete;
+  void operator=(const vtkSynchronizedTemplatesCutter3D&) = delete;
 };
 
 #endif
-

@@ -36,15 +36,14 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkMultiBlockDataSetAlgorithm.h"
 
-
 class VTKFILTERSGENERAL_EXPORT vtkSplitByCellScalarFilter : public vtkMultiBlockDataSetAlgorithm
 {
 public:
-  static vtkSplitByCellScalarFilter *New();
+  static vtkSplitByCellScalarFilter* New();
   vtkTypeMacro(vtkSplitByCellScalarFilter, vtkMultiBlockDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify if input points array must be passed to output blocks. If so,
    * filter processing is faster but outblocks will contains more points than
@@ -56,22 +55,22 @@ public:
   vtkGetMacro(PassAllPoints, bool);
   vtkSetMacro(PassAllPoints, bool);
   vtkBooleanMacro(PassAllPoints, bool);
-  //@}
+  ///@}
 
 protected:
   vtkSplitByCellScalarFilter();
-  ~vtkSplitByCellScalarFilter() VTK_OVERRIDE;
+  ~vtkSplitByCellScalarFilter() override;
 
   // Usual data generation method
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
   bool PassAllPoints;
 
 private:
-  vtkSplitByCellScalarFilter(const vtkSplitByCellScalarFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSplitByCellScalarFilter&) VTK_DELETE_FUNCTION;
+  vtkSplitByCellScalarFilter(const vtkSplitByCellScalarFilter&) = delete;
+  void operator=(const vtkSplitByCellScalarFilter&) = delete;
 };
 
 #endif

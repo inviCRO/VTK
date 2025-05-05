@@ -24,7 +24,7 @@
  * @par Thanks:
  * Theophane Foggia of The Swiss National Supercomputing Centre (CSCS)
  * for creating and contributing this filter
-*/
+ */
 
 #ifndef vtkRotationFilter_h
 #define vtkRotationFilter_h
@@ -35,9 +35,9 @@
 class VTKFILTERSGENERAL_EXPORT vtkRotationFilter : public vtkUnstructuredGridAlgorithm
 {
 public:
-  static vtkRotationFilter *New();
+  static vtkRotationFilter* New();
   vtkTypeMacro(vtkRotationFilter, vtkUnstructuredGridAlgorithm);
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   enum RotationAxis
   {
@@ -46,34 +46,34 @@ public:
     USE_Z = 2
   };
 
-  //@{
+  ///@{
   /**
    * Set the axis of rotation to use. It is set by default to Z.
    */
   vtkSetClampMacro(Axis, int, 0, 2);
   vtkGetMacro(Axis, int);
-  void SetAxisToX() { this->SetAxis(USE_X); };
-  void SetAxisToY() { this->SetAxis(USE_Y); };
-  void SetAxisToZ() { this->SetAxis(USE_Z); };
-  //@}
+  void SetAxisToX() { this->SetAxis(USE_X); }
+  void SetAxisToY() { this->SetAxis(USE_Y); }
+  void SetAxisToZ() { this->SetAxis(USE_Z); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the rotation angle to use.
    */
   vtkSetMacro(Angle, double);
   vtkGetMacro(Angle, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the rotation center coordinates.
    */
-  vtkSetVector3Macro(Center,double);
-  vtkGetVector3Macro(Center,double);
-  //@}
+  vtkSetVector3Macro(Center, double);
+  vtkGetVector3Macro(Center, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the number of copies to create. The source will be rotated N times
    * and a new polydata copy of the original created at each angular position
@@ -81,37 +81,34 @@ public:
    */
   vtkSetMacro(NumberOfCopies, int);
   vtkGetMacro(NumberOfCopies, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on (the default), copy the input geometry to the output. If off,
    * the output will only contain the rotation.
    */
-  vtkSetMacro(CopyInput, int);
-  vtkGetMacro(CopyInput, int);
-  vtkBooleanMacro(CopyInput, int);
-  //@}
-
+  vtkSetMacro(CopyInput, vtkTypeBool);
+  vtkGetMacro(CopyInput, vtkTypeBool);
+  vtkBooleanMacro(CopyInput, vtkTypeBool);
+  ///@}
 
 protected:
   vtkRotationFilter();
-  ~vtkRotationFilter() VTK_OVERRIDE;
+  ~vtkRotationFilter() override;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
   int Axis;
   double Angle;
   double Center[3];
   int NumberOfCopies;
-  int CopyInput;
+  vtkTypeBool CopyInput;
 
 private:
-  vtkRotationFilter(const vtkRotationFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRotationFilter&) VTK_DELETE_FUNCTION;
+  vtkRotationFilter(const vtkRotationFilter&) = delete;
+  void operator=(const vtkRotationFilter&) = delete;
 };
 
 #endif
-
-

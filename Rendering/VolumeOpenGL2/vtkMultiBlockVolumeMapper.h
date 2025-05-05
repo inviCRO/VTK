@@ -28,47 +28,46 @@
  * it falls back to using a single mapper instance and reloading data for each block.
  *
  * Jittering is used to alleviate seam artifacts at the block edges due to the
- * discontinuous resolution between blocks.  Jittering is disabled by default until
- * valid resolution is set (e.g. x > 0 && y > 0).  Jittering is only supported in
- * GPURenderMode.
+ * discontinuous resolution between blocks.  Jittering is enabled by default.
+ * Jittering is only supported in GPURenderMode.
  *
  */
 #ifndef vtkMultiBlockVolumeMapper_h
 #define vtkMultiBlockVolumeMapper_h
 
-#include <vector>                            // For DataBlocks
+#include <vector> // For DataBlocks
 
-#include "vtkTimeStamp.h"                    // For BlockLoadingTime
+#include "vtkNew.h"                          // for ivar
 #include "vtkRenderingVolumeOpenGL2Module.h" // For export macro
 #include "vtkVolumeMapper.h"
-
 
 class vtkDataObjectTree;
 class vtkDataSet;
 class vtkImageData;
+class vtkMatrix4x4;
 class vtkMultiBlockDataSet;
+class vtkRenderWindow;
 class vtkSmartVolumeMapper;
 
-class VTKRENDERINGVOLUMEOPENGL2_EXPORT vtkMultiBlockVolumeMapper :
-  public vtkVolumeMapper
+class VTKRENDERINGVOLUMEOPENGL2_EXPORT vtkMultiBlockVolumeMapper : public vtkVolumeMapper
 {
 public:
-  static vtkMultiBlockVolumeMapper *New();
-  vtkTypeMacro(vtkMultiBlockVolumeMapper,vtkVolumeMapper);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkMultiBlockVolumeMapper* New();
+  vtkTypeMacro(vtkMultiBlockVolumeMapper, vtkVolumeMapper);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    *  \brief API Superclass
    *  \sa vtkAbstractVolumeMapper
    */
-  double* GetBounds() VTK_OVERRIDE;
+  double* GetBounds() override;
   using vtkAbstractVolumeMapper::GetBounds;
 
-  void SelectScalarArray(int arrayNum) VTK_OVERRIDE;
-  void SelectScalarArray(char const* arrayName) VTK_OVERRIDE;
-  void SetScalarMode(int ScalarMode) VTK_OVERRIDE;
-  void SetArrayAccessMode(int accessMode) VTK_OVERRIDE;
+  void SelectScalarArray(int arrayNum) override;
+  void SelectScalarArray(char const* arrayName) override;
+  void SetScalarMode(int ScalarMode) override;
+  void SetArrayAccessMode(int accessMode) override;
 
   /**
    * Render the current dataset.
@@ -76,16 +75,16 @@ public:
    * \warning Internal method - not intended for general use, do
    * NOT use this method outside of the rendering process.
    */
-  void Render(vtkRenderer* ren, vtkVolume* vol) VTK_OVERRIDE;
+  void Render(vtkRenderer* ren, vtkVolume* vol) override;
 
   /**
    * \warning Internal method - not intended for general use, do
    * NOT use this method outside of the rendering process.
    */
-  void ReleaseGraphicsResources(vtkWindow* window) VTK_OVERRIDE;
-  //@}
+  void ReleaseGraphicsResources(vtkWindow* window) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * VectorMode interface exposed from vtkSmartVolumeMapper.
    */
@@ -93,48 +92,78 @@ public:
   vtkGetMacro(VectorMode, int);
   void SetVectorComponent(int component);
   vtkGetMacro(VectorComponent, int);
-  //@}
+  ///@}
 
-  /**
-   * Set the resolution of the noise texture used for ray jittering (viewport's
-   * resolution is normally a good choice).  In this mapper jittering is used to
-   * alleviate seam artifacts at the block edges due to discontinuous resolution
-   * between blocks.  Jittering is disabled by default until valid resolution is
-   * set (e.g. x > 0 && y > 0).
-   */
-  void SetJitteringResolution(int x, int y);
-
-  //@{
+  ///@{
   /**
    * Blending mode API from vtkVolumeMapper
    * \sa vtkVolumeMapper::SetBlendMode
    */
-  void SetBlendMode(int mode) VTK_OVERRIDE;
-  //@}
+  void SetBlendMode(int mode) override;
+  ///@}
 
-  //@{
+  ///@{
+  /**
+   * ComputeNormalFromOpacity exposed
+   * \sa vtkVolumeMapper::SetComputeNormalFromOpacity
+   */
+  void SetComputeNormalFromOpacity(bool val) override;
+  ///@}
+
+  ///@{
+  /**
+   * @copydoc vtkSmartVolumeMapper::SetGlobalIlluminationReach(float)
+   */
+  void SetGlobalIlluminationReach(float val);
+  vtkGetMacro(GlobalIlluminationReach, float);
+  ///@}
+
+  ///@{
+  /**
+   * @copydoc vtkSmartVolumeMapper::SetVolumetricScatteringBlending(float)
+   */
+  void SetVolumetricScatteringBlending(float val);
+  vtkGetMacro(VolumetricScatteringBlending, float);
+  ///@}
+
+  ///@{
   /**
    * Cropping API from vtkVolumeMapper
    * \sa vtkVolumeMapper::SetCropping
    */
-  void SetCropping(int mode) VTK_OVERRIDE;
+  void SetCropping(vtkTypeBool mode) override;
 
   /**
    * \sa vtkVolumeMapper::SetCroppingRegionPlanes
    */
-  void SetCroppingRegionPlanes(double arg1, double arg2, double arg3,
-    double arg4, double arg5, double arg6) VTK_OVERRIDE;
-  void SetCroppingRegionPlanes(double *planes) VTK_OVERRIDE;
+  void SetCroppingRegionPlanes(
+    double arg1, double arg2, double arg3, double arg4, double arg5, double arg6) override;
+  void SetCroppingRegionPlanes(const double* planes) override;
 
   /**
    * \sa vtkVolumeMapper::SetCroppingRegionFlags
    */
-  void SetCroppingRegionFlags(int mode) VTK_OVERRIDE;
-  //@}
+  void SetCroppingRegionFlags(int mode) override;
+  ///@}
+
+  ///@{
+  /**
+   * Forwarded to internal vtkSmartVolumeMappers used.
+   * @sa vtkSmartVolumeMapper::SetRequestedRenderMode.
+   */
+  void SetRequestedRenderMode(int);
+  ///@}
+
+  ///@{
+  /**
+   * \sa vtkSmartVolumeMapper::SetTransfer2DYAxisArray
+   */
+  void SetTransfer2DYAxisArray(const char* a);
+  ///@}
 
 protected:
   vtkMultiBlockVolumeMapper();
-  ~vtkMultiBlockVolumeMapper();
+  ~vtkMultiBlockVolumeMapper() override;
 
   /**
    * Specify the type of data this mapper can handle. This mapper requires
@@ -143,7 +172,12 @@ protected:
    *
    * \sa vtkAlgorithm::FillInputPortInformation
    */
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+
+  vtkRenderWindow* DebugWin;
+  vtkRenderer* DebugRen;
+
+  vtkNew<vtkMatrix4x4> TempMatrix4x4;
 
 private:
   /**
@@ -162,8 +196,6 @@ private:
    * data.
    */
   void CreateMappers(vtkDataObjectTree* input, vtkRenderer* ren, vtkVolume* vol);
-
-  void ApplyJitteringResolution(vtkSmartVolumeMapper* mapper);
 
   vtkDataObjectTree* GetDataObjectTreeInput();
 
@@ -184,8 +216,8 @@ private:
    */
   vtkSmartVolumeMapper* CreateMapper();
 
-  vtkMultiBlockVolumeMapper(const vtkMultiBlockVolumeMapper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMultiBlockVolumeMapper&) VTK_DELETE_FUNCTION;
+  vtkMultiBlockVolumeMapper(const vtkMultiBlockVolumeMapper&) = delete;
+  void operator=(const vtkMultiBlockVolumeMapper&) = delete;
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -193,13 +225,23 @@ private:
   MapperVec Mappers;
   vtkSmartVolumeMapper* FallBackMapper;
 
-  vtkTimeStamp BlockLoadingTime;
-  vtkTimeStamp BoundsComputeTime;
-
-  int JitteringSizeX;
-  int JitteringSizeY;
+  vtkMTimeType BlockLoadingTime;
+  vtkMTimeType BoundsComputeTime;
 
   int VectorMode;
   int VectorComponent;
+  int RequestedRenderMode;
+
+  /**
+   * Secondary rays ambient/global adjustment coefficient
+   */
+  float GlobalIlluminationReach = 0.0;
+
+  /**
+   * Blending coefficient between surfacic and volumetric models in GPU Mapper
+   */
+  float VolumetricScatteringBlending = 0.0;
+
+  char* Transfer2DYAxisArray;
 };
 #endif

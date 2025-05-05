@@ -32,7 +32,7 @@
  * @sa
  * vtkPointInterpolator vtkInterpolationKernel vtkEllipsoidalGaussianKernel
  * vtkVoronoiKernel vtkSPHKernel vtkShepardKernel
-*/
+ */
 
 #ifndef vtkGaussianKernel_h
 #define vtkGaussianKernel_h
@@ -43,25 +43,23 @@
 class vtkIdList;
 class vtkDoubleArray;
 
-
 class VTKFILTERSPOINTS_EXPORT vtkGaussianKernel : public vtkGeneralizedKernel
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard methods for instantiation, obtaining type information, and printing.
    */
-  static vtkGaussianKernel *New();
-  vtkTypeMacro(vtkGaussianKernel,vtkGeneralizedKernel);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkGaussianKernel* New();
+  vtkTypeMacro(vtkGaussianKernel, vtkGeneralizedKernel);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Initialize the kernel. Overload the superclass to set up internal
    * computational values.
    */
-  void Initialize(vtkAbstractPointLocator *loc, vtkDataSet *ds,
-                          vtkPointData *pd) VTK_OVERRIDE;
+  void Initialize(vtkAbstractPointLocator* loc, vtkDataSet* ds, vtkPointData* pd) override;
 
   // Re-use any superclass signatures that we don't override.
   using vtkGeneralizedKernel::ComputeWeights;
@@ -77,25 +75,25 @@ public:
    * invoke ComputeWeights() and provide the interpolation basis points pIds
    * directly. The probably weighting prob are numbers 0<=prob<=1 which are
    * multiplied against the interpolation weights before normalization. They
-   * are estimates of local confidence of weights. The prob may be NULL in
+   * are estimates of local confidence of weights. The prob may be nullptr in
    * which all probabilities are considered =1.
    */
-  vtkIdType ComputeWeights(double x[3], vtkIdList *pIds,
-                                   vtkDoubleArray *prob, vtkDoubleArray *weights) VTK_OVERRIDE;
+  vtkIdType ComputeWeights(
+    double x[3], vtkIdList* pIds, vtkDoubleArray* prob, vtkDoubleArray* weights) override;
 
-  //@{
+  ///@{
   /**
    * Set / Get the sharpness (i.e., falloff) of the Gaussian. By default
    * Sharpness=2. As the sharpness increases the effects of distant points
    * are reduced.
    */
-  vtkSetClampMacro(Sharpness,double,1,VTK_FLOAT_MAX);
-  vtkGetMacro(Sharpness,double);
-  //@}
+  vtkSetClampMacro(Sharpness, double, 1, VTK_FLOAT_MAX);
+  vtkGetMacro(Sharpness, double);
+  ///@}
 
 protected:
   vtkGaussianKernel();
-  ~vtkGaussianKernel() VTK_OVERRIDE;
+  ~vtkGaussianKernel() override;
 
   double Sharpness;
 
@@ -103,8 +101,8 @@ protected:
   double F2;
 
 private:
-  vtkGaussianKernel(const vtkGaussianKernel&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGaussianKernel&) VTK_DELETE_FUNCTION;
+  vtkGaussianKernel(const vtkGaussianKernel&) = delete;
+  void operator=(const vtkGaussianKernel&) = delete;
 };
 
 #endif

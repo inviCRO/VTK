@@ -20,21 +20,20 @@
 
 #include "vtkGraph.h"
 
-
-void vtkEdgeLayoutStrategy::SetGraph(vtkGraph *graph)
+void vtkEdgeLayoutStrategy::SetGraph(vtkGraph* graph)
 {
   // This method is a cut and paste of vtkCxxSetObjectMacro
   // except for the call to Initialize in the middle :)
   if (graph != this->Graph)
   {
-    vtkGraph *tmp = this->Graph;
+    vtkGraph* tmp = this->Graph;
     this->Graph = graph;
-    if (this->Graph != NULL)
+    if (this->Graph != nullptr)
     {
       this->Graph->Register(this);
       this->Initialize();
     }
-    if (tmp != NULL)
+    if (tmp != nullptr)
     {
       tmp->UnRegister(this);
     }
@@ -44,25 +43,25 @@ void vtkEdgeLayoutStrategy::SetGraph(vtkGraph *graph)
 
 vtkEdgeLayoutStrategy::vtkEdgeLayoutStrategy()
 {
-  this->Graph = NULL;
-  this->EdgeWeightArrayName = NULL;
+  this->Graph = nullptr;
+  this->EdgeWeightArrayName = nullptr;
 }
 
 vtkEdgeLayoutStrategy::~vtkEdgeLayoutStrategy()
 {
   // Unregister vtk objects that were passed in
-  this->SetGraph(NULL);
-  this->SetEdgeWeightArrayName(NULL);
+  this->SetGraph(nullptr);
+  this->SetEdgeWeightArrayName(nullptr);
 }
 
 void vtkEdgeLayoutStrategy::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   os << indent << "Graph: " << (this->Graph ? "" : "(none)") << endl;
   if (this->Graph)
   {
     this->Graph->PrintSelf(os, indent.GetNextIndent());
   }
   os << indent << "EdgeWeightArrayName: "
-    << (this->EdgeWeightArrayName ? this->EdgeWeightArrayName : "(none)") << endl;
+     << (this->EdgeWeightArrayName ? this->EdgeWeightArrayName : "(none)") << endl;
 }

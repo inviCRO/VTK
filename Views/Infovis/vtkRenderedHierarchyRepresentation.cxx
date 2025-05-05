@@ -33,8 +33,8 @@
 #include "vtkPolyDataMapper.h"
 #include "vtkProp.h"
 #include "vtkProperty.h"
-#include "vtkRenderer.h"
 #include "vtkRenderView.h"
+#include "vtkRenderer.h"
 #include "vtkSelection.h"
 #include "vtkSelectionNode.h"
 #include "vtkSplineGraphEdges.h"
@@ -46,7 +46,7 @@
 class vtkRenderedHierarchyRepresentation::Internals
 {
 public:
-  std::vector<vtkSmartPointer<vtkHierarchicalGraphPipeline> > Graphs;
+  std::vector<vtkSmartPointer<vtkHierarchicalGraphPipeline>> Graphs;
 };
 
 vtkStandardNewMacro(vtkRenderedHierarchyRepresentation);
@@ -66,8 +66,7 @@ vtkRenderedHierarchyRepresentation::~vtkRenderedHierarchyRepresentation()
 
 bool vtkRenderedHierarchyRepresentation::ValidIndex(int idx)
 {
-  return (idx >= 0 &&
-          idx < static_cast<int>(this->Implementation->Graphs.size()));
+  return (idx >= 0 && idx < static_cast<int>(this->Implementation->Graphs.size()));
 }
 
 void vtkRenderedHierarchyRepresentation::SetGraphEdgeLabelArrayName(const char* name, int idx)
@@ -84,7 +83,7 @@ const char* vtkRenderedHierarchyRepresentation::GetGraphEdgeLabelArrayName(int i
   {
     return this->Implementation->Graphs[idx]->GetLabelArrayName();
   }
-  return 0;
+  return nullptr;
 }
 
 void vtkRenderedHierarchyRepresentation::SetGraphEdgeLabelVisibility(bool vis, int idx)
@@ -118,7 +117,7 @@ const char* vtkRenderedHierarchyRepresentation::GetGraphEdgeColorArrayName(int i
   {
     return this->Implementation->Graphs[idx]->GetColorArrayName();
   }
-  return 0;
+  return nullptr;
 }
 
 void vtkRenderedHierarchyRepresentation::SetColorGraphEdgesByArray(bool vis, int idx)
@@ -210,26 +209,17 @@ bool vtkRenderedHierarchyRepresentation::AddToView(vtkView* view)
 {
   this->Superclass::AddToView(view);
   vtkRenderView* rv = vtkRenderView::SafeDownCast(view);
-  if (rv)
-  {
-    return true;
-  }
-  return false;
+  return rv != nullptr;
 }
 
 bool vtkRenderedHierarchyRepresentation::RemoveFromView(vtkView* view)
 {
   this->Superclass::RemoveFromView(view);
   vtkRenderView* rv = vtkRenderView::SafeDownCast(view);
-  if (rv)
-  {
-    return true;
-  }
-  return false;
+  return rv != nullptr;
 }
 
-vtkSelection* vtkRenderedHierarchyRepresentation::ConvertSelection(
-  vtkView* view, vtkSelection* sel)
+vtkSelection* vtkRenderedHierarchyRepresentation::ConvertSelection(vtkView* view, vtkSelection* sel)
 {
   vtkSelection* converted = this->Superclass::ConvertSelection(view, sel);
 
@@ -247,16 +237,14 @@ vtkSelection* vtkRenderedHierarchyRepresentation::ConvertSelection(
       conv->Delete();
     }
   }
-  //cerr << "Tree converted: " << endl;
-  //converted->Dump();
+  // cerr << "Tree converted: " << endl;
+  // converted->Dump();
 
   return converted;
 }
 
 int vtkRenderedHierarchyRepresentation::RequestData(
-  vtkInformation* request,
-  vtkInformationVector** inputVector,
-  vtkInformationVector* outputVector)
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // Setup superclass connections.
   if (!this->Superclass::RequestData(request, inputVector, outputVector))
@@ -268,8 +256,7 @@ int vtkRenderedHierarchyRepresentation::RequestData(
   size_t numGraphs = static_cast<size_t>(this->GetNumberOfInputConnections(1));
   while (numGraphs > this->Implementation->Graphs.size())
   {
-    this->Implementation->Graphs.push_back(
-      vtkSmartPointer<vtkHierarchicalGraphPipeline>::New());
+    this->Implementation->Graphs.push_back(vtkSmartPointer<vtkHierarchicalGraphPipeline>::New());
   }
 
   // Keep track of actors to remove if the number of input connections
@@ -285,10 +272,8 @@ int vtkRenderedHierarchyRepresentation::RequestData(
   {
     this->AddPropOnNextRender(this->Implementation->Graphs[i]->GetActor());
     vtkHierarchicalGraphPipeline* p = this->Implementation->Graphs[i];
-    p->PrepareInputConnections(
-      this->GetInternalOutputPort(1, static_cast<int>(i)),
-      this->Layout->GetOutputPort(),
-      this->GetInternalAnnotationOutputPort());
+    p->PrepareInputConnections(this->GetInternalOutputPort(1, static_cast<int>(i)),
+      this->Layout->GetOutputPort(), this->GetInternalAnnotationOutputPort());
   }
   return 1;
 }

@@ -26,18 +26,17 @@
 #include "vtkTranslucentPass.h"
 #include "vtkVolumetricPass.h"
 
-
 vtkStandardNewMacro(vtkRenderStepsPass);
 
-vtkCxxSetObjectMacro(vtkRenderStepsPass,CameraPass,vtkCameraPass);
-vtkCxxSetObjectMacro(vtkRenderStepsPass,LightsPass,vtkRenderPass);
-vtkCxxSetObjectMacro(vtkRenderStepsPass,OpaquePass,vtkRenderPass);
-vtkCxxSetObjectMacro(vtkRenderStepsPass,TranslucentPass,vtkRenderPass);
-vtkCxxSetObjectMacro(vtkRenderStepsPass,VolumetricPass,vtkRenderPass);
-vtkCxxSetObjectMacro(vtkRenderStepsPass,OverlayPass,vtkRenderPass);
-vtkCxxSetObjectMacro(vtkRenderStepsPass,PostProcessPass,vtkRenderPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, CameraPass, vtkCameraPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, LightsPass, vtkRenderPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, OpaquePass, vtkRenderPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, TranslucentPass, vtkRenderPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, VolumetricPass, vtkRenderPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, OverlayPass, vtkRenderPass);
+vtkCxxSetObjectMacro(vtkRenderStepsPass, PostProcessPass, vtkRenderPass);
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkRenderStepsPass::vtkRenderStepsPass()
 {
   this->CameraPass = vtkCameraPass::New();
@@ -47,138 +46,137 @@ vtkRenderStepsPass::vtkRenderStepsPass()
   this->VolumetricPass = vtkVolumetricPass::New();
   this->OverlayPass = vtkOverlayPass::New();
   this->SequencePass = vtkSequencePass::New();
-  vtkRenderPassCollection *rpc = vtkRenderPassCollection::New();
+  vtkRenderPassCollection* rpc = vtkRenderPassCollection::New();
   this->SequencePass->SetPasses(rpc);
   rpc->Delete();
   this->CameraPass->SetDelegatePass(this->SequencePass);
-  this->PostProcessPass = NULL;
+  this->PostProcessPass = nullptr;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkRenderStepsPass::~vtkRenderStepsPass()
 {
   if (this->CameraPass)
   {
     this->CameraPass->Delete();
-    this->CameraPass = 0;
+    this->CameraPass = nullptr;
   }
   if (this->LightsPass)
   {
     this->LightsPass->Delete();
-    this->LightsPass = 0;
+    this->LightsPass = nullptr;
   }
   if (this->OpaquePass)
   {
     this->OpaquePass->Delete();
-    this->OpaquePass = 0;
+    this->OpaquePass = nullptr;
   }
   if (this->TranslucentPass)
   {
     this->TranslucentPass->Delete();
-    this->TranslucentPass = 0;
+    this->TranslucentPass = nullptr;
   }
   if (this->VolumetricPass)
   {
     this->VolumetricPass->Delete();
-    this->VolumetricPass = 0;
+    this->VolumetricPass = nullptr;
   }
   if (this->OverlayPass)
   {
     this->OverlayPass->Delete();
-    this->OverlayPass = 0;
+    this->OverlayPass = nullptr;
   }
   if (this->PostProcessPass)
   {
     this->PostProcessPass->Delete();
-    this->PostProcessPass = 0;
+    this->PostProcessPass = nullptr;
   }
   if (this->SequencePass)
   {
     this->SequencePass->Delete();
-    this->SequencePass = 0;
+    this->SequencePass = nullptr;
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkRenderStepsPass::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << "CameraPass:";
-  if (this->CameraPass != 0)
+  if (this->CameraPass != nullptr)
   {
     this->CameraPass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
   os << indent << "LightsPass:";
-  if (this->LightsPass != 0)
+  if (this->LightsPass != nullptr)
   {
     this->LightsPass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
   os << indent << "opaquePass:";
-  if (this->OpaquePass != 0)
+  if (this->OpaquePass != nullptr)
   {
     this->OpaquePass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
   os << indent << "TranslucentPass:";
-  if (this->TranslucentPass != 0)
+  if (this->TranslucentPass != nullptr)
   {
     this->TranslucentPass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
   os << indent << "VolumetricPass:";
-  if (this->VolumetricPass != 0)
+  if (this->VolumetricPass != nullptr)
   {
     this->VolumetricPass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
   os << indent << "OverlayPass:";
-  if (this->OverlayPass != 0)
+  if (this->OverlayPass != nullptr)
   {
     this->OverlayPass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
   os << indent << "PostProcessPass:";
-  if (this->PostProcessPass != 0)
+  if (this->PostProcessPass != nullptr)
   {
     this->PostProcessPass->PrintSelf(os, indent);
   }
   else
   {
-    os << "(none)" <<endl;
+    os << "(none)" << endl;
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Perform rendering according to a render state \p s.
 // \pre s_exists: s!=0
-void vtkRenderStepsPass::Render(const vtkRenderState *s)
+void vtkRenderStepsPass::Render(const vtkRenderState* s)
 {
-  assert("pre: s_exists" && s != 0);
+  assert("pre: s_exists" && s != nullptr);
 
-  vtkRenderPassCollection *passes =
-    this->SequencePass->GetPasses();
+  vtkRenderPassCollection* passes = this->SequencePass->GetPasses();
   passes->RemoveAllItems();
 
   if (this->LightsPass)
@@ -215,14 +213,14 @@ void vtkRenderStepsPass::Render(const vtkRenderState *s)
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Release graphics resources and ask components to release their own
 // resources.
 // \pre w_exists: w!=0
-void vtkRenderStepsPass::ReleaseGraphicsResources(vtkWindow *w)
+void vtkRenderStepsPass::ReleaseGraphicsResources(vtkWindow* w)
 {
-  assert("pre: w_exists" && w != 0);
+  assert("pre: w_exists" && w != nullptr);
 
   if (this->CameraPass)
   {

@@ -17,27 +17,21 @@
 
 vtkStandardNewMacro(vtkLinearContourLineInterpolator);
 
-//----------------------------------------------------------------------
-vtkLinearContourLineInterpolator::vtkLinearContourLineInterpolator()
-{
-}
+//------------------------------------------------------------------------------
+vtkLinearContourLineInterpolator::vtkLinearContourLineInterpolator() = default;
 
-//----------------------------------------------------------------------
-vtkLinearContourLineInterpolator::~vtkLinearContourLineInterpolator()
-{
-}
+//------------------------------------------------------------------------------
+vtkLinearContourLineInterpolator::~vtkLinearContourLineInterpolator() = default;
 
-//----------------------------------------------------------------------
-int vtkLinearContourLineInterpolator::InterpolateLine( vtkRenderer *vtkNotUsed(ren),
-                                                       vtkContourRepresentation *vtkNotUsed(rep),
-                                                       int vtkNotUsed(idx1), int vtkNotUsed(idx2) )
+//------------------------------------------------------------------------------
+int vtkLinearContourLineInterpolator::InterpolateLine(vtkRenderer* vtkNotUsed(ren),
+  vtkContourRepresentation* vtkNotUsed(rep), int vtkNotUsed(idx1), int vtkNotUsed(idx2))
 {
   return 1;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLinearContourLineInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
-

@@ -28,15 +28,16 @@
 #include <sstream>
 #include <stdexcept>
 
-#define test_expression(expression) \
-{ \
-  if(!(expression)) \
-  { \
-    std::ostringstream buffer; \
-    buffer << "Expression failed at line " << __LINE__ << ": " << #expression; \
-    throw std::runtime_error(buffer.str()); \
-  } \
-}
+#define test_expression(expression)                                                                \
+  do                                                                                               \
+  {                                                                                                \
+    if (!(expression))                                                                             \
+    {                                                                                              \
+      std::ostringstream buffer;                                                                   \
+      buffer << "Expression failed at line " << __LINE__ << ": " << #expression;                   \
+      throw std::runtime_error(buffer.str());                                                      \
+    }                                                                                              \
+  } while (false)
 
 // This test ensures that we handle denormalized floating-point numbers gracefully,
 // by truncating them to zero.  Otherwise, iostreams will refuse to load denormalized
@@ -46,7 +47,7 @@ int TestArrayDenormalized(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   try
   {
-    vtkSmartPointer<vtkDenseArray<double> > a1 = vtkSmartPointer<vtkDenseArray<double> >::New();
+    vtkSmartPointer<vtkDenseArray<double>> a1 = vtkSmartPointer<vtkDenseArray<double>>::New();
     a1->Resize(3);
     a1->SetValue(0, 1.0);
     a1->SetValue(1, 2.221997902944077e-314);
@@ -68,7 +69,7 @@ int TestArrayDenormalized(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
     return 0;
   }
-  catch(std::exception& e)
+  catch (std::exception& e)
   {
     cerr << e.what() << endl;
     return 1;

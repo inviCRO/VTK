@@ -1,6 +1,6 @@
 /*============================================================================
   Kitware Information Macro Library
-  Copyright 2010-2016 Kitware, Inc.
+  Copyright 2010-2018 Kitware, Inc.
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -162,7 +162,11 @@ An includer may test the following macros after inclusion:
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L /* C99 */
 # define KWIML_INT_HAVE_INTTYPES_H 1
 #elif defined(_MSC_VER) /* MSVC */
-# define KWIML_INT_NO_INTTYPES_H 1
+# if _MSC_VER >= 1800
+#  define KWIML_INT_HAVE_INTTYPES_H 1
+# else
+#  define KWIML_INT_NO_INTTYPES_H 1
+# endif
 #elif defined(__BORLANDC__) /* Borland */
 # define KWIML_INT_NO_INTTYPES_H 1
 #elif defined(__WATCOMC__) /* Watcom */
@@ -272,6 +276,15 @@ An includer may test the following macros after inclusion:
 # define KWIML_INT_BROKEN_PRIXPTR 1
 #endif
 
+#if defined(_MSC_VER) && _MSC_VER < 1900
+  /* MSVC scanf seems broken on 8-bit sizes until 19.00 */
+# define KWIML_INT_BROKEN_SCNd8 1
+# define KWIML_INT_BROKEN_SCNi8 1
+# define KWIML_INT_BROKEN_SCNo8 1
+# define KWIML_INT_BROKEN_SCNu8 1
+# define KWIML_INT_BROKEN_SCNx8 1
+#endif
+
 #if (defined(__SUNPRO_C)||defined(__SUNPRO_CC)) && defined(_CHAR_IS_UNSIGNED)
 # define KWIML_INT_BROKEN_INT8_T 1 /* system type defined incorrectly */
 #elif defined(__BORLANDC__) && defined(_CHAR_UNSIGNED)
@@ -303,7 +316,7 @@ An includer may test the following macros after inclusion:
 #elif defined(__BORLANDC__)
 # define KWIML_INT_private_NO_SCN8
 # define KWIML_INT_private_NO_SCN64
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) && _MSC_VER < 1900
 # define KWIML_INT_private_NO_SCN8
 #elif defined(__WATCOMC__)
 # define KWIML_INT_private_NO_SCN8
@@ -706,7 +719,7 @@ An includer may test the following macros after inclusion:
 #endif
 
 #if defined(__INTEL_COMPILER)
-#elif defined(__BORLANDC__)
+#elif defined(__BORLANDC__) && !defined(__CODEGEARC_VERSION__)
 # define KWIML_INT_private_NO_FMTLL /* type 'long long' but not 'll' format */
 # define KWIML_INT_BROKEN_INT64_C 1  /* system macro defined incorrectly */
 # define KWIML_INT_BROKEN_UINT64_C 1 /* system macro defined incorrectly */
@@ -1003,7 +1016,14 @@ An includer may test the following macros after inclusion:
 
 #if defined(_MSC_VER)
 # pragma warning (push)
+# pragma warning (disable:4309) /* static_cast trunction of constant value */
 # pragma warning (disable:4310) /* cast truncates constant value */
+#endif
+
+#if defined(__cplusplus) && !defined(__BORLANDC__)
+#define KWIML_INT_private_STATIC_CAST(t,v) static_cast<t>(v)
+#else
+#define KWIML_INT_private_STATIC_CAST(t,v) (t)(v)
 #endif
 
 #define KWIML_INT_private_VERIFY(n, x, y) KWIML_INT_private_VERIFY_0(KWIML_INT_private_VERSION, n, x, y)
@@ -1012,7 +1032,9 @@ An includer may test the following macros after inclusion:
 
 #define KWIML_INT_private_VERIFY_BOOL(m, b) KWIML_INT_private_VERIFY(KWIML_INT_detail_VERIFY_##m, 2, (b)?2:3)
 #define KWIML_INT_private_VERIFY_TYPE(t, s) KWIML_INT_private_VERIFY(KWIML_INT_detail_VERIFY_##t, s, sizeof(t))
-#define KWIML_INT_private_VERIFY_SIGN(t, u, o) KWIML_INT_private_VERIFY_BOOL(SIGN_##t, (t)((u)1 << ((sizeof(t)<<3)-1)) o 0)
+#define KWIML_INT_private_VERIFY_SIGN(t, u, o) \
+  KWIML_INT_private_VERIFY_BOOL(SIGN_##t, KWIML_INT_private_STATIC_CAST( \
+      t, KWIML_INT_private_STATIC_CAST(u, 1) << ((sizeof(t)<<3)-1)) o 0)
 
 KWIML_INT_private_VERIFY_TYPE(KWIML_INT_int8_t,    1);
 KWIML_INT_private_VERIFY_TYPE(KWIML_INT_uint8_t,   1);
@@ -1059,6 +1081,8 @@ KWIML_INT_private_VERIFY_SIGN(KWIML_INT_uintptr_t, KWIML_INT_uintptr_t, >);
 #undef KWIML_INT_private_VERIFY_1
 #undef KWIML_INT_private_VERIFY_0
 #undef KWIML_INT_private_VERIFY
+
+#undef KWIML_INT_private_STATIC_CAST
 
 #if defined(_MSC_VER)
 # pragma warning (pop)

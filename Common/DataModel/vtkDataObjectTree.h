@@ -28,7 +28,7 @@
  *
  * @sa
  * vtkDataObjectTreeIterator
-*/
+ */
 
 #ifndef vtkDataObjectTree_h
 #define vtkDataObjectTree_h
@@ -47,12 +47,12 @@ class VTKCOMMONDATAMODEL_EXPORT vtkDataObjectTree : public vtkCompositeDataSet
 {
 public:
   vtkTypeMacro(vtkDataObjectTree, vtkCompositeDataSet);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Return a new iterator (the iterator has to be deleted by user).
    */
-  virtual vtkDataObjectTreeIterator* NewTreeIterator();
+  VTK_NEWINSTANCE virtual vtkDataObjectTreeIterator* NewTreeIterator();
 
   /**
    * Return a new iterator (the iterator has to be deleted by user).
@@ -61,14 +61,14 @@ public:
    * and NewIterator when you have a pointer to a vtkCompositeDataSet;
    * NewIterator is inherited and calls NewTreeIterator internally.
    */
-  VTK_NEWINSTANCE vtkCompositeDataIterator* NewIterator() VTK_OVERRIDE;
+  VTK_NEWINSTANCE vtkCompositeDataIterator* NewIterator() override;
 
   /**
    * Copies the tree structure from the input. All pointers to non-composite
-   * data objects are initialized to NULL. This also shallow copies the meta data
+   * data objects are initialized to nullptr. This also shallow copies the meta data
    * associated with all the nodes.
    */
-  void CopyStructure(vtkCompositeDataSet* input) VTK_OVERRIDE;
+  void CopyStructure(vtkCompositeDataSet* input) override;
 
   /**
    * Sets the data set at the location pointed by the iterator.
@@ -76,21 +76,22 @@ public:
    * be any composite datasite with similar structure (achieved by using
    * CopyStructure).
    */
-  void SetDataSet(vtkCompositeDataIterator* iter,
-                  vtkDataObject* dataObj) VTK_OVERRIDE;
+  void SetDataSet(vtkCompositeDataIterator* iter, vtkDataObject* dataObj) override;
 
   /**
    * Sets the data at the location provided by a vtkDataObjectTreeIterator
    */
   void SetDataSetFrom(vtkDataObjectTreeIterator* iter, vtkDataObject* dataObj);
 
+  // Needed because, otherwise vtkCompositeData::GetDataSet(unsigned int flatIndex) is hidden.
+  using Superclass::GetDataSet;
   /**
-   * Returns the dataset located at the positiong pointed by the iterator.
+   * Returns the dataset located at the position pointed by the iterator.
    * The iterator does not need to be iterating over this dataset itself. It can
    * be an iterator for composite dataset with similar structure (achieved by
    * using CopyStructure).
    */
-  vtkDataObject* GetDataSet(vtkCompositeDataIterator* iter) VTK_OVERRIDE;
+  vtkDataObject* GetDataSet(vtkCompositeDataIterator* iter) override;
 
   /**
    * Returns the meta-data associated with the position pointed by the iterator.
@@ -114,39 +115,52 @@ public:
    * Return the actual size of the data in kibibytes (1024 bytes). This number
    * is valid only after the pipeline has updated.
    */
-  unsigned long GetActualMemorySize() VTK_OVERRIDE;
+  unsigned long GetActualMemorySize() override;
 
   /**
    * Restore data object to initial state,
    */
-  void Initialize() VTK_OVERRIDE;
+  void Initialize() override;
 
-  //@{
+  ///@{
   /**
    * Shallow and Deep copy.
    */
-  void ShallowCopy(vtkDataObject *src) VTK_OVERRIDE;
-  void DeepCopy(vtkDataObject *src) VTK_OVERRIDE;
-  //@}
+  void ShallowCopy(vtkDataObject* src) override;
+  void DeepCopy(vtkDataObject* src) override;
+  void RecursiveShallowCopy(vtkDataObject* src) override;
+  ///@}
 
   /**
    * Returns the total number of points of all blocks. This will
    * iterate over all blocks and call GetNumberOfPoints() so it
    * might be expansive.
    */
-  vtkIdType GetNumberOfPoints() VTK_OVERRIDE;
+  vtkIdType GetNumberOfPoints() override;
 
-  //@{
+  /**
+   * Returns the total number of cells of all blocks. This will
+   * iterate over all blocks and call GetNumberOfPoints() so it
+   * might be expensive.
+   */
+  vtkIdType GetNumberOfCells() override;
+
+  ///@{
   /**
    * Retrieve an instance of this class from an information object.
    */
   static vtkDataObjectTree* GetData(vtkInformation* info);
-  static vtkDataObjectTree* GetData(vtkInformationVector* v, int i=0);
-  //@}
+  static vtkDataObjectTree* GetData(vtkInformationVector* v, int i = 0);
+  ///@}
+
+  /**
+   * Overridden to return `VTK_DATA_OBJECT_TREE`.
+   */
+  int GetDataObjectType() override { return VTK_DATA_OBJECT_TREE; }
 
 protected:
   vtkDataObjectTree();
-  ~vtkDataObjectTree() VTK_OVERRIDE;
+  ~vtkDataObjectTree() override;
 
   /**
    * Set the number of children.
@@ -172,7 +186,7 @@ protected:
   /**
    * Returns a child dataset at a given index.
    */
-  vtkDataObject* GetChild(unsigned int num);
+  vtkDataObject* GetChild(unsigned int index);
 
   /**
    * Returns the meta-data at a given index. If the index is valid, however, no
@@ -192,15 +206,22 @@ protected:
    */
   int HasChildMetaData(unsigned int index);
 
+  /**
+   * When copying structure from another vtkDataObjectTree, this method gets
+   * called for create a new non-leaf for the `other` node. Subclasses can
+   * override this to create a different type of vtkDataObjectTree subclass, if
+   * appropriate. Default implementation, simply calls `NewInstance` on other;
+   */
+  virtual vtkDataObjectTree* CreateForCopyStructure(vtkDataObjectTree* other);
+
   // The internal datastructure. Subclasses need not access this directly.
   vtkDataObjectTreeInternals* Internals;
 
   friend class vtkDataObjectTreeIterator;
 
 private:
-  vtkDataObjectTree(const vtkDataObjectTree&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDataObjectTree&) VTK_DELETE_FUNCTION;
-
+  vtkDataObjectTree(const vtkDataObjectTree&) = delete;
+  void operator=(const vtkDataObjectTree&) = delete;
 };
 
 #endif

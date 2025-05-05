@@ -15,34 +15,25 @@
 #include "vtkProperty.h"
 
 #include "vtkActor.h"
+#include "vtkInformation.h"
 #include "vtkObjectFactory.h"
-#include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
+#include "vtkRenderer.h"
 #include "vtkSmartPointer.h"
-#include "vtkStdString.h"
 #include "vtkTexture.h"
 
 #include <cstdlib>
 #include <sstream>
 
-#include <map>
+#include <cmath>
+
 #include <vtksys/SystemTools.hxx>
 
-class vtkPropertyInternals
-{
-public:
-  // key==texture unit, value==texture
-  typedef std::map<int, vtkSmartPointer<vtkTexture> > MapOfTextures;
-  MapOfTextures Textures;
+vtkCxxSetObjectMacro(vtkProperty, Information, vtkInformation);
 
-  // key==texture name, value==texture-unit.
-  typedef std::map<vtkStdString, int> MapOfTextureNames;
-  MapOfTextureNames TextureNames;
-};
-
-//----------------------------------------------------------------------------
-// Return NULL if no override is supplied.
-vtkAbstractObjectFactoryNewMacro(vtkProperty)
+//------------------------------------------------------------------------------
+// Return nullptr if no override is supplied.
+vtkObjectFactoryNewMacro(vtkProperty);
 
 // Construct object with object color, ambient color, diffuse color,
 // specular color, and edge color white; ambient coefficient=0; diffuse
@@ -75,6 +66,29 @@ vtkProperty::vtkProperty()
   this->VertexColor[1] = 1.0;
   this->VertexColor[2] = 0.5;
 
+  this->EmissiveFactor[0] = 1.0;
+  this->EmissiveFactor[1] = 1.0;
+  this->EmissiveFactor[2] = 1.0;
+
+  this->EdgeTint[0] = 1.0;
+  this->EdgeTint[1] = 1.0;
+  this->EdgeTint[2] = 1.0;
+
+  this->CoatColor[0] = 1.0;
+  this->CoatColor[1] = 1.0;
+  this->CoatColor[2] = 1.0;
+
+  this->NormalScale = 1.0;
+  this->OcclusionStrength = 1.0;
+  this->Metallic = 0.0;
+  this->BaseIOR = 1.5;
+  this->Roughness = 0.5;
+  this->Anisotropy = 0.0;
+  this->AnisotropyRotation = 0.0;
+  this->CoatIOR = 2.0;
+  this->CoatRoughness = 0.0;
+  this->CoatStrength = 0.0;
+  this->CoatNormalScale = 1.0;
   this->Ambient = 0.0;
   this->Diffuse = 1.0;
   this->Specular = 0.0;
@@ -93,24 +107,30 @@ vtkProperty::vtkProperty()
   this->Lighting = true;
   this->RenderPointsAsSpheres = false;
   this->RenderLinesAsTubes = false;
+  this->ShowTexturesOnBackface = true;
 
   this->Shading = 0;
-  this->MaterialName = 0;
-  this->Internals = new vtkPropertyInternals;
+  this->MaterialName = nullptr;
+
+  this->Information = vtkInformation::New();
+  this->Information->Register(this);
+  this->Information->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkProperty::~vtkProperty()
 {
-  this->SetMaterialName(0);
-  delete this->Internals;
+  this->RemoveAllTextures();
+  this->SetMaterialName(nullptr);
+
+  this->SetInformation(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Assign one property to another.
-void vtkProperty::DeepCopy(vtkProperty *p)
+void vtkProperty::DeepCopy(vtkProperty* p)
 {
-  if (p != NULL)
+  if (p != nullptr)
   {
     this->SetColor(p->GetColor());
     this->SetAmbientColor(p->GetAmbientColor());
@@ -137,30 +157,38 @@ void vtkProperty::DeepCopy(vtkProperty *p)
     this->SetRenderPointsAsSpheres(p->GetRenderPointsAsSpheres());
     this->SetRenderLinesAsTubes(p->GetRenderLinesAsTubes());
     this->SetShading(p->GetShading());
+    this->SetNormalScale(p->GetNormalScale());
+    this->SetOcclusionStrength(p->GetOcclusionStrength());
+    this->SetMetallic(p->GetMetallic());
+    this->SetRoughness(p->GetRoughness());
+    this->SetAnisotropy(p->GetAnisotropy());
+    this->SetAnisotropyRotation(p->GetAnisotropyRotation());
+    this->SetBaseIOR(p->GetBaseIOR());
+    this->SetRoughness(p->GetRoughness());
+    this->SetCoatIOR(p->GetCoatIOR());
+    this->SetCoatRoughness(p->GetCoatRoughness());
+    this->SetCoatStrength(p->GetCoatStrength());
+    this->SetCoatNormalScale(p->GetCoatNormalScale());
+    this->SetCoatColor(p->GetCoatColor());
+    this->SetShowTexturesOnBackface(p->GetShowTexturesOnBackface());
 
     this->RemoveAllTextures();
-    vtkPropertyInternals::MapOfTextures::iterator iter =
-      p->Internals->Textures.begin();
-    for (;iter != p->Internals->Textures.end(); ++iter)
+    auto iter = p->Textures.begin();
+    for (; iter != p->Textures.end(); ++iter)
     {
-      this->Internals->Textures[iter->first] = iter->second;
+      this->Textures[iter->first] = iter->second;
     }
     // TODO: need to pass shader variables.
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::SetColor(double r, double g, double b)
 {
   double newColor[3] = { r, g, b };
 
   // SetColor is shorthand for "set all colors"
-  double *color[4] = {
-    this->Color,
-    this->AmbientColor,
-    this->DiffuseColor,
-    this->SpecularColor
-  };
+  double* color[4] = { this->Color, this->AmbientColor, this->DiffuseColor, this->SpecularColor };
 
   // Set colors, and check for changes
   bool modified = false;
@@ -183,45 +211,68 @@ void vtkProperty::SetColor(double r, double g, double b)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::SetColor(double a[3])
 {
   this->SetColor(a[0], a[1], a[2]);
 }
 
-//----------------------------------------------------------------------------
-void vtkProperty::ComputeCompositeColor(double result[3],
-  double ambient, const double ambient_color[3],
-  double diffuse, const double diffuse_color[3],
-  double specular, const double specular_color[3])
+//------------------------------------------------------------------------------
+void vtkProperty::ComputeCompositeColor(double result[3], double ambient,
+  const double ambient_color[3], double diffuse, const double diffuse_color[3], double specular,
+  const double specular_color[3])
 {
   double norm = 0.0;
-  if ((ambient + diffuse + specular)>0)
+  if ((ambient + diffuse + specular) > 0)
   {
     norm = 1.0 / (ambient + diffuse + specular);
   }
 
-  for (int i = 0; i < 3; i ++)
+  for (int i = 0; i < 3; i++)
   {
-    result[i] = ( ambient * ambient_color[i] +
-                  diffuse * diffuse_color[i] +
-                  specular * specular_color[i] ) * norm;
+    result[i] =
+      (ambient * ambient_color[i] + diffuse * diffuse_color[i] + specular * specular_color[i]) *
+      norm;
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+double vtkProperty::ComputeReflectanceFromIOR(double IORTo, double IORFrom)
+{
+  return std::pow(IORTo - IORFrom, 2) / std::pow(IORTo + IORFrom, 2);
+}
+
+//------------------------------------------------------------------------------
+double vtkProperty::ComputeIORFromReflectance(double reflectance, double ior)
+{
+  return -ior * (std::sqrt(reflectance) + 1) / (std::sqrt(reflectance) - 1);
+}
+
+//------------------------------------------------------------------------------
+double vtkProperty::ComputeReflectanceOfBaseLayer()
+{
+  // Compute F0 of base with the environment
+  // Hard coded air environment (could be modified with an other IOR)
+  const double environmentIOR = 1.0;
+  double baseToEnvironmentF0 =
+    vtkProperty::ComputeReflectanceFromIOR(this->BaseIOR, environmentIOR);
+  // Recalculate base f0 in case of a coat layer
+  double baseToCoatF0 = vtkProperty::ComputeReflectanceFromIOR(this->BaseIOR, this->CoatIOR);
+  // Mix F0 depending on the coat strength
+  return baseToEnvironmentF0 * (1.0 - this->CoatStrength) + baseToCoatF0 * this->CoatStrength;
+}
+
+//------------------------------------------------------------------------------
 // Return composite color of object (ambient + diffuse + specular). Return value
 // is a pointer to rgb values.
-double *vtkProperty::GetColor()
+double* vtkProperty::GetColor()
 {
-  vtkProperty::ComputeCompositeColor(this->Color,
-    this->Ambient, this->AmbientColor,
-    this->Diffuse, this->DiffuseColor,
-    this->Specular, this->SpecularColor);
+  vtkProperty::ComputeCompositeColor(this->Color, this->Ambient, this->AmbientColor, this->Diffuse,
+    this->DiffuseColor, this->Specular, this->SpecularColor);
   return this->Color;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Copy composite color of object (ambient + diffuse + specular) into array
 // provided.
 void vtkProperty::GetColor(double rgb[3])
@@ -232,8 +283,8 @@ void vtkProperty::GetColor(double rgb[3])
   rgb[2] = this->Color[2];
 }
 
-//----------------------------------------------------------------------------
-void vtkProperty::GetColor(double &r, double &g, double &b)
+//------------------------------------------------------------------------------
+void vtkProperty::GetColor(double& r, double& g, double& b)
 {
   this->GetColor();
   r = this->Color[0];
@@ -241,156 +292,89 @@ void vtkProperty::GetColor(double &r, double &g, double &b)
   b = this->Color[2];
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::SetTexture(const char* name, vtkTexture* tex)
 {
-  vtkPropertyInternals::MapOfTextureNames::iterator iter =
-    this->Internals->TextureNames.find(vtkStdString(name));
-  if (iter != this->Internals->TextureNames.end())
+  if (tex == nullptr)
   {
-    vtkWarningMacro("Texture with name " << name
-      << " exists. It will be replaced.");
+    this->RemoveTexture(name);
+    return;
   }
 
-  // Locate a free texture unit.
-  int texture_unit = -1;
-  for (int cc=0; ; cc++)
+  if ((strcmp(name, "albedoTex") == 0 || strcmp(name, "emissiveTex") == 0) &&
+    !tex->GetUseSRGBColorSpace())
   {
-    if (this->Internals->Textures.find(cc) == this->Internals->Textures.end())
+    vtkErrorMacro("The " << name << " texture is not in sRGB color space.");
+    return;
+  }
+  const bool texNeedLinear = strcmp(name, "materialTex") == 0 || strcmp(name, "normalTex") == 0 ||
+    strcmp(name, "anisotropyTex") == 0 || strcmp(name, "coatNormalTex") == 0;
+  if (texNeedLinear && tex->GetUseSRGBColorSpace())
+  {
+    vtkErrorMacro("The " << name << " texture is not in linear color space.");
+    return;
+  }
+
+  auto iter = this->Textures.find(std::string(name));
+  if (iter != this->Textures.end())
+  {
+    // same value?
+    if (iter->second == tex)
     {
-      texture_unit = cc;
-      break;
+      return;
     }
+    vtkWarningMacro("Texture with name " << name << " exists. It will be replaced.");
+    iter->second->UnRegister(this);
   }
 
-  this->Internals->TextureNames[name] = texture_unit;
-  this->SetTexture(texture_unit, tex);
+  tex->Register(this);
+  this->Textures[name] = tex;
+  this->Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTexture* vtkProperty::GetTexture(const char* name)
 {
-  vtkPropertyInternals::MapOfTextureNames::iterator iter =
-    this->Internals->TextureNames.find(vtkStdString(name));
-  if (iter == this->Internals->TextureNames.end())
+  auto iter = this->Textures.find(std::string(name));
+  if (iter == this->Textures.end())
   {
-    vtkErrorMacro("No texture with name " << name << " exists.");
-    return NULL;
+    return nullptr;
   }
 
-  return this->GetTexture(iter->second);
+  return iter->second;
 }
 
-//----------------------------------------------------------------------------
-void vtkProperty::SetTexture(int unit, vtkTexture* tex)
-{
-  vtkPropertyInternals::MapOfTextures::iterator iter =
-    this->Internals->Textures.find(unit);
-  if (iter != this->Internals->Textures.end())
-  {
-    vtkWarningMacro("Replacing texture previously assigned to unit " << unit);
-  }
-  this->Internals->Textures[unit] = tex;
-}
-
-//----------------------------------------------------------------------------
-vtkTexture* vtkProperty::GetTexture(int unit)
-{
-  vtkPropertyInternals::MapOfTextures::iterator iter =
-    this->Internals->Textures.find(unit);
-  if (iter != this->Internals->Textures.end())
-  {
-    return iter->second.GetPointer();
-  }
-  vtkErrorMacro("No texture assigned to texture unit " << unit << " exists.");
-  return NULL;
-}
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkProperty::GetNumberOfTextures()
 {
-  return static_cast<int>(this->Internals->Textures.size());
+  return static_cast<int>(this->Textures.size());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::RemoveTexture(const char* name)
 {
-  vtkPropertyInternals::MapOfTextureNames::iterator iter =
-    this->Internals->TextureNames.find(vtkStdString(name));
-  if (iter != this->Internals->TextureNames.end())
+  auto iter = this->Textures.find(std::string(name));
+  if (iter != this->Textures.end())
   {
-    this->RemoveTexture(iter->second);
-    this->Internals->TextureNames.erase(iter);
+    iter->second->UnRegister(this);
+    this->Textures.erase(iter);
+    this->Modified();
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkProperty::RemoveTexture(int unit)
-{
-  vtkPropertyInternals::MapOfTextures::iterator iter =
-    this->Internals->Textures.find(unit);
-  if (iter != this->Internals->Textures.end())
-  {
-    this->Internals->Textures.erase(unit);
-  }
-}
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::RemoveAllTextures()
 {
-  this->Internals->TextureNames.clear();
-  this->Internals->Textures.clear();
-}
-
-//----------------------------------------------------------------------------
-vtkTexture* vtkProperty::GetTextureAtIndex(int index)
-{
-  vtkPropertyInternals::MapOfTextures::iterator iter =
-    this->Internals->Textures.begin();
-  for (int id = 0; iter != this->Internals->Textures.end(); ++iter, ++id)
+  while (!this->Textures.empty())
   {
-    if (id == index)
-    {
-      return iter->second.GetPointer();
-    }
+    auto iter = this->Textures.begin();
+    iter->second->UnRegister(this);
+    this->Textures.erase(iter);
   }
-
-  vtkErrorMacro("No texture at index " << index );
-  return 0;
+  this->Modified();
 }
 
-//----------------------------------------------------------------------------
-int vtkProperty::GetTextureUnitAtIndex(int index)
-{
-  vtkPropertyInternals::MapOfTextures::iterator iter =
-    this->Internals->Textures.begin();
-  for (int id = 0; iter != this->Internals->Textures.end(); ++iter, ++id)
-  {
-    if (id == index)
-    {
-      return iter->first;
-    }
-  }
-
-  vtkErrorMacro("No texture at index " << index );
-  return -1;
-}
-
-//----------------------------------------------------------------------------
-int vtkProperty::GetTextureUnit(const char* name)
-{
-  vtkPropertyInternals::MapOfTextureNames::iterator iter =
-    this->Internals->TextureNames.find(name);
-  if (iter != this->Internals->TextureNames.end())
-  {
-    return iter->second;
-  }
-
-  vtkErrorMacro("No texture with name " << name);
-  return -1;
-}
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::Render(vtkActor*, vtkRenderer* renderer)
 {
   // subclass would have renderer the property already.
@@ -403,7 +387,7 @@ void vtkProperty::Render(vtkActor*, vtkRenderer* renderer)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::PostRender(vtkActor*, vtkRenderer* renderer)
 {
   if (renderer->GetSelector())
@@ -413,78 +397,85 @@ void vtkProperty::PostRender(vtkActor*, vtkRenderer* renderer)
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkProperty::AddShaderVariable(const char*, int, int*)
-{
-}
+//------------------------------------------------------------------------------
+void vtkProperty::AddShaderVariable(const char*, int, int*) {}
 
-//----------------------------------------------------------------------------
-void vtkProperty::AddShaderVariable(const char*, int, float*)
-{
-}
+//------------------------------------------------------------------------------
+void vtkProperty::AddShaderVariable(const char*, int, float*) {}
 
-//----------------------------------------------------------------------------
-void vtkProperty::AddShaderVariable(const char*, int, double*)
-{
-}
+//------------------------------------------------------------------------------
+void vtkProperty::AddShaderVariable(const char*, int, double*) {}
 
-//-----------------------------------------------------------------------------
-void vtkProperty::ReleaseGraphicsResources(vtkWindow *)
+//------------------------------------------------------------------------------
+void vtkProperty::ReleaseGraphicsResources(vtkWindow*)
 {
   // vtkOpenGLRenderer releases texture resources, so we don't need to release
   // them here.
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProperty::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Ambient: " << this->Ambient << "\n";
-  os << indent << "Ambient Color: (" << this->AmbientColor[0] << ", "
-    << this->AmbientColor[1] << ", " << this->AmbientColor[2] << ")\n";
+  os << indent << "Ambient Color: (" << this->AmbientColor[0] << ", " << this->AmbientColor[1]
+     << ", " << this->AmbientColor[2] << ")\n";
   os << indent << "Diffuse: " << this->Diffuse << "\n";
-  os << indent << "Diffuse Color: (" << this->DiffuseColor[0] << ", "
-    << this->DiffuseColor[1] << ", " << this->DiffuseColor[2] << ")\n";
-  os << indent << "Edge Color: (" << this->EdgeColor[0] << ", "
-    << this->EdgeColor[1] << ", " << this->EdgeColor[2] << ")\n";
-  os << indent << "Edge Visibility: "
-    << (this->EdgeVisibility ? "On\n" : "Off\n");
-  os << indent << "Vertex Color: (" << this->VertexColor[0] << ", "
-    << this->VertexColor[1] << ", " << this->VertexColor[2] << ")\n";
-  os << indent << "Vertex Visibility: "
-    << (this->VertexVisibility ? "On\n" : "Off\n");
+  os << indent << "Diffuse Color: (" << this->DiffuseColor[0] << ", " << this->DiffuseColor[1]
+     << ", " << this->DiffuseColor[2] << ")\n";
+  os << indent << "Edge Color: (" << this->EdgeColor[0] << ", " << this->EdgeColor[1] << ", "
+     << this->EdgeColor[2] << ")\n";
+  os << indent << "Edge Visibility: " << (this->EdgeVisibility ? "On\n" : "Off\n");
+  os << indent << "Vertex Color: (" << this->VertexColor[0] << ", " << this->VertexColor[1] << ", "
+     << this->VertexColor[2] << ")\n";
+  os << indent << "Vertex Visibility: " << (this->VertexVisibility ? "On\n" : "Off\n");
   os << indent << "Interpolation: ";
   switch (this->Interpolation)
   {
-  case VTK_FLAT: os << "VTK_FLAT\n"; break;
-  case VTK_GOURAUD: os << "VTK_GOURAUD\n"; break;
-  case VTK_PHONG: os << "VTK_PHONG\n"; break;
-  default: os << "unknown\n";
+    case VTK_FLAT:
+      os << "VTK_FLAT\n";
+      break;
+    case VTK_GOURAUD:
+      os << "VTK_GOURAUD\n";
+      break;
+    case VTK_PHONG:
+      os << "VTK_PHONG\n";
+      break;
+    case VTK_PBR:
+      os << "VTK_PBR\n";
+      break;
+    default:
+      os << "unknown\n";
   }
   os << indent << "Opacity: " << this->Opacity << "\n";
   os << indent << "Representation: ";
   switch (this->Representation)
   {
-  case VTK_POINTS: os << "VTK_POINTS\n"; break;
-  case VTK_WIREFRAME: os << "VTK_WIREFRAME\n"; break;
-  case VTK_SURFACE: os << "VTK_SURFACE\n"; break;
-  default: os << "unknown\n";
+    case VTK_POINTS:
+      os << "VTK_POINTS\n";
+      break;
+    case VTK_WIREFRAME:
+      os << "VTK_WIREFRAME\n";
+      break;
+    case VTK_SURFACE:
+      os << "VTK_SURFACE\n";
+      break;
+    default:
+      os << "unknown\n";
   }
   os << indent << "Specular: " << this->Specular << "\n";
-  os << indent << "Specular Color: (" << this->SpecularColor[0] << ", "
-    << this->SpecularColor[1] << ", " << this->SpecularColor[2] << ")\n";
+  os << indent << "Specular Color: (" << this->SpecularColor[0] << ", " << this->SpecularColor[1]
+     << ", " << this->SpecularColor[2] << ")\n";
   os << indent << "Specular Power: " << this->SpecularPower << "\n";
-  os << indent << "Backface Culling: "
-    << (this->BackfaceCulling ? "On\n" : "Off\n");
-  os << indent << "Frontface Culling: "
-    << (this->FrontfaceCulling ? "On\n" : "Off\n");
+  os << indent << "Backface Culling: " << (this->BackfaceCulling ? "On\n" : "Off\n");
+  os << indent << "Frontface Culling: " << (this->FrontfaceCulling ? "On\n" : "Off\n");
   os << indent << "Point size: " << this->PointSize << "\n";
   os << indent << "Line width: " << this->LineWidth << "\n";
   os << indent << "Line stipple pattern: " << this->LineStipplePattern << "\n";
   os << indent << "Line stipple repeat factor: " << this->LineStippleRepeatFactor << "\n";
   os << indent << "Lighting: ";
-  if(this->Lighting)
+  if (this->Lighting)
   {
     os << "On" << endl;
   }
@@ -492,14 +483,21 @@ void vtkProperty::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << "Off" << endl;
   }
-  os << indent << "RenderPointsAsSpheres: "
-     << (this->RenderPointsAsSpheres ? "On" : "Off") << endl;
-  os << indent << "RenderLinesAsTubes: "
-     << (this->RenderLinesAsTubes ? "On" : "Off") << endl;
+  os << indent << "RenderPointsAsSpheres: " << (this->RenderPointsAsSpheres ? "On" : "Off") << endl;
+  os << indent << "RenderLinesAsTubes: " << (this->RenderLinesAsTubes ? "On" : "Off") << endl;
+  os << indent << "ShowTexturesOnBackface: " << (this->ShowTexturesOnBackface ? "On" : "Off")
+     << endl;
 
-  os << indent << "Shading: "
-    << (this->Shading? "On" : "Off") << endl;
+  os << indent << "Shading: " << (this->Shading ? "On" : "Off") << endl;
 
- os << indent << "MaterialName: " <<
-   (this->MaterialName? this->MaterialName:"(none)") << endl;
+  os << indent << "MaterialName: " << (this->MaterialName ? this->MaterialName : "(none)") << endl;
+
+  os << indent << "Color: (" << this->Color[0] << ", " << this->Color[1] << ", " << this->Color[2]
+     << ")" << endl;
+  os << indent << "EmissiveFactor: (" << this->EmissiveFactor[0] << ", " << this->EmissiveFactor[1]
+     << ", " << this->EmissiveFactor[2] << ")" << endl;
+  os << indent << "NormalScale: " << this->NormalScale << endl;
+  os << indent << "OcclusionStrength: " << this->OcclusionStrength << endl;
+  os << indent << "Metallic: " << this->Metallic << endl;
+  os << indent << "Roughness: " << this->Roughness << endl;
 }

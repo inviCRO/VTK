@@ -20,53 +20,50 @@
  * different datasets and merges them into a single dataset. The output from
  * this filter is of the same type as the input (i.e., vtkDataSet.) It treats
  * both cell and point data set attributes.
-*/
+ */
 
 #ifndef vtkMergeFilter_h
 #define vtkMergeFilter_h
 
-#include "vtkFiltersCoreModule.h" // For export macro
 #include "vtkDataSetAlgorithm.h"
+#include "vtkFiltersCoreModule.h" // For export macro
 
 class vtkFieldList;
 
 class VTKFILTERSCORE_EXPORT vtkMergeFilter : public vtkDataSetAlgorithm
 {
 public:
-  static vtkMergeFilter *New();
-  vtkTypeMacro(vtkMergeFilter,vtkDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkMergeFilter* New();
+  vtkTypeMacro(vtkMergeFilter, vtkDataSetAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify object from which to extract geometry information.
    * Note that this method does not connect the pipeline. The algorithm will
    * work on the input data as it is without updating the producer of the data.
    * See SetGeometryConnection for connecting the pipeline.
    */
-  void SetGeometryInputData(vtkDataSet *input) {this->SetInputData(input);};
-  vtkDataSet *GetGeometry();
-  //@}
+  void SetGeometryInputData(vtkDataSet* input) { this->SetInputData(input); }
+  vtkDataSet* GetGeometry();
+  ///@}
 
   /**
    * Specify object from which to extract geometry information.
    * Equivalent to SetInputConnection(0, algOutput)
    */
-  void SetGeometryConnection(vtkAlgorithmOutput* algOutput)
-  {
-      this->SetInputConnection(algOutput);
-  }
+  void SetGeometryConnection(vtkAlgorithmOutput* algOutput) { this->SetInputConnection(algOutput); }
 
-  //@{
+  ///@{
   /**
    * Specify object from which to extract scalar information.
    * Note that this method does not connect the pipeline. The algorithm will
    * work on the input data as it is without updating the producer of the data.
    * See SetScalarConnection for connecting the pipeline.
    */
-  void SetScalarsData(vtkDataSet *);
-  vtkDataSet *GetScalars();
-  //@}
+  void SetScalarsData(vtkDataSet*);
+  vtkDataSet* GetScalars();
+  ///@}
 
   /**
    * Specify object from which to extract scalar information.
@@ -74,19 +71,19 @@ public:
    */
   void SetScalarsConnection(vtkAlgorithmOutput* algOutput)
   {
-      this->SetInputConnection(1, algOutput);
+    this->SetInputConnection(1, algOutput);
   }
 
-  //@{
+  ///@{
   /**
    * Set / get the object from which to extract vector information.
    * Note that this method does not connect the pipeline. The algorithm will
    * work on the input data as it is without updating the producer of the data.
    * See SetVectorsConnection for connecting the pipeline.
    */
-  void SetVectorsData(vtkDataSet *);
-  vtkDataSet *GetVectors();
-  //@}
+  void SetVectorsData(vtkDataSet*);
+  vtkDataSet* GetVectors();
+  ///@}
 
   /**
    * Set the connection from which to extract vector information.
@@ -94,19 +91,19 @@ public:
    */
   void SetVectorsConnection(vtkAlgorithmOutput* algOutput)
   {
-      this->SetInputConnection(2, algOutput);
+    this->SetInputConnection(2, algOutput);
   }
 
-  //@{
+  ///@{
   /**
    * Set / get the object from which to extract normal information.
    * Note that this method does not connect the pipeline. The algorithm will
    * work on the input data as it is without updating the producer of the data.
    * See SetNormalsConnection for connecting the pipeline.
    */
-  void SetNormalsData(vtkDataSet *);
-  vtkDataSet *GetNormals();
-  //@}
+  void SetNormalsData(vtkDataSet*);
+  vtkDataSet* GetNormals();
+  ///@}
 
   /**
    * Set  the connection from which to extract normal information.
@@ -114,10 +111,10 @@ public:
    */
   void SetNormalsConnection(vtkAlgorithmOutput* algOutput)
   {
-      this->SetInputConnection(3, algOutput);
+    this->SetInputConnection(3, algOutput);
   }
 
-  //@{
+  ///@{
   /**
    * Set / get the object from which to extract texture coordinates
    * information.
@@ -125,9 +122,9 @@ public:
    * work on the input data as it is without updating the producer of the data.
    * See SetTCoordsConnection for connecting the pipeline.
    */
-  void SetTCoordsData(vtkDataSet *);
-  vtkDataSet *GetTCoords();
-  //@}
+  void SetTCoordsData(vtkDataSet*);
+  vtkDataSet* GetTCoords();
+  ///@}
 
   /**
    * Set the connection from which to extract texture coordinates
@@ -136,19 +133,19 @@ public:
    */
   void SetTCoordsConnection(vtkAlgorithmOutput* algOutput)
   {
-      this->SetInputConnection(4, algOutput);
+    this->SetInputConnection(4, algOutput);
   }
 
-  //@{
+  ///@{
   /**
    * Set / get the object from which to extract tensor data.
    * Note that this method does not connect the pipeline. The algorithm will
    * work on the input data as it is without updating the producer of the data.
    * See SetTensorsConnection for connecting the pipeline.
    */
-  void SetTensorsData(vtkDataSet *);
-  vtkDataSet *GetTensors();
-  //@}
+  void SetTensorsData(vtkDataSet*);
+  vtkDataSet* GetTensors();
+  ///@}
 
   /**
    * Set the connection from which to extract tensor data.
@@ -156,7 +153,7 @@ public:
    */
   void SetTensorsConnection(vtkAlgorithmOutput* algOutput)
   {
-      this->SetInputConnection(5, algOutput);
+    this->SetInputConnection(5, algOutput);
   }
 
   /**
@@ -168,19 +165,18 @@ public:
 
 protected:
   vtkMergeFilter();
-  ~vtkMergeFilter() VTK_OVERRIDE;
+  ~vtkMergeFilter() override;
 
   // Usual data generation method
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int RequestUpdateExtent(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
   vtkFieldList* FieldList;
+
 private:
-  vtkMergeFilter(const vtkMergeFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMergeFilter&) VTK_DELETE_FUNCTION;
+  vtkMergeFilter(const vtkMergeFilter&) = delete;
+  void operator=(const vtkMergeFilter&) = delete;
 };
 
 #endif
-
-

@@ -19,31 +19,31 @@
 #include "vtkSocketCommunicator.h"
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
-# define VTK_WINDOWS_FULL
-# include "vtkWindows.h"
-# define WSA_VERSION MAKEWORD(1,1)
+#define VTK_WINDOWS_FULL
+#include "vtkWindows.h"
+#define WSA_VERSION MAKEWORD(1, 1)
 #endif
 
 int vtkSocketController::Initialized = 0;
 
 vtkStandardNewMacro(vtkSocketController);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSocketController::vtkSocketController()
 {
   this->Communicator = vtkSocketCommunicator::New();
   this->RMICommunicator = this->Communicator;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSocketController::~vtkSocketController()
 {
   this->Communicator->Delete();
-  this->Communicator = this->RMICommunicator = 0;
+  this->Communicator = this->RMICommunicator = nullptr;
 }
 
-//----------------------------------------------------------------------------
-void vtkSocketController::Initialize(int* , char***)
+//------------------------------------------------------------------------------
+void vtkSocketController::Initialize(int*, char***)
 {
   if (vtkSocketController::Initialized)
   {
@@ -59,10 +59,9 @@ void vtkSocketController::Initialize(int* , char***)
   }
 #endif
   vtkSocketController::Initialized = 1;
-
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSocketController::SetCommunicator(vtkSocketCommunicator* comm)
 {
   if (comm == this->Communicator)
@@ -81,45 +80,40 @@ void vtkSocketController::SetCommunicator(vtkSocketCommunicator* comm)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSocketController::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkSocketController::WaitForConnection(int port)
 {
-  return vtkSocketCommunicator::SafeDownCast(this->Communicator)->
-    WaitForConnection(port);
+  return vtkSocketCommunicator::SafeDownCast(this->Communicator)->WaitForConnection(port);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSocketController::CloseConnection()
 {
-  vtkSocketCommunicator::SafeDownCast(this->Communicator)->
-    CloseConnection();
+  vtkSocketCommunicator::SafeDownCast(this->Communicator)->CloseConnection();
 }
 
-//----------------------------------------------------------------------------
-int vtkSocketController::ConnectTo(const char* hostName, int port )
+//------------------------------------------------------------------------------
+int vtkSocketController::ConnectTo(const char* hostName, int port)
 {
-  return vtkSocketCommunicator::SafeDownCast(this->Communicator)->
-    ConnectTo(hostName, port);
+  return vtkSocketCommunicator::SafeDownCast(this->Communicator)->ConnectTo(hostName, port);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkSocketController::GetSwapBytesInReceivedData()
 {
-  return vtkSocketCommunicator::SafeDownCast(this->Communicator)->
-    GetSwapBytesInReceivedData();
+  return vtkSocketCommunicator::SafeDownCast(this->Communicator)->GetSwapBytesInReceivedData();
 }
 
-//-----------------------------------------------------------------------------
-vtkMultiProcessController *vtkSocketController::CreateCompliantController()
+//------------------------------------------------------------------------------
+vtkMultiProcessController* vtkSocketController::CreateCompliantController()
 {
-  vtkProcessGroup *group = vtkProcessGroup::New();
+  vtkProcessGroup* group = vtkProcessGroup::New();
   group->Initialize(this->Communicator);
   group->RemoveAllProcessIds();
 
@@ -136,8 +130,7 @@ vtkMultiProcessController *vtkSocketController::CreateCompliantController()
     group->AddProcessId(1);
   }
 
-  vtkMultiProcessController *compliantController
-    = this->CreateSubController(group);
+  vtkMultiProcessController* compliantController = this->CreateSubController(group);
 
   group->Delete();
 

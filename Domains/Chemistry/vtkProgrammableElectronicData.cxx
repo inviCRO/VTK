@@ -17,37 +17,39 @@
 
 #include "vtkDataSetCollection.h"
 #include "vtkImageData.h"
-#include "vtkObjectFactory.h"
 #include "vtkNew.h"
+#include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 
 #include <vector>
 
 // PIMPL'd std::vector
-class StdVectorOfImageDataPointers :
-    public std::vector<vtkSmartPointer<vtkImageData> > {};
+class StdVectorOfImageDataPointers : public std::vector<vtkSmartPointer<vtkImageData>>
+{
+};
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkProgrammableElectronicData);
 vtkCxxSetObjectMacro(vtkProgrammableElectronicData, ElectronDensity, vtkImageData);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkProgrammableElectronicData::vtkProgrammableElectronicData()
-  : NumberOfElectrons(0), MOs(new StdVectorOfImageDataPointers),
-    ElectronDensity(NULL)
+  : NumberOfElectrons(0)
+  , MOs(new StdVectorOfImageDataPointers)
+  , ElectronDensity(nullptr)
 {
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkProgrammableElectronicData::~vtkProgrammableElectronicData()
 {
   delete this->MOs;
-  this->MOs = NULL;
+  this->MOs = nullptr;
 
-  this->SetElectronDensity(NULL);
+  this->SetElectronDensity(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProgrammableElectronicData::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -58,27 +60,26 @@ void vtkProgrammableElectronicData::PrintSelf(ostream& os, vtkIndent indent)
   os << indent.GetNextIndent() << "size: " << this->MOs->size() << "\n";
   for (size_t i = 0; i < this->MOs->size(); ++i)
   {
-    vtkImageData *current = this->MOs->at(i).GetPointer();
-    os << indent.GetNextIndent() << "MO #" << i+1 << " @" << current << "\n";
+    vtkImageData* current = this->MOs->at(i);
+    os << indent.GetNextIndent() << "MO #" << i + 1 << " @" << current << "\n";
     if (current)
       current->PrintSelf(os, indent.GetNextIndent().GetNextIndent());
   }
 
   os << indent << "ElectronDensity: @" << this->ElectronDensity << "\n";
   if (this->ElectronDensity)
-    this->ElectronDensity->PrintSelf(os,
-                                     indent.GetNextIndent().GetNextIndent());
+    this->ElectronDensity->PrintSelf(os, indent.GetNextIndent().GetNextIndent());
 
   os << indent << "Padding: " << this->Padding << "\n";
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkProgrammableElectronicData::GetNumberOfMOs()
 {
   return static_cast<vtkIdType>(this->MOs->size());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProgrammableElectronicData::SetNumberOfMOs(vtkIdType size)
 {
   if (size == static_cast<vtkIdType>(this->MOs->size()))
@@ -86,45 +87,39 @@ void vtkProgrammableElectronicData::SetNumberOfMOs(vtkIdType size)
     return;
   }
 
-  vtkDebugMacro(<<"Resizing MO vector from " << this->MOs->size() << " to "
-                << size << ".");
+  vtkDebugMacro(<< "Resizing MO vector from " << this->MOs->size() << " to " << size << ".");
   this->MOs->resize(size);
 
   this->Modified();
-
-  return;
 }
 
-//----------------------------------------------------------------------------
-vtkImageData * vtkProgrammableElectronicData::GetMO(vtkIdType orbitalNumber)
+//------------------------------------------------------------------------------
+vtkImageData* vtkProgrammableElectronicData::GetMO(vtkIdType orbitalNumber)
 {
   if (orbitalNumber <= 0)
   {
-    vtkWarningMacro(<< "Request for invalid orbital number "<<orbitalNumber);
-    return NULL;
+    vtkWarningMacro(<< "Request for invalid orbital number " << orbitalNumber);
+    return nullptr;
   }
   if (orbitalNumber > static_cast<vtkIdType>(this->MOs->size()))
   {
     vtkWarningMacro(<< "Request for orbital number " << orbitalNumber
-                    << ", which exceeds the number of MOs ("
-                    << this->MOs->size() << ")");
-    return NULL;
+                    << ", which exceeds the number of MOs (" << this->MOs->size() << ")");
+    return nullptr;
   }
 
-  vtkImageData *result = this->MOs->at(orbitalNumber - 1).GetPointer();
+  vtkImageData* result = this->MOs->at(orbitalNumber - 1);
 
-  vtkDebugMacro(<< "Returning '" << result << "' for MO '"
-                << orbitalNumber << "'");
+  vtkDebugMacro(<< "Returning '" << result << "' for MO '" << orbitalNumber << "'");
   return result;
 }
 
-//----------------------------------------------------------------------------
-void vtkProgrammableElectronicData::SetMO(vtkIdType orbitalNumber,
-                                          vtkImageData *data)
+//------------------------------------------------------------------------------
+void vtkProgrammableElectronicData::SetMO(vtkIdType orbitalNumber, vtkImageData* data)
 {
   if (orbitalNumber <= 0)
   {
-    vtkErrorMacro("Cannot set invalid orbital number "<<orbitalNumber);
+    vtkErrorMacro("Cannot set invalid orbital number " << orbitalNumber);
     return;
   }
   if (orbitalNumber > static_cast<vtkIdType>(this->MOs->size()))
@@ -132,23 +127,22 @@ void vtkProgrammableElectronicData::SetMO(vtkIdType orbitalNumber,
     this->SetNumberOfMOs(orbitalNumber);
   }
 
-  vtkImageData *previous = this->MOs->at(orbitalNumber - 1).GetPointer();
+  vtkImageData* previous = this->MOs->at(orbitalNumber - 1);
   if (data == previous)
     return;
 
-  vtkDebugMacro(<<"Changing MO " << orbitalNumber << " from @" << previous
-                << " to @" << data << ".");
+  vtkDebugMacro(<< "Changing MO " << orbitalNumber << " from @" << previous << " to @" << data
+                << ".");
 
   this->MOs->at(orbitalNumber - 1) = data;
 
   this->Modified();
 }
 
-//----------------------------------------------------------------------------
-void vtkProgrammableElectronicData::DeepCopy(vtkDataObject *obj)
+//------------------------------------------------------------------------------
+void vtkProgrammableElectronicData::DeepCopy(vtkDataObject* obj)
 {
-  vtkProgrammableElectronicData *source =
-      vtkProgrammableElectronicData::SafeDownCast(obj);
+  vtkProgrammableElectronicData* source = vtkProgrammableElectronicData::SafeDownCast(obj);
   if (!source)
   {
     vtkErrorMacro("Can only deep copy from vtkProgrammableElectronicData "
@@ -166,12 +160,12 @@ void vtkProgrammableElectronicData::DeepCopy(vtkDataObject *obj)
 
   for (size_t i = 0; i < source->MOs->size(); ++i)
   {
-    vtkImageData *current = source->MOs->at(i).GetPointer();
+    vtkImageData* current = source->MOs->at(i);
     if (current)
     {
       vtkNew<vtkImageData> newImage;
       newImage->DeepCopy(current);
-      this->SetMO(static_cast<vtkIdType>(i), newImage.GetPointer());
+      this->SetMO(static_cast<vtkIdType>(i), newImage);
     }
   }
 
@@ -179,7 +173,6 @@ void vtkProgrammableElectronicData::DeepCopy(vtkDataObject *obj)
   {
     vtkNew<vtkImageData> newImage;
     newImage->DeepCopy(source->ElectronDensity);
-    this->SetElectronDensity(newImage.GetPointer());
+    this->SetElectronDensity(newImage);
   }
-
 }

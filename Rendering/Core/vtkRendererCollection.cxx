@@ -13,8 +13,8 @@
 
 =========================================================================*/
 #include "vtkRendererCollection.h"
-#include "vtkRenderWindow.h"
 #include "vtkObjectFactory.h"
+#include "vtkRenderWindow.h"
 
 #include <cstdlib>
 
@@ -23,14 +23,14 @@ vtkStandardNewMacro(vtkRendererCollection);
 // Forward the Render() method to each renderer in the list.
 void vtkRendererCollection::Render()
 {
-  vtkRenderer      *ren, *firstRen;
-  vtkRenderWindow  *renWin;
-  int               numLayers, i;
+  vtkRenderer *ren, *firstRen;
+  vtkRenderWindow* renWin;
+  int numLayers, i;
 
   vtkCollectionSimpleIterator rsit;
   this->InitTraversal(rsit);
   firstRen = this->GetNextRenderer(rsit);
-  if (firstRen == NULL)
+  if (firstRen == nullptr)
   {
     // We cannot determine the number of layers because there are no
     // renderers.  No problem, just return.
@@ -44,7 +44,7 @@ void vtkRendererCollection::Render()
   // then overlay their image.
   for (i = 0; i < numLayers; i++)
   {
-    for (this->InitTraversal(rsit); (ren = this->GetNextRenderer(rsit)); )
+    for (this->InitTraversal(rsit); (ren = this->GetNextRenderer(rsit));)
     {
       if (ren->GetLayer() == i)
       {
@@ -54,7 +54,7 @@ void vtkRendererCollection::Render()
   }
 
   // Let the user know if they have put a renderer at an unused layer.
-  for (this->InitTraversal(rsit); (ren = this->GetNextRenderer(rsit)); )
+  for (this->InitTraversal(rsit); (ren = this->GetNextRenderer(rsit));)
   {
     if (ren->GetLayer() < 0 || ren->GetLayer() >= numLayers)
     {
@@ -63,20 +63,20 @@ void vtkRendererCollection::Render()
   }
 }
 
-vtkRenderer *vtkRendererCollection::GetFirstRenderer()
+vtkRenderer* vtkRendererCollection::GetFirstRenderer()
 {
-  if ( this->Top == NULL )
+  if (this->Top == nullptr)
   {
-    return NULL;
+    return nullptr;
   }
   else
   {
-    return static_cast<vtkRenderer *>(this->Top->Item);
+    return static_cast<vtkRenderer*>(this->Top->Item);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkRendererCollection::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }

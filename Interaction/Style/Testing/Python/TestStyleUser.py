@@ -5,7 +5,7 @@ from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 # This script exercises vtkInteractorStyleUser. It creates some
-# simple bindings for the mouse bottons and scroll wheel.
+# simple bindings for the mouse buttons and scroll wheel.
 
 # Helper math stuff
 import math
@@ -737,7 +737,6 @@ demMapper = vtk.vtkPolyDataMapper()
 demMapper.SetInputConnection(normals.GetOutputPort())
 demMapper.SetScalarRange(lo, hi)
 demMapper.SetLookupTable(lut)
-demMapper.ImmediateModeRenderingOn()
 
 demActor = vtk.vtkActor()
 demActor.SetMapper(demMapper)

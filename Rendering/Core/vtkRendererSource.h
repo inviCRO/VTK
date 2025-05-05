@@ -42,84 +42,84 @@
  * @sa
  * vtkWindowToImageFilter vtkRendererPointCloudSource vtkRenderer
  * vtkImageData vtkDepthImageToPointCloud
-*/
+ */
 
 #ifndef vtkRendererSource_h
 #define vtkRendererSource_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkAlgorithm.h"
-#include "vtkImageData.h" // makes things a bit easier
+#include "vtkImageData.h"           // makes things a bit easier
+#include "vtkRenderingCoreModule.h" // For export macro
 
 class vtkRenderer;
 
 class VTKRENDERINGCORE_EXPORT vtkRendererSource : public vtkAlgorithm
 {
 public:
-  static vtkRendererSource *New();
+  static vtkRendererSource* New();
   vtkTypeMacro(vtkRendererSource, vtkAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Return the MTime also considering the Renderer.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
   /**
    * Indicates what renderer to get the pixel data from.
    */
   void SetInput(vtkRenderer*);
 
-  //@{
+  ///@{
   /**
    * Returns which renderer is being used as the source for the pixel data.
    */
   vtkGetObjectMacro(Input, vtkRenderer);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Use the entire RenderWindow as a data source or just the Renderer.
    * The default is zero, just the Renderer.
    */
-  vtkSetMacro(WholeWindow, int);
-  vtkGetMacro(WholeWindow, int);
-  vtkBooleanMacro(WholeWindow, int);
-  //@}
+  vtkSetMacro(WholeWindow, vtkTypeBool);
+  vtkGetMacro(WholeWindow, vtkTypeBool);
+  vtkBooleanMacro(WholeWindow, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If this flag is on, then filter execution causes a render first.
    */
-  vtkSetMacro(RenderFlag, int);
-  vtkGetMacro(RenderFlag, int);
-  vtkBooleanMacro(RenderFlag, int);
-  //@}
+  vtkSetMacro(RenderFlag, vtkTypeBool);
+  vtkGetMacro(RenderFlag, vtkTypeBool);
+  vtkBooleanMacro(RenderFlag, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * A boolean value to control whether to grab z-buffer
    * (i.e., depth values) along with the image data. The z-buffer data
    * is placed into a field data attributes named "ZBuffer" .
    */
-  vtkSetMacro(DepthValues, int);
-  vtkGetMacro(DepthValues, int);
-  vtkBooleanMacro(DepthValues, int);
-  //@}
+  vtkSetMacro(DepthValues, vtkTypeBool);
+  vtkGetMacro(DepthValues, vtkTypeBool);
+  vtkBooleanMacro(DepthValues, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * A boolean value to control whether to grab z-buffer
    * (i.e., depth values) along with the image data. The z-buffer data
    * is placed in the scalars as a fourth Z component (shift and scaled
    * to map the full 0..255 range).
    */
-  vtkSetMacro(DepthValuesInScalars, int);
-  vtkGetMacro(DepthValuesInScalars, int);
-  vtkBooleanMacro(DepthValuesInScalars, int);
-  //@}
+  vtkSetMacro(DepthValuesInScalars, vtkTypeBool);
+  vtkGetMacro(DepthValuesInScalars, vtkTypeBool);
+  vtkBooleanMacro(DepthValuesInScalars, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * A boolean value to control whether to grab only the z-buffer (i.e.,
    * depth values) without the associated image (color scalars) data. If
@@ -128,10 +128,10 @@ public:
    * disabled. Note that if enabled, then the DepthValues and
    * DepthValuesInScalars are ignored.
    */
-  vtkSetMacro(DepthValuesOnly, int);
-  vtkGetMacro(DepthValuesOnly, int);
-  vtkBooleanMacro(DepthValuesOnly, int);
-  //@}
+  vtkSetMacro(DepthValuesOnly, vtkTypeBool);
+  vtkGetMacro(DepthValuesOnly, vtkTypeBool);
+  vtkBooleanMacro(DepthValuesOnly, vtkTypeBool);
+  ///@}
 
   /**
    * Get the output data object for a port on this algorithm.
@@ -141,34 +141,30 @@ public:
   /**
    * see vtkAlgorithm for details
    */
-  int ProcessRequest(vtkInformation*,
-                             vtkInformationVector**,
-                             vtkInformationVector*) VTK_OVERRIDE;
+  vtkTypeBool ProcessRequest(
+    vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 protected:
   vtkRendererSource();
-  ~vtkRendererSource() VTK_OVERRIDE;
+  ~vtkRendererSource() override;
 
-  void RequestData(vtkInformation* request,
-                   vtkInformationVector** inputVector,
-                   vtkInformationVector* outputVector);
-  virtual void RequestInformation (vtkInformation*,
-                                  vtkInformationVector**,
-                                  vtkInformationVector*);
+  void RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector);
+  virtual void RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*);
 
-  vtkRenderer *Input;
-  int WholeWindow;
-  int RenderFlag;
-  int DepthValues;
-  int DepthValuesInScalars;
-  int DepthValuesOnly;
+  vtkRenderer* Input;
+  vtkTypeBool WholeWindow;
+  vtkTypeBool RenderFlag;
+  vtkTypeBool DepthValues;
+  vtkTypeBool DepthValuesInScalars;
+  vtkTypeBool DepthValuesOnly;
 
   // see algorithm for more info
-  int FillOutputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkRendererSource(const vtkRendererSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRendererSource&) VTK_DELETE_FUNCTION;
+  vtkRendererSource(const vtkRendererSource&) = delete;
+  void operator=(const vtkRendererSource&) = delete;
 };
 
 #endif

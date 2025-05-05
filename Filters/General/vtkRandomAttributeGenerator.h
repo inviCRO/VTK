@@ -45,7 +45,7 @@
  *
  * @sa
  * vtkBrownianPoints
-*/
+ */
 
 #ifndef vtkRandomAttributeGenerator_h
 #define vtkRandomAttributeGenerator_h
@@ -59,225 +59,234 @@ class vtkCompositeDataSet;
 class VTKFILTERSGENERAL_EXPORT vtkRandomAttributeGenerator : public vtkPassInputTypeAlgorithm
 {
 public:
+  ///@{
   /**
-   * Create instance with minimum speed 0.0, maximum speed 1.0.
+   * Standard methods for construction, type info, and printing.
    */
-  static vtkRandomAttributeGenerator *New();
+  static vtkRandomAttributeGenerator* New();
+  vtkTypeMacro(vtkRandomAttributeGenerator, vtkPassInputTypeAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  vtkTypeMacro(vtkRandomAttributeGenerator,vtkPassInputTypeAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-
-  //@{
+  ///@{
   /**
    * Specify the type of array to create (all components of this array are of this
    * type). This holds true for all arrays that are created.
    */
-  vtkSetMacro(DataType,int);
-  void SetDataTypeToBit() {this->SetDataType(VTK_BIT);}
-  void SetDataTypeToChar() {this->SetDataType(VTK_CHAR);}
-  void SetDataTypeToUnsignedChar() {this->SetDataType(VTK_UNSIGNED_CHAR);}
-  void SetDataTypeToShort() {this->SetDataType(VTK_SHORT);}
-  void SetDataTypeToUnsignedShort() {this->SetDataType(VTK_UNSIGNED_SHORT);}
-  void SetDataTypeToInt() {this->SetDataType(VTK_INT);}
-  void SetDataTypeToUnsignedInt() {this->SetDataType(VTK_UNSIGNED_INT);}
-  void SetDataTypeToLong() {this->SetDataType(VTK_LONG);}
-  void SetDataTypeToUnsignedLong() {this->SetDataType(VTK_UNSIGNED_LONG);}
-  void SetDataTypeToFloat() {this->SetDataType(VTK_FLOAT);}
-  void SetDataTypeToDouble() {this->SetDataType(VTK_DOUBLE);}
-  vtkGetMacro(DataType,int);
-  //@}
+  vtkSetMacro(DataType, int);
+  void SetDataTypeToBit() { this->SetDataType(VTK_BIT); }
+  void SetDataTypeToChar() { this->SetDataType(VTK_CHAR); }
+  void SetDataTypeToUnsignedChar() { this->SetDataType(VTK_UNSIGNED_CHAR); }
+  void SetDataTypeToShort() { this->SetDataType(VTK_SHORT); }
+  void SetDataTypeToUnsignedShort() { this->SetDataType(VTK_UNSIGNED_SHORT); }
+  void SetDataTypeToInt() { this->SetDataType(VTK_INT); }
+  void SetDataTypeToUnsignedInt() { this->SetDataType(VTK_UNSIGNED_INT); }
+  void SetDataTypeToLong() { this->SetDataType(VTK_LONG); }
+  void SetDataTypeToLongLong() { this->SetDataType(VTK_LONG_LONG); }
+  void SetDataTypeToUnsignedLong() { this->SetDataType(VTK_UNSIGNED_LONG); }
+  void SetDataTypeToUnsignedLongLong() { this->SetDataType(VTK_UNSIGNED_LONG_LONG); }
+  void SetDataTypeToIdType() { this->SetDataType(VTK_ID_TYPE); }
+  void SetDataTypeToFloat() { this->SetDataType(VTK_FLOAT); }
+  void SetDataTypeToDouble() { this->SetDataType(VTK_DOUBLE); }
+  vtkGetMacro(DataType, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the number of components to generate. This value only applies to those
    * attribute types that take a variable number of components. For example, a vector
    * is only three components so the number of components is not applicable; whereas
    * a scalar may support multiple, varying number of components.
    */
-  vtkSetClampMacro(NumberOfComponents,int,1,VTK_INT_MAX);
-  vtkGetMacro(NumberOfComponents,int);
-  //@}
+  vtkSetClampMacro(NumberOfComponents, int, 1, VTK_INT_MAX);
+  vtkGetMacro(NumberOfComponents, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the minimum component value. This applies to all data that is generated,
    * although normals and tensors have internal constraints that must be
    * observed.
    */
-  vtkSetMacro(MinimumComponentValue,double);
-  vtkGetMacro(MinimumComponentValue,double);
-  void SetComponentRange (double minimumValue, double maximumValue)
+  vtkSetMacro(MinimumComponentValue, double);
+  vtkGetMacro(MinimumComponentValue, double);
+  void SetComponentRange(double minimumValue, double maximumValue)
   {
-    this->SetMinimumComponentValue (minimumValue);
-    this->SetMaximumComponentValue (maximumValue);
+    this->SetMinimumComponentValue(minimumValue);
+    this->SetMaximumComponentValue(maximumValue);
   }
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the maximum component value. This applies to all data that is generated,
    * although normals and tensors have internal constraints that must be
    * observed.
    */
-  vtkSetMacro(MaximumComponentValue,double);
-  vtkGetMacro(MaximumComponentValue,double);
-  //@}
+  vtkSetMacro(MaximumComponentValue, double);
+  vtkGetMacro(MaximumComponentValue, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the number of tuples to generate. This value only applies when creating
    * general field data. In all other cases (i.e., point data or cell data), the number
    * of tuples is controlled by the number of points and cells, respectively.
    */
-  vtkSetClampMacro(NumberOfTuples,vtkIdType,0,VTK_INT_MAX);
-  vtkGetMacro(NumberOfTuples,vtkIdType);
-  //@}
+  vtkSetClampMacro(NumberOfTuples, vtkIdType, 0, VTK_INT_MAX);
+  vtkGetMacro(NumberOfTuples, vtkIdType);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that point scalars are to be generated. Note that the specified
    * number of components is used to create the scalar.
    */
-  vtkSetMacro(GeneratePointScalars,int);
-  vtkGetMacro(GeneratePointScalars,int);
-  vtkBooleanMacro(GeneratePointScalars,int);
-  //@}
+  vtkSetMacro(GeneratePointScalars, vtkTypeBool);
+  vtkGetMacro(GeneratePointScalars, vtkTypeBool);
+  vtkBooleanMacro(GeneratePointScalars, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that point vectors are to be generated. Note that the
    * number of components is always equal to three.
    */
-  vtkSetMacro(GeneratePointVectors,int);
-  vtkGetMacro(GeneratePointVectors,int);
-  vtkBooleanMacro(GeneratePointVectors,int);
-  //@}
+  vtkSetMacro(GeneratePointVectors, vtkTypeBool);
+  vtkGetMacro(GeneratePointVectors, vtkTypeBool);
+  vtkBooleanMacro(GeneratePointVectors, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that point normals are to be generated. Note that the
    * number of components is always equal to three.
    */
-  vtkSetMacro(GeneratePointNormals,int);
-  vtkGetMacro(GeneratePointNormals,int);
-  vtkBooleanMacro(GeneratePointNormals,int);
-  //@}
+  vtkSetMacro(GeneratePointNormals, vtkTypeBool);
+  vtkGetMacro(GeneratePointNormals, vtkTypeBool);
+  vtkBooleanMacro(GeneratePointNormals, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that point tensors are to be generated. Note that the
    * number of components is always equal to nine.
    */
-  vtkSetMacro(GeneratePointTensors,int);
-  vtkGetMacro(GeneratePointTensors,int);
-  vtkBooleanMacro(GeneratePointTensors,int);
-  //@}
+  vtkSetMacro(GeneratePointTensors, vtkTypeBool);
+  vtkGetMacro(GeneratePointTensors, vtkTypeBool);
+  vtkBooleanMacro(GeneratePointTensors, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that point texture coordinates are to be generated. Note that
    * the specified number of components is used to create the texture
    * coordinates (but must range between one and three).
    */
-  vtkSetMacro(GeneratePointTCoords,int);
-  vtkGetMacro(GeneratePointTCoords,int);
-  vtkBooleanMacro(GeneratePointTCoords,int);
-  //@}
+  vtkSetMacro(GeneratePointTCoords, vtkTypeBool);
+  vtkGetMacro(GeneratePointTCoords, vtkTypeBool);
+  vtkBooleanMacro(GeneratePointTCoords, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Indicate that an arbitrary point array is to be generated. Note that the
-   * specified number of components is used to create the array.
+   * Indicate that an arbitrary point array is to be generated. The array is
+   * added to the points data but is not labeled as one of scalars, vectors,
+   * normals, tensors, or texture coordinates (i.e., AddArray() is
+   * used). Note that the specified number of components is used to create
+   * the array.
    */
-  vtkSetMacro(GeneratePointArray,int);
-  vtkGetMacro(GeneratePointArray,int);
-  vtkBooleanMacro(GeneratePointArray,int);
-  //@}
+  vtkSetMacro(GeneratePointArray, vtkTypeBool);
+  vtkGetMacro(GeneratePointArray, vtkTypeBool);
+  vtkBooleanMacro(GeneratePointArray, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that cell scalars are to be generated. Note that the specified
    * number of components is used to create the scalar.
    */
-  vtkSetMacro(GenerateCellScalars,int);
-  vtkGetMacro(GenerateCellScalars,int);
-  vtkBooleanMacro(GenerateCellScalars,int);
-  //@}
+  vtkSetMacro(GenerateCellScalars, vtkTypeBool);
+  vtkGetMacro(GenerateCellScalars, vtkTypeBool);
+  vtkBooleanMacro(GenerateCellScalars, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that cell vectors are to be generated. Note that the
    * number of components is always equal to three.
    */
-  vtkSetMacro(GenerateCellVectors,int);
-  vtkGetMacro(GenerateCellVectors,int);
-  vtkBooleanMacro(GenerateCellVectors,int);
-  //@}
+  vtkSetMacro(GenerateCellVectors, vtkTypeBool);
+  vtkGetMacro(GenerateCellVectors, vtkTypeBool);
+  vtkBooleanMacro(GenerateCellVectors, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that cell normals are to be generated. Note that the
    * number of components is always equal to three.
    */
-  vtkSetMacro(GenerateCellNormals,int);
-  vtkGetMacro(GenerateCellNormals,int);
-  vtkBooleanMacro(GenerateCellNormals,int);
-  //@}
+  vtkSetMacro(GenerateCellNormals, vtkTypeBool);
+  vtkGetMacro(GenerateCellNormals, vtkTypeBool);
+  vtkBooleanMacro(GenerateCellNormals, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that cell tensors are to be generated. Note that the
    * number of components is always equal to nine.
    */
-  vtkSetMacro(GenerateCellTensors,int);
-  vtkGetMacro(GenerateCellTensors,int);
-  vtkBooleanMacro(GenerateCellTensors,int);
-  //@}
+  vtkSetMacro(GenerateCellTensors, vtkTypeBool);
+  vtkGetMacro(GenerateCellTensors, vtkTypeBool);
+  vtkBooleanMacro(GenerateCellTensors, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that cell texture coordinates are to be generated. Note that
    * the specified number of components is used to create the texture
    * coordinates (but must range between one and three).
    */
-  vtkSetMacro(GenerateCellTCoords,int);
-  vtkGetMacro(GenerateCellTCoords,int);
-  vtkBooleanMacro(GenerateCellTCoords,int);
-  //@}
+  vtkSetMacro(GenerateCellTCoords, vtkTypeBool);
+  vtkGetMacro(GenerateCellTCoords, vtkTypeBool);
+  vtkBooleanMacro(GenerateCellTCoords, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Indicate that an arbitrary cell array is to be generated. Note that the
-   * specified number of components is used to create the array.
+   * Indicate that an arbitrary cell array is to be generated. The array is
+   * added to the cell data but is not labeled as one of scalars, vectors,
+   * normals, tensors, or texture coordinates array (i.e., AddArray() is
+   * used). Note that the specified number of components is used to create
+   * the array.
    */
-  vtkSetMacro(GenerateCellArray,int);
-  vtkGetMacro(GenerateCellArray,int);
-  vtkBooleanMacro(GenerateCellArray,int);
-  //@}
+  vtkSetMacro(GenerateCellArray, vtkTypeBool);
+  vtkGetMacro(GenerateCellArray, vtkTypeBool);
+  vtkBooleanMacro(GenerateCellArray, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that an arbitrary field data array is to be generated. Note
    * that the specified number of components is used to create the scalar.
    */
-  vtkSetMacro(GenerateFieldArray,int);
-  vtkGetMacro(GenerateFieldArray,int);
-  vtkBooleanMacro(GenerateFieldArray,int);
-  //@}
+  vtkSetMacro(GenerateFieldArray, vtkTypeBool);
+  vtkGetMacro(GenerateFieldArray, vtkTypeBool);
+  vtkBooleanMacro(GenerateFieldArray, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate that the generated attributes are
    * constant within a block. This can be used to highlight
    * blocks in a composite dataset.
    */
-  vtkSetMacro(AttributesConstantPerBlock,bool);
-  vtkGetMacro(AttributesConstantPerBlock,bool);
-  vtkBooleanMacro(AttributesConstantPerBlock,bool);
-  //@}
+  vtkSetMacro(AttributesConstantPerBlock, bool);
+  vtkGetMacro(AttributesConstantPerBlock, bool);
+  vtkBooleanMacro(AttributesConstantPerBlock, bool);
+  ///@}
 
-
-  //@{
+  ///@{
   /**
    * Convenience methods for generating data: all data, all point data, or all cell data.
    * For example, if all data is enabled, then all point, cell and field data is generated.
@@ -332,57 +341,50 @@ public:
     this->GenerateAllCellDataOff();
     this->GenerateFieldArrayOff();
   }
-  //@}
+  ///@}
 
 protected:
   vtkRandomAttributeGenerator();
-  ~vtkRandomAttributeGenerator() VTK_OVERRIDE {}
+  ~vtkRandomAttributeGenerator() override = default;
 
-  int RequestData(vtkInformation *, vtkInformationVector **,
-                  vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
-  int       DataType;
-  int       NumberOfComponents;
+  int DataType;
+  int NumberOfComponents;
   vtkIdType NumberOfTuples;
-  double    MinimumComponentValue;
-  double    MaximumComponentValue;
+  double MinimumComponentValue;
+  double MaximumComponentValue;
 
-  int GeneratePointScalars;
-  int GeneratePointVectors;
-  int GeneratePointNormals;
-  int GeneratePointTCoords;
-  int GeneratePointTensors;
-  int GeneratePointArray;
+  vtkTypeBool GeneratePointScalars;
+  vtkTypeBool GeneratePointVectors;
+  vtkTypeBool GeneratePointNormals;
+  vtkTypeBool GeneratePointTCoords;
+  vtkTypeBool GeneratePointTensors;
+  vtkTypeBool GeneratePointArray;
 
-  int GenerateCellScalars;
-  int GenerateCellVectors;
-  int GenerateCellNormals;
-  int GenerateCellTCoords;
-  int GenerateCellTensors;
-  int GenerateCellArray;
+  vtkTypeBool GenerateCellScalars;
+  vtkTypeBool GenerateCellVectors;
+  vtkTypeBool GenerateCellNormals;
+  vtkTypeBool GenerateCellTCoords;
+  vtkTypeBool GenerateCellTensors;
+  vtkTypeBool GenerateCellArray;
 
-  int GenerateFieldArray;
+  vtkTypeBool GenerateFieldArray;
   bool AttributesConstantPerBlock;
 
   // Helper functions
-  vtkDataArray *GenerateData(int dataType, vtkIdType numTuples, int numComp,
-                             int minComp, int maxComp, double min, double max);
-  int RequestData(vtkDataSet *input, vtkDataSet *output);
-  int RequestData(vtkCompositeDataSet *input, vtkCompositeDataSet *output);
+  vtkDataArray* GenerateData(int dataType, vtkIdType numTuples, int numComp, int minComp,
+    int maxComp, double min, double max);
+  int RequestData(vtkDataSet* input, vtkDataSet* output);
+  int RequestData(vtkCompositeDataSet* input, vtkCompositeDataSet* output);
   template <class T>
-    void GenerateRandomTuples(T *data,
-                              vtkIdType numTuples,
-                              int numComp,
-                              int minComp,
-                              int maxComp,
-                              double min,
-                              double max);
-
+  void GenerateRandomTuples(
+    T* data, vtkIdType numTuples, int numComp, int minComp, int maxComp, double min, double max);
 
 private:
-  vtkRandomAttributeGenerator(const vtkRandomAttributeGenerator&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRandomAttributeGenerator&) VTK_DELETE_FUNCTION;
+  vtkRandomAttributeGenerator(const vtkRandomAttributeGenerator&) = delete;
+  void operator=(const vtkRandomAttributeGenerator&) = delete;
 };
 
 #endif

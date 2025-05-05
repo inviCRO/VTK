@@ -31,32 +31,32 @@
 #include "vtkSmartPointer.h"
 #include "vtkTable.h"
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 class vtkSQLDatabaseTableSource::implementation
 {
 public:
-  implementation() :
-    Database(0),
-    Query(0),
-    Table(0)
+  implementation()
+    : Database(nullptr)
+    , Query(nullptr)
+    , Table(nullptr)
   {
   }
 
   ~implementation()
   {
-    if(this->Table)
+    if (this->Table)
       this->Table->Delete();
 
-    if(this->Query)
+    if (this->Query)
       this->Query->Delete();
 
-    if(this->Database)
+    if (this->Database)
       this->Database->Delete();
   }
 
-  vtkStdString URL;
-  vtkStdString Password;
-  vtkStdString QueryString;
+  std::string URL;
+  std::string Password;
+  std::string QueryString;
 
   vtkSQLDatabase* Database;
   vtkSQLQuery* Query;
@@ -65,13 +65,13 @@ public:
 
 vtkStandardNewMacro(vtkSQLDatabaseTableSource);
 
-//---------------------------------------------------------------------------
-vtkSQLDatabaseTableSource::vtkSQLDatabaseTableSource() :
-  Implementation(new implementation())
+//------------------------------------------------------------------------------
+vtkSQLDatabaseTableSource::vtkSQLDatabaseTableSource()
+  : Implementation(new implementation())
 {
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(1);
-  this->PedigreeIdArrayName = 0;
+  this->PedigreeIdArrayName = nullptr;
   this->SetPedigreeIdArrayName("id");
   this->GeneratePedigreeIds = true;
 
@@ -80,15 +80,15 @@ vtkSQLDatabaseTableSource::vtkSQLDatabaseTableSource() :
   this->EventForwarder->SetTarget(this);
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSQLDatabaseTableSource::~vtkSQLDatabaseTableSource()
 {
   delete this->Implementation;
-  this->SetPedigreeIdArrayName(0);
+  this->SetPedigreeIdArrayName(nullptr);
   this->EventForwarder->Delete();
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSQLDatabaseTableSource::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -105,19 +105,19 @@ vtkStdString vtkSQLDatabaseTableSource::GetURL()
 
 void vtkSQLDatabaseTableSource::SetURL(const vtkStdString& url)
 {
-  if(url == this->Implementation->URL)
+  if (url == this->Implementation->URL)
     return;
 
-  if(this->Implementation->Query)
+  if (this->Implementation->Query)
   {
     this->Implementation->Query->Delete();
-    this->Implementation->Query = 0;
+    this->Implementation->Query = nullptr;
   }
 
-  if(this->Implementation->Database)
+  if (this->Implementation->Database)
   {
     this->Implementation->Database->Delete();
-    this->Implementation->Database = 0;
+    this->Implementation->Database = nullptr;
   }
 
   this->Implementation->URL = url;
@@ -127,19 +127,19 @@ void vtkSQLDatabaseTableSource::SetURL(const vtkStdString& url)
 
 void vtkSQLDatabaseTableSource::SetPassword(const vtkStdString& password)
 {
-  if(password == this->Implementation->Password)
+  if (password == this->Implementation->Password)
     return;
 
-  if(this->Implementation->Query)
+  if (this->Implementation->Query)
   {
     this->Implementation->Query->Delete();
-    this->Implementation->Query = 0;
+    this->Implementation->Query = nullptr;
   }
 
-  if(this->Implementation->Database)
+  if (this->Implementation->Database)
   {
     this->Implementation->Database->Delete();
-    this->Implementation->Database = 0;
+    this->Implementation->Database = nullptr;
   }
 
   this->Implementation->Password = password;
@@ -154,54 +154,53 @@ vtkStdString vtkSQLDatabaseTableSource::GetQuery()
 
 void vtkSQLDatabaseTableSource::SetQuery(const vtkStdString& query)
 {
-  if(query == this->Implementation->QueryString)
+  if (query == this->Implementation->QueryString)
     return;
 
   this->Implementation->QueryString = query;
   this->Modified();
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkSQLDatabaseTableSource::RequestData(
-  vtkInformation*,
-  vtkInformationVector**,
-  vtkInformationVector* outputVector)
+  vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
-  if(this->Implementation->URL.empty())
+  if (this->Implementation->URL.empty())
     return 1;
 
-  if(this->Implementation->QueryString.empty())
+  if (this->Implementation->QueryString.empty())
     return 1;
 
-  if(!this->PedigreeIdArrayName)
+  if (!this->PedigreeIdArrayName)
   {
     vtkErrorMacro(<< "You must specify a pedigree id array name.");
     return 0;
   }
 
-  if(!this->Implementation->Database)
+  if (!this->Implementation->Database)
   {
-    this->Implementation->Database = vtkSQLDatabase::CreateFromURL(this->Implementation->URL);
-    if(!this->Implementation->Database)
+    this->Implementation->Database =
+      vtkSQLDatabase::CreateFromURL(this->Implementation->URL.c_str());
+    if (!this->Implementation->Database)
     {
-      vtkErrorMacro(<< "Error creating database using URL: " << this->Implementation->URL.c_str());
+      vtkErrorMacro(<< "Error creating database using URL: " << this->Implementation->URL);
       return 0;
     }
 
-    if(!this->Implementation->Database->Open(this->Implementation->Password))
+    if (!this->Implementation->Database->Open(this->Implementation->Password.c_str()))
     {
       this->Implementation->Database->Delete();
-      this->Implementation->Database = 0;
+      this->Implementation->Database = nullptr;
 
-      vtkErrorMacro(<< "Error opening database: " << this->Implementation->URL.c_str());
+      vtkErrorMacro(<< "Error opening database: " << this->Implementation->URL);
       return 0;
     }
   }
 
-  if(!this->Implementation->Query)
+  if (!this->Implementation->Query)
   {
     this->Implementation->Query = this->Implementation->Database->GetQueryInstance();
-    if(!this->Implementation->Query)
+    if (!this->Implementation->Query)
     {
       vtkErrorMacro(<< "Internal error creating query instance.");
       return 0;
@@ -215,9 +214,9 @@ int vtkSQLDatabaseTableSource::RequestData(
   this->UpdateProgress(.05);
 
   this->Implementation->Query->SetQuery(this->Implementation->QueryString.c_str());
-  if(!this->Implementation->Query->Execute())
+  if (!this->Implementation->Query->Execute())
   {
-    vtkErrorMacro(<< "Error executing query: " << this->Implementation->QueryString.c_str());
+    vtkErrorMacro(<< "Error executing query: " << this->Implementation->QueryString);
     return 0;
   }
 
@@ -227,13 +226,12 @@ int vtkSQLDatabaseTableSource::RequestData(
   // Set Progress Text
   this->SetProgressText("DatabaseTableSource: RowQueryToTable");
 
-  if(!this->Implementation->Table)
+  if (!this->Implementation->Table)
   {
     this->Implementation->Table = vtkRowQueryToTable::New();
 
     // Now forward progress events from the graph layout
-    this->Implementation->Table->AddObserver(vtkCommand::ProgressEvent,
-                                 this->EventForwarder);
+    this->Implementation->Table->AddObserver(vtkCommand::ProgressEvent, this->EventForwarder);
   }
   this->Implementation->Table->SetQuery(this->Implementation->Query);
   this->Implementation->Table->Update();
@@ -249,8 +247,7 @@ int vtkSQLDatabaseTableSource::RequestData(
 
   if (this->GeneratePedigreeIds)
   {
-    vtkSmartPointer<vtkIdTypeArray> pedigreeIds =
-      vtkSmartPointer<vtkIdTypeArray>::New();
+    vtkSmartPointer<vtkIdTypeArray> pedigreeIds = vtkSmartPointer<vtkIdTypeArray>::New();
     vtkIdType numRows = output->GetNumberOfRows();
     pedigreeIds->SetNumberOfTuples(numRows);
     pedigreeIds->SetName(this->PedigreeIdArrayName);
@@ -262,16 +259,14 @@ int vtkSQLDatabaseTableSource::RequestData(
   }
   else
   {
-    vtkAbstractArray* arr =
-      output->GetColumnByName(this->PedigreeIdArrayName);
+    vtkAbstractArray* arr = output->GetColumnByName(this->PedigreeIdArrayName);
     if (arr)
     {
       output->GetRowData()->SetPedigreeIds(arr);
     }
     else
     {
-      vtkErrorMacro(<< "Could find pedigree id array: "
-        << this->PedigreeIdArrayName);
+      vtkErrorMacro(<< "Could find pedigree id array: " << this->PedigreeIdArrayName);
       return 0;
     }
   }
@@ -281,4 +276,3 @@ int vtkSQLDatabaseTableSource::RequestData(
 
   return 1;
 }
-

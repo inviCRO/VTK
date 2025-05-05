@@ -14,48 +14,45 @@
 =========================================================================*/
 #include "vtkGenericSubdivisionErrorMetric.h"
 
-#include "vtkObjectFactory.h"
+#include "vtkGenericAdaptorCell.h"
 #include "vtkGenericAttribute.h"
 #include "vtkGenericAttributeCollection.h"
-#include "vtkGenericAdaptorCell.h"
 #include "vtkGenericDataSet.h"
 #include "vtkMath.h"
+#include "vtkObjectFactory.h"
 #include <cassert>
 
-
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkGenericSubdivisionErrorMetric::vtkGenericSubdivisionErrorMetric()
 {
-  this->GenericCell = NULL;
-  this->DataSet = 0;
+  this->GenericCell = nullptr;
+  this->DataSet = nullptr;
 }
 
-//-----------------------------------------------------------------------------
-vtkGenericSubdivisionErrorMetric::~vtkGenericSubdivisionErrorMetric()
-{
-}
+//------------------------------------------------------------------------------
+vtkGenericSubdivisionErrorMetric::~vtkGenericSubdivisionErrorMetric() = default;
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Avoid reference loop
-void vtkGenericSubdivisionErrorMetric::SetGenericCell(vtkGenericAdaptorCell *c)
+void vtkGenericSubdivisionErrorMetric::SetGenericCell(vtkGenericAdaptorCell* c)
 {
   this->GenericCell = c;
   this->Modified();
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Avoid reference loop
-void vtkGenericSubdivisionErrorMetric::SetDataSet(vtkGenericDataSet *ds)
+void vtkGenericSubdivisionErrorMetric::SetDataSet(vtkGenericDataSet* ds)
 {
   this->DataSet = ds;
   this->Modified();
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGenericSubdivisionErrorMetric::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "GenericCell: "  << this->GenericCell << endl;
-  os << indent << "DataSet: "  << this->DataSet << endl;
+  os << indent << "GenericCell: " << this->GenericCell << endl;
+  os << indent << "DataSet: " << this->DataSet << endl;
 }

@@ -27,14 +27,14 @@
  *
  * @sa
  * vtkExtractFunctionalBagPlot
-*/
+ */
 
 #ifndef vtkPlotFunctionalBag_h
 #define vtkPlotFunctionalBag_h
 
 #include "vtkChartsCoreModule.h" // For export macro
-#include "vtkPlot.h"
 #include "vtkNew.h"              // Needed to hold SP ivars
+#include "vtkPlot.h"
 
 class vtkDataArray;
 class vtkPlotFuntionalBagInternal;
@@ -46,12 +46,12 @@ class VTKCHARTSCORE_EXPORT vtkPlotFunctionalBag : public vtkPlot
 {
 public:
   vtkTypeMacro(vtkPlotFunctionalBag, vtkPlot);
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Creates a functional bag plot object.
    */
-  static vtkPlotFunctionalBag *New();
+  static vtkPlotFunctionalBag* New();
 
   /**
    * Returns true if the plot is a functional bag, false if it is a simple
@@ -62,19 +62,12 @@ public:
   /**
    * Reimplemented to enforce visibility when selected.
    */
-  bool GetVisible() VTK_OVERRIDE;
-
-  /**
-   * Perform any updates to the item that may be necessary before rendering.
-   * The scene should take care of calling this on all items before their
-   * Paint function is invoked.
-   */
-  void Update() VTK_OVERRIDE;
+  bool GetVisible() override;
 
   /**
    * Paint event for the plot, called whenever the chart needs to be drawn.
    */
-  bool Paint(vtkContext2D *painter) VTK_OVERRIDE;
+  bool Paint(vtkContext2D* painter) override;
 
   /**
    * Paint legend event for the plot, called whenever the legend needs the
@@ -82,27 +75,26 @@ public:
    * corner of the rect (elements 0 and 1) and with width x height (elements 2
    * and 3). The plot can choose how to fill the space supplied.
    */
-  bool PaintLegend(vtkContext2D *painter, const vtkRectf& rect,
-                           int legendIndex) VTK_OVERRIDE;
+  bool PaintLegend(vtkContext2D* painter, const vtkRectf& rect, int legendIndex) override;
 
   /**
    * Get the bounds for this plot as (Xmin, Xmax, Ymin, Ymax).
    */
-  void GetBounds(double bounds[4]) VTK_OVERRIDE;
+  void GetBounds(double bounds[4]) override;
 
   /**
    * Get the non-log-scaled bounds on chart inputs for this plot as
    * (Xmin, Xmax, Ymin, Ymax).
    */
-  void GetUnscaledInputBounds(double bounds[4]) VTK_OVERRIDE;
+  void GetUnscaledInputBounds(double bounds[4]) override;
 
-  //@{
+  ///@{
   /**
    * Specify a lookup table for the mapper to use.
    */
-  void SetLookupTable(vtkScalarsToColors *lut);
-  vtkScalarsToColors *GetLookupTable();
-  //@}
+  void SetLookupTable(vtkScalarsToColors* lut);
+  vtkScalarsToColors* GetLookupTable();
+  ///@}
 
   /**
    * Create default lookup table. Generally used to create one when none
@@ -115,43 +107,46 @@ public:
    * Returns the index of the data series with which the point is associated or
    * -1.
    */
-  vtkIdType GetNearestPoint(const vtkVector2f& point,
-                                    const vtkVector2f& tolerance,
-                                    vtkVector2f* location) VTK_OVERRIDE;
+  vtkIdType GetNearestPoint(const vtkVector2f& point, const vtkVector2f& tolerance,
+    vtkVector2f* location, vtkIdType* segmentId) override;
+  using vtkPlot::GetNearestPoint;
 
   /**
    * Select all points in the specified rectangle.
    */
-  bool SelectPoints(const vtkVector2f& min, const vtkVector2f& max) VTK_OVERRIDE;
+  bool SelectPoints(const vtkVector2f& min, const vtkVector2f& max) override;
 
   /**
    * Select all points in the specified polygon.
    */
-  bool SelectPointsInPolygon(const vtkContextPolygon &polygon) VTK_OVERRIDE;
+  bool SelectPointsInPolygon(const vtkContextPolygon& polygon) override;
+
+  /**
+   * Update the internal cache. Returns true if cache was successfully updated. Default does
+   * nothing.
+   * This method is called by Update() when either the plot's data has changed or
+   * CacheRequiresUpdate() returns true. It is not necessary to call this method explicitly.
+   */
+  bool UpdateCache() override;
 
 protected:
   vtkPlotFunctionalBag();
-  ~vtkPlotFunctionalBag() VTK_OVERRIDE;
+  ~vtkPlotFunctionalBag() override;
 
   /**
    * Populate the data arrays ready to operate on input data.
    */
-  bool GetDataArrays(vtkTable *table, vtkDataArray *array[2]);
+  bool GetDataArrays(vtkTable* table, vtkDataArray* array[2]);
 
   /**
-   * Update the table cache.
+   * Test if the internal cache requires an update.
    */
-  bool UpdateTableCache(vtkTable*);
-
-  /**
-   * The cache is marked dirty until it has been initialized.
-   */
-  vtkTimeStamp BuildTime;
+  virtual bool CacheRequiresUpdate() override;
 
   /**
    * Lookup Table for coloring points by scalar value
    */
-  vtkScalarsToColors *LookupTable;
+  vtkScalarsToColors* LookupTable;
 
   /**
    * The plot line delegate for line series
@@ -166,8 +161,8 @@ protected:
   bool LogX, LogY;
 
 private:
-  vtkPlotFunctionalBag(const vtkPlotFunctionalBag &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPlotFunctionalBag &) VTK_DELETE_FUNCTION;
+  vtkPlotFunctionalBag(const vtkPlotFunctionalBag&) = delete;
+  void operator=(const vtkPlotFunctionalBag&) = delete;
 };
 
-#endif //vtkPlotFunctionalBag_h
+#endif // vtkPlotFunctionalBag_h

@@ -18,17 +18,13 @@
 #include "vtkObjectFactory.h"
 
 vtkStandardNewMacro(vtkServerSocket);
-//-----------------------------------------------------------------------------
-vtkServerSocket::vtkServerSocket()
-{
-}
+//------------------------------------------------------------------------------
+vtkServerSocket::vtkServerSocket() = default;
 
-//-----------------------------------------------------------------------------
-vtkServerSocket::~vtkServerSocket()
-{
-}
+//------------------------------------------------------------------------------
+vtkServerSocket::~vtkServerSocket() = default;
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkServerSocket::GetServerPort()
 {
   if (!this->GetConnected())
@@ -38,7 +34,7 @@ int vtkServerSocket::GetServerPort()
   return this->GetPort(this->SocketDescriptor);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkServerSocket::CreateServer(int port)
 {
   if (this->SocketDescriptor != -1)
@@ -52,7 +48,7 @@ int vtkServerSocket::CreateServer(int port)
   {
     return -1;
   }
-  if ( this->BindSocket(this->SocketDescriptor, port) != 0||
+  if (this->BindSocket(this->SocketDescriptor, port) != 0 ||
     this->Listen(this->SocketDescriptor) != 0)
   {
     // failed to bind or listen.
@@ -64,31 +60,31 @@ int vtkServerSocket::CreateServer(int port)
   return 0;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkClientSocket* vtkServerSocket::WaitForConnection(unsigned long msec /*=0*/)
 {
   if (this->SocketDescriptor < 0)
   {
     vtkErrorMacro("Server Socket not created yet!");
-    return NULL;
+    return nullptr;
   }
 
   int ret = this->SelectSocket(this->SocketDescriptor, msec);
   if (ret == 0)
   {
     // Timed out.
-    return NULL;
+    return nullptr;
   }
   if (ret == -1)
   {
     vtkErrorMacro("Error selecting socket.");
-    return NULL;
+    return nullptr;
   }
   int clientsock = this->Accept(this->SocketDescriptor);
   if (clientsock == -1)
   {
     vtkErrorMacro("Failed to accept the socket.");
-    return NULL;
+    return nullptr;
   }
   // Create a new vtkClientSocket and return it.
   vtkClientSocket* cs = vtkClientSocket::New();
@@ -97,7 +93,7 @@ vtkClientSocket* vtkServerSocket::WaitForConnection(unsigned long msec /*=0*/)
   return cs;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkServerSocket::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

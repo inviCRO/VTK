@@ -19,22 +19,22 @@
 
 vtkStandardNewMacro(vtkBitArrayIterator);
 vtkCxxSetObjectMacro(vtkBitArrayIterator, Array, vtkBitArray);
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkBitArrayIterator::vtkBitArrayIterator()
 {
-  this->Array = 0;
-  this->Tuple = 0;
+  this->Array = nullptr;
+  this->Tuple = nullptr;
   this->TupleSize = 0;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkBitArrayIterator::~vtkBitArrayIterator()
 {
-  this->SetArray(0);
-  delete [] this->Tuple;
+  this->SetArray(nullptr);
+  delete[] this->Tuple;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkBitArrayIterator::Initialize(vtkAbstractArray* a)
 {
   vtkBitArray* b = vtkArrayDownCast<vtkBitArray>(a);
@@ -46,26 +46,26 @@ void vtkBitArrayIterator::Initialize(vtkAbstractArray* a)
   this->SetArray(b);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAbstractArray* vtkBitArrayIterator::GetArray()
 {
   return this->Array;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int* vtkBitArrayIterator::GetTuple(vtkIdType id)
 {
   if (!this->Array)
   {
-    return 0;
+    return nullptr;
   }
 
   vtkIdType numComps = this->Array->GetNumberOfComponents();
   if (this->TupleSize < numComps)
   {
     this->TupleSize = static_cast<int>(numComps);
-    delete [] this->Tuple;
-    this->Tuple = new int [this->TupleSize];
+    delete[] this->Tuple;
+    this->Tuple = new int[this->TupleSize];
   }
   vtkIdType loc = id * numComps;
   for (int j = 0; j < numComps; j++)
@@ -75,7 +75,7 @@ int* vtkBitArrayIterator::GetTuple(vtkIdType id)
   return this->Tuple;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkBitArrayIterator::GetValue(vtkIdType id)
 {
   if (this->Array)
@@ -86,7 +86,7 @@ int vtkBitArrayIterator::GetValue(vtkIdType id)
   return 0;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkBitArrayIterator::SetValue(vtkIdType id, int value)
 {
   if (this->Array)
@@ -95,8 +95,8 @@ void vtkBitArrayIterator::SetValue(vtkIdType id, int value)
   }
 }
 
-//-----------------------------------------------------------------------------
-vtkIdType vtkBitArrayIterator::GetNumberOfTuples()
+//------------------------------------------------------------------------------
+vtkIdType vtkBitArrayIterator::GetNumberOfTuples() const
 {
   if (this->Array)
   {
@@ -104,8 +104,8 @@ vtkIdType vtkBitArrayIterator::GetNumberOfTuples()
   }
   return 0;
 }
-//-----------------------------------------------------------------------------
-vtkIdType vtkBitArrayIterator::GetNumberOfValues()
+//------------------------------------------------------------------------------
+vtkIdType vtkBitArrayIterator::GetNumberOfValues() const
 {
   if (this->Array)
   {
@@ -113,8 +113,8 @@ vtkIdType vtkBitArrayIterator::GetNumberOfValues()
   }
   return 0;
 }
-//-----------------------------------------------------------------------------
-int vtkBitArrayIterator::GetNumberOfComponents()
+//------------------------------------------------------------------------------
+int vtkBitArrayIterator::GetNumberOfComponents() const
 {
   if (this->Array)
   {
@@ -123,8 +123,8 @@ int vtkBitArrayIterator::GetNumberOfComponents()
   return 0;
 }
 
-//-----------------------------------------------------------------------------
-int vtkBitArrayIterator::GetDataType()
+//------------------------------------------------------------------------------
+int vtkBitArrayIterator::GetDataType() const
 {
   if (this->Array)
   {
@@ -132,8 +132,8 @@ int vtkBitArrayIterator::GetDataType()
   }
   return 0;
 }
-//-----------------------------------------------------------------------------
-int vtkBitArrayIterator::GetDataTypeSize()
+//------------------------------------------------------------------------------
+int vtkBitArrayIterator::GetDataTypeSize() const
 {
   if (this->Array)
   {
@@ -142,7 +142,7 @@ int vtkBitArrayIterator::GetDataTypeSize()
   return 0;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkBitArrayIterator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

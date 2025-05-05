@@ -23,16 +23,17 @@
  *
  * This is the internal representation of vtkGraph, used only in rare cases
  * where one must modify that representation.
-*/
+ */
 
 #ifndef vtkGraphInternals_h
 #define vtkGraphInternals_h
 
 #include "vtkCommonDataModelModule.h" // For export macro
-#include "vtkGraph.h"
+#include "vtkGraph.h"                 // For edge types
+#include "vtkObject.h"
 
-#include <vector> // STL Header
 #include <map>    // STL Header
+#include <vector> // STL Header
 
 //----------------------------------------------------------------------------
 // class vtkVertexAdjacencyList
@@ -51,9 +52,11 @@ public:
 class VTKCOMMONDATAMODEL_EXPORT vtkGraphInternals : public vtkObject
 {
 public:
-  static vtkGraphInternals *New();
+  static vtkGraphInternals* New();
 
   vtkTypeMacro(vtkGraphInternals, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+
   std::vector<vtkVertexAdjacencyList> Adjacency;
 
   vtkIdType NumberOfEdges;
@@ -91,13 +94,11 @@ public:
 
 protected:
   vtkGraphInternals();
-  ~vtkGraphInternals() VTK_OVERRIDE;
+  ~vtkGraphInternals() override;
 
 private:
-  vtkGraphInternals(const vtkGraphInternals&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGraphInternals&) VTK_DELETE_FUNCTION;
+  vtkGraphInternals(const vtkGraphInternals&) = delete;
+  void operator=(const vtkGraphInternals&) = delete;
 };
 
 #endif // vtkGraphInternals_h
-
-// VTK-HeaderTest-Exclude: vtkGraphInternals.h

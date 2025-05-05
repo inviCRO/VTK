@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkIOMovieConfigure.h.in
+  Module:    vtkIOMovieConfigure.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -15,9 +15,10 @@
 #ifndef vtkIOMovieConfigure_h
 #define vtkIOMovieConfigure_h
 
-/* This header contains build settings for the vtkIOMovie module */
+// If defined, `vtkAVIWriter.h` is available.
+#cmakedefine VTK_USE_VIDEO_FOR_WINDOWS
 
-// If vtkOggTheoraWriter is enabled.
-#cmakedefine VTK_HAS_OGGTHEORA_SUPPORT
+// If defined, `vtkMP4Writer.h` is available.
+#cmakedefine VTK_USE_MICROSOFT_MEDIA_FOUNDATION
 
 #endif

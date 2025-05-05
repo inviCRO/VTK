@@ -32,33 +32,33 @@ vtkStandardNewMacro(vtkLODActor);
 vtkCxxSetObjectMacro(vtkLODActor, LowResFilter, vtkPolyDataAlgorithm);
 vtkCxxSetObjectMacro(vtkLODActor, MediumResFilter, vtkPolyDataAlgorithm);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLODActor::vtkLODActor()
 {
   // get a hardware dependent actor and mappers
   this->Device = vtkActor::New();
-  vtkMatrix4x4 *m = vtkMatrix4x4::New();
+  vtkMatrix4x4* m = vtkMatrix4x4::New();
   this->Device->SetUserMatrix(m);
   m->Delete();
 
   this->LODMappers = vtkMapperCollection::New();
-  this->MediumResFilter = NULL;
-  this->LowResFilter = NULL;
+  this->MediumResFilter = nullptr;
+  this->LowResFilter = nullptr;
   this->NumberOfCloudPoints = 150;
-  this->LowMapper = NULL;
-  this->MediumMapper = NULL;
+  this->LowMapper = nullptr;
+  this->MediumMapper = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLODActor::~vtkLODActor()
 {
   this->Device->Delete();
-  this->Device = NULL;
+  this->Device = nullptr;
   this->DeleteOwnLODs();
   this->LODMappers->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLODActor::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -66,25 +66,24 @@ void vtkLODActor::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Cloud Points: " << this->NumberOfCloudPoints << endl;
 
   // how should we print out the LODMappers?
-  os << indent << "Number Of LOD Mappers: "
-     << this->LODMappers->GetNumberOfItems() << endl;
+  os << indent << "Number Of LOD Mappers: " << this->LODMappers->GetNumberOfItems() << endl;
   os << indent << "Medium Resolution Filter: " << this->MediumResFilter << "\n";
   if (this->MediumResFilter)
   {
-    this->MediumResFilter->PrintSelf(os,indent.GetNextIndent());
+    this->MediumResFilter->PrintSelf(os, indent.GetNextIndent());
   }
   os << indent << "Low Resolution Filter: " << this->LowResFilter << "\n";
   if (this->LowResFilter)
   {
-    this->LowResFilter->PrintSelf(os,indent.GetNextIndent());
+    this->LowResFilter->PrintSelf(os, indent.GetNextIndent());
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkLODActor::Render(vtkRenderer *ren, vtkMapper *vtkNotUsed(m))
+//------------------------------------------------------------------------------
+void vtkLODActor::Render(vtkRenderer* ren, vtkMapper* vtkNotUsed(m))
 {
   float myTime, bestTime, tempTime;
-  vtkMatrix4x4 *matrix;
+  vtkMatrix4x4* matrix;
   vtkMapper *mapper, *bestMapper;
 
   if (!this->Mapper)
@@ -103,8 +102,7 @@ void vtkLODActor::Render(vtkRenderer *ren, vtkMapper *vtkNotUsed(m))
   // Is this the correct test?
   if (this->MediumMapper)
   {
-    if (this->GetMTime() > this->BuildTime ||
-        this->Mapper->GetMTime() > this->BuildTime)
+    if (this->GetMTime() > this->BuildTime || this->Mapper->GetMTime() > this->BuildTime)
     {
       this->UpdateOwnLODs();
     }
@@ -126,8 +124,7 @@ void vtkLODActor::Render(vtkRenderer *ren, vtkMapper *vtkNotUsed(m))
   {
     vtkCollectionSimpleIterator mit;
     this->LODMappers->InitTraversal(mit);
-    while ((mapper = this->LODMappers->GetNextMapper(mit)) != NULL &&
-           bestTime != 0.0)
+    while ((mapper = this->LODMappers->GetNextMapper(mit)) != nullptr && bestTime != 0.0)
     {
       tempTime = mapper->GetTimeToDraw();
 
@@ -179,70 +176,35 @@ void vtkLODActor::Render(vtkRenderer *ren, vtkMapper *vtkNotUsed(m))
 
   // Store information on time it takes to render.
   // We might want to estimate time from the number of polygons in mapper.
+
+  // The internal actor needs to share property keys. This allows depth peeling
+  // etc to work.
+  this->Device->SetPropertyKeys(this->GetPropertyKeys());
+
+  // copy current translucent pass setting
+  this->Device->SetIsRenderingTranslucentPolygonalGeometry(
+    this->IsRenderingTranslucentPolygonalGeometry());
+
   this->Device->Render(ren, bestMapper);
   this->EstimatedRenderTime = bestMapper->GetTimeToDraw();
 }
 
-int vtkLODActor::RenderOpaqueGeometry(vtkViewport *vp)
+void vtkLODActor::ReleaseGraphicsResources(vtkWindow* renWin)
 {
-  int renderedSomething = 0;
-  vtkRenderer* ren = static_cast<vtkRenderer*>(vp);
-
-  if (!this->Mapper)
-  {
-    return 0;
-  }
-
-  // make sure we have a property
-  if (!this->Property)
-  {
-    // force creation of a property
-    this->GetProperty();
-  }
-
-  // is this actor opaque ?
-  // Do this check only when not in selection mode
-  if (this->GetIsOpaque() ||
-    (ren->GetSelector() && this->Property->GetOpacity() > 0.0))
-  {
-    this->Property->Render(this, ren);
-
-    // render the backface property
-    if (this->BackfaceProperty)
-    {
-      this->BackfaceProperty->BackfaceRender(this, ren);
-    }
-
-    // render the texture
-    if (this->Texture)
-    {
-      this->Texture->Render(ren);
-    }
-    this->Render(ren, this->Mapper);
-
-    renderedSomething = 1;
-  }
-
-  return renderedSomething;
-}
-
-void vtkLODActor::ReleaseGraphicsResources(vtkWindow *renWin)
-{
-  vtkMapper *mapper;
+  vtkMapper* mapper;
   vtkActor::ReleaseGraphicsResources(renWin);
 
   // broadcast the message down to the individual LOD mappers
   vtkCollectionSimpleIterator mit;
-  for (this->LODMappers->InitTraversal(mit);
-    (mapper = this->LODMappers->GetNextMapper(mit));)
+  for (this->LODMappers->InitTraversal(mit); (mapper = this->LODMappers->GetNextMapper(mit));)
   {
     mapper->ReleaseGraphicsResources(renWin);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // does not matter if mapper is in mapper collection.
-void vtkLODActor::AddLODMapper(vtkMapper *mapper)
+void vtkLODActor::AddLODMapper(vtkMapper* mapper)
 {
   if (this->MediumMapper)
   {
@@ -257,9 +219,9 @@ void vtkLODActor::AddLODMapper(vtkMapper *mapper)
   this->LODMappers->AddItem(mapper);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Can only be used if no LOD mappers have been added.
-// Maybe we should remove this exculsive feature.
+// Maybe we should remove this exclusive feature.
 void vtkLODActor::CreateOwnLODs()
 {
   if (this->MediumMapper)
@@ -276,15 +238,14 @@ void vtkLODActor::CreateOwnLODs()
   // There are ways of getting around this limitation...
   if (this->LODMappers->GetNumberOfItems() > 0)
   {
-    vtkErrorMacro(<<
-          "Cannot generate LOD mappers when some have been added already");
+    vtkErrorMacro(<< "Cannot generate LOD mappers when some have been added already");
     return;
   }
 
   // create filters and mappers
   if (!this->MediumResFilter)
   {
-    vtkMaskPoints *mediumResFilter = vtkMaskPoints::New();
+    vtkMaskPoints* mediumResFilter = vtkMaskPoints::New();
     mediumResFilter->RandomModeOn();
     mediumResFilter->GenerateVerticesOn();
     this->SetMediumResFilter(mediumResFilter);
@@ -295,7 +256,7 @@ void vtkLODActor::CreateOwnLODs()
 
   if (!this->LowResFilter)
   {
-    vtkOutlineFilter *lowResFilter = vtkOutlineFilter::New();
+    vtkOutlineFilter* lowResFilter = vtkOutlineFilter::New();
     this->SetLowResFilter(lowResFilter);
     lowResFilter->Delete();
   }
@@ -307,7 +268,7 @@ void vtkLODActor::CreateOwnLODs()
   this->UpdateOwnLODs();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLODActor::UpdateOwnLODs()
 {
   if (!this->Mapper)
@@ -326,33 +287,29 @@ void vtkLODActor::UpdateOwnLODs()
   }
 
   // connect the filters to the mapper, and set parameters
-  this->MediumResFilter->SetInputConnection(
-    this->Mapper->GetInputConnection(0, 0));
-  this->LowResFilter->SetInputConnection(
-    this->Mapper->GetInputConnection(0, 0));
+  this->MediumResFilter->SetInputConnection(this->Mapper->GetInputConnection(0, 0));
+  this->LowResFilter->SetInputConnection(this->Mapper->GetInputConnection(0, 0));
 
   // If the medium res filter is a vtkMaskPoints, then set the ivar in here.
   // In reality, we should deprecate the vtkLODActor::SetNumberOfCloudPoints
   // method, since now you can get the filters that make up the low and
   // medium res and set them yourself.
-  if (vtkMaskPoints *f = vtkMaskPoints::SafeDownCast(this->MediumResFilter))
+  if (vtkMaskPoints* f = vtkMaskPoints::SafeDownCast(this->MediumResFilter))
   {
     f->SetMaximumNumberOfPoints(this->NumberOfCloudPoints);
   }
 
   // copy all parameters including LUTs, scalar range, etc.
   this->MediumMapper->ShallowCopy(this->Mapper);
-  this->MediumMapper->SetInputConnection(
-    this->MediumResFilter->GetOutputPort());
+  this->MediumMapper->SetInputConnection(this->MediumResFilter->GetOutputPort());
   this->LowMapper->ShallowCopy(this->Mapper);
   this->LowMapper->ScalarVisibilityOff();
-  this->LowMapper->SetInputConnection(
-    this->LowResFilter->GetOutputPort());
+  this->LowMapper->SetInputConnection(this->LowResFilter->GetOutputPort());
 
   this->BuildTime.Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Deletes Mappers and filters created by this object.
 // (number two and three)
 void vtkLODActor::DeleteOwnLODs()
@@ -362,40 +319,40 @@ void vtkLODActor::DeleteOwnLODs()
   {
     this->LODMappers->RemoveItem(this->LowMapper);
     this->LowMapper->Delete();
-    this->LowMapper = NULL;
+    this->LowMapper = nullptr;
   }
 
   if (this->MediumMapper)
   {
     this->LODMappers->RemoveItem(this->MediumMapper);
     this->MediumMapper->Delete();
-    this->MediumMapper = NULL;
+    this->MediumMapper = nullptr;
   }
 
   // delete the filters used to create the LODs ...
-  // The NULL check should not be necessary, but for sanity ...
-  this->SetLowResFilter(NULL);
-  this->SetMediumResFilter(NULL);
+  // The nullptr check should not be necessary, but for sanity ...
+  this->SetLowResFilter(nullptr);
+  this->SetMediumResFilter(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLODActor::Modified()
 {
-  if (this->Device) // Will be NULL only during destruction of this class.
+  if (this->Device) // Will be nullptr only during destruction of this class.
   {
     this->Device->Modified();
   }
   this->vtkActor::Modified();
 }
 
-void vtkLODActor::ShallowCopy(vtkProp *prop)
+void vtkLODActor::ShallowCopy(vtkProp* prop)
 {
-  vtkLODActor *a = vtkLODActor::SafeDownCast(prop);
+  vtkLODActor* a = vtkLODActor::SafeDownCast(prop);
   if (a)
   {
     this->SetNumberOfCloudPoints(a->GetNumberOfCloudPoints());
-    vtkMapperCollection *c = a->GetLODMappers();
-    vtkMapper *map;
+    vtkMapperCollection* c = a->GetLODMappers();
+    vtkMapper* map;
     vtkCollectionSimpleIterator mit;
     for (c->InitTraversal(mit); (map = c->GetNextMapper(mit));)
     {

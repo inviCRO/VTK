@@ -27,36 +27,37 @@
 
 vtkStandardNewMacro(vtkImageMagnitude);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+void vtkImageMagnitude::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+}
+
+//------------------------------------------------------------------------------
 vtkImageMagnitude::vtkImageMagnitude()
 {
   this->SetNumberOfInputPorts(1);
   this->SetNumberOfOutputPorts(1);
 }
 
-int vtkImageMagnitude::RequestInformation (
-  vtkInformation       * vtkNotUsed( request ),
-  vtkInformationVector ** vtkNotUsed( inputVector ),
-  vtkInformationVector * outputVector)
+int vtkImageMagnitude::RequestInformation(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
-  vtkDataObject::SetPointDataActiveScalarInfo(
-    outputVector->GetInformationObject(0), -1, 1);
+  vtkDataObject::SetPointDataActiveScalarInfo(outputVector->GetInformationObject(0), -1, 1);
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This execute method handles boundaries.
 // it handles boundaries. Pixels are just replicated to get values
 // out of extent.
 template <class T>
-void vtkImageMagnitudeExecute(vtkImageMagnitude *self,
-                              vtkImageData *inData,
-                              vtkImageData *outData,
-                              int outExt[6], int id, T *)
+void vtkImageMagnitudeExecute(
+  vtkImageMagnitude* self, vtkImageData* inData, vtkImageData* outData, int outExt[6], int id, T*)
 {
   vtkImageIterator<T> inIt(inData, outExt);
   vtkImageProgressIterator<T> outIt(outData, outExt, self, id);
-  float sum;
+  double sum;
 
   // find the region to loop over
   int maxC = inData->GetNumberOfScalarComponents();
@@ -74,7 +75,7 @@ void vtkImageMagnitudeExecute(vtkImageMagnitude *self,
       sum = 0.0;
       for (idxC = 0; idxC < maxC; idxC++)
       {
-        sum += static_cast<float>(*inSI * *inSI);
+        sum += static_cast<double>(*inSI) * static_cast<double>(*inSI);
         ++inSI;
       }
       *outSI = static_cast<T>(sqrt(sum));
@@ -85,14 +86,12 @@ void vtkImageMagnitudeExecute(vtkImageMagnitude *self,
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This method contains a switch statement that calls the correct
 // templated function for the input data type.  The output data
 // must match input type.  This method does handle boundary conditions.
-void vtkImageMagnitude::ThreadedExecute (vtkImageData *inData,
-                                        vtkImageData *outData,
-                                        int outExt[6], int id)
+void vtkImageMagnitude::ThreadedExecute(
+  vtkImageData* inData, vtkImageData* outData, int outExt[6], int id)
 {
   // This is really meta data and should be set in ExecuteInformation,
   // but there are some issues to solve first.
@@ -100,34 +99,22 @@ void vtkImageMagnitude::ThreadedExecute (vtkImageData *inData,
   {
     outData->GetPointData()->GetScalars()->SetName("Magnitude");
   }
-  vtkDebugMacro(<< "Execute: inData = " << inData
-  << ", outData = " << outData);
+  vtkDebugMacro(<< "Execute: inData = " << inData << ", outData = " << outData);
 
   // this filter expects that input is the same type as output.
   if (inData->GetScalarType() != outData->GetScalarType())
   {
     vtkErrorMacro(<< "Execute: input ScalarType, " << inData->GetScalarType()
-    << ", must match out ScalarType " << outData->GetScalarType());
+                  << ", must match out ScalarType " << outData->GetScalarType());
     return;
   }
 
   switch (inData->GetScalarType())
   {
     vtkTemplateMacro(
-      vtkImageMagnitudeExecute( this, inData, outData,
-                                outExt, id, static_cast<VTK_TT *>(0)));
+      vtkImageMagnitudeExecute(this, inData, outData, outExt, id, static_cast<VTK_TT*>(nullptr)));
     default:
       vtkErrorMacro(<< "Execute: Unknown ScalarType");
       return;
   }
 }
-
-
-
-
-
-
-
-
-
-

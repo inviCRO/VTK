@@ -60,14 +60,13 @@ POSSIBILITY OF SUCH DAMAGES.
  * vtkMINCImageReader vtkMNIObjectReader vtkMNITransformReader
  * @par Thanks:
  * Thanks to David Gobbi for contributing this class.
-*/
+ */
 
 #ifndef vtkMNITagPointReader_h
 #define vtkMNITagPointReader_h
 
 #include "vtkIOMINCModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
-#include "vtkStdString.h" // needed for std::string
 
 class vtkPolyData;
 class vtkPoints;
@@ -78,35 +77,33 @@ class vtkIntArray;
 class VTKIOMINC_EXPORT vtkMNITagPointReader : public vtkPolyDataAlgorithm
 {
 public:
-  vtkTypeMacro(vtkMNITagPointReader,vtkPolyDataAlgorithm);
+  vtkTypeMacro(vtkMNITagPointReader, vtkPolyDataAlgorithm);
 
-  static vtkMNITagPointReader *New();
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkMNITagPointReader* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set the file name.
    */
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
-  //@}
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
   /**
-   * Get the entension for this file format.
+   * Get the extension for this file format.
    */
-  virtual const char* GetFileExtensions() {
-    return ".tag"; }
+  virtual const char* GetFileExtensions() { return ".tag"; }
 
   /**
    * Get the name of this file format.
    */
-  virtual const char* GetDescriptiveName() {
-    return "MNI tags"; }
+  virtual const char* GetDescriptiveName() { return "MNI tags"; }
 
   /**
    * Test whether the specified file can be read.
    */
-  virtual int CanReadFile(const char* name);
+  virtual int CanReadFile(VTK_FILEPATH const char* name);
 
   /**
    * Get the number of volumes specified by the file, which will be
@@ -119,83 +116,74 @@ public:
   /**
    * Get the points.  These are also provided in the first and
    * second output ports of the reader.  This method will return
-   * NULL if there is no data.
+   * nullptr if there is no data.
    */
-  virtual vtkPoints *GetPoints(int port);
-  virtual vtkPoints *GetPoints() { return this->GetPoints(0); }
+  virtual vtkPoints* GetPoints(int port);
+  virtual vtkPoints* GetPoints() { return this->GetPoints(0); }
 
   /**
    * Get the labels.  These same labels are provided in the output
    * point sets, as the PointData data array named "LabelText".
-   * This will return NULL if there were no labels in the file.
+   * This will return nullptr if there were no labels in the file.
    */
-  virtual vtkStringArray *GetLabelText();
+  virtual vtkStringArray* GetLabelText();
 
   /**
    * Get the weights.  These are also provided in the output
    * point sets, as the PointData data array named "Weights".
-   * This will return NULL if there were no weights in the file.
+   * This will return nullptr if there were no weights in the file.
    */
-  virtual vtkDoubleArray *GetWeights();
+  virtual vtkDoubleArray* GetWeights();
 
   /**
    * Get the structure ids.  These are also provided in the output
    * point sets, as the PointData data array named "StructureIds".
-   * This will return NULL if there were no ids in the file.
+   * This will return nullptr if there were no ids in the file.
    */
-  virtual vtkIntArray *GetStructureIds();
+  virtual vtkIntArray* GetStructureIds();
 
   /**
    * Get the patient ids.  These are also provided in the output
    * point sets, as the PointData data array named "PatientIds".
-   * This will return NULL if there were no ids in the file.
+   * This will return nullptr if there were no ids in the file.
    */
-  virtual vtkIntArray *GetPatientIds();
+  virtual vtkIntArray* GetPatientIds();
 
   /**
    * Get any comments that are included in the file.
    */
-  virtual const char *GetComments();
+  virtual const char* GetComments();
 
 protected:
   vtkMNITagPointReader();
-  ~vtkMNITagPointReader() VTK_OVERRIDE;
+  ~vtkMNITagPointReader() override;
 
-  char *FileName;
+  char* FileName;
   int NumberOfVolumes;
 
   int LineNumber;
-  char *Comments;
+  char* Comments;
 
-  int ReadLine(istream &infile, std::string &linetext,
-               std::string::iterator &pos);
-  int ReadLineAfterComments(istream &infile, std::string &linetext,
-                            std::string::iterator &pos);
-  int SkipWhitespace(istream &infile,  std::string &linetext,
-                     std::string::iterator &pos, int nl);
-  int ParseLeftHandSide(istream &infile, std::string &linetext,
-                        std::string::iterator &pos,
-                        std::string &identifier);
-  int ParseStringValue(istream &infile, std::string &linetext,
-                       std::string::iterator &pos,
-                       std::string &data);
-  int ParseIntValues(istream &infile, std::string &linetext,
-                     std::string::iterator &pos,
-                     int *values, int count);
-  int ParseFloatValues(istream &infile, std::string &linetext,
-                       std::string::iterator &pos,
-                       double *values, int count);
+  int ReadLine(istream& infile, std::string& linetext, std::string::iterator& pos);
+  int ReadLineAfterComments(istream& infile, std::string& linetext, std::string::iterator& pos);
+  int SkipWhitespace(istream& infile, std::string& linetext, std::string::iterator& pos, int nl);
+  int ParseLeftHandSide(
+    istream& infile, std::string& linetext, std::string::iterator& pos, std::string& identifier);
+  int ParseStringValue(
+    istream& infile, std::string& linetext, std::string::iterator& pos, std::string& data);
+  int ParseIntValues(
+    istream& infile, std::string& linetext, std::string::iterator& pos, int* values, int count);
+  int ParseFloatValues(
+    istream& infile, std::string& linetext, std::string::iterator& pos, double* values, int count);
 
-  virtual int ReadFile(vtkPolyData *output1, vtkPolyData *output2);
+  virtual int ReadFile(vtkPolyData* output1, vtkPolyData* output2);
 
-  int RequestData(vtkInformation* request,
-                          vtkInformationVector** inInfo,
-                          vtkInformationVector* outInfo) VTK_OVERRIDE;
+  int RequestData(
+    vtkInformation* request, vtkInformationVector** inInfo, vtkInformationVector* outInfo) override;
 
 private:
-  vtkMNITagPointReader(const vtkMNITagPointReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMNITagPointReader&) VTK_DELETE_FUNCTION;
-
+  vtkMNITagPointReader(const vtkMNITagPointReader&) = delete;
+  void operator=(const vtkMNITagPointReader&) = delete;
 };
 
 #endif

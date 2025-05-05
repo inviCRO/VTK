@@ -1,0 +1,463 @@
+# Linux-specific builder configurations and build commands
+
+## Base images
+
+.linux:
+    variables:
+        GIT_CLONE_PATH: $CI_BUILDS_DIR/gitlab-kitware-sciviz-ci
+        GIT_SUBMODULE_STRATEGY: none
+
+.manylinux2014_x86_64:
+    image: "quay.io/pypa/manylinux2014_x86_64"
+
+    variables:
+        GIT_CLONE_PATH: $CI_BUILDS_DIR/gitlab-kitware-sciviz-ci
+        VTK_INSTALL: 1
+
+.wheel_linux36_x86_64:
+    extends: .manylinux2014_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_linux36_x86_64
+        PYTHON_PREFIX: /opt/python/cp36-cp36m
+
+.wheel_linux37_x86_64:
+    extends: .manylinux2014_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_linux37_x86_64
+        PYTHON_PREFIX: /opt/python/cp37-cp37m
+
+.wheel_linux38_x86_64:
+    extends: .manylinux2014_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_linux38_x86_64
+        PYTHON_PREFIX: /opt/python/cp38-cp38
+
+.wheel_linux39_x86_64:
+    extends: .manylinux2014_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_linux39_x86_64
+        PYTHON_PREFIX: /opt/python/cp39-cp39
+
+.wheel_linux310_x86_64:
+    extends: .manylinux2014_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_linux310_x86_64
+        PYTHON_PREFIX: /opt/python/cp310-cp310
+
+.fedora34:
+    extends: .linux
+    image: "kitware/vtk:ci-fedora34-20220310"
+
+.el8_icc:
+    extends: .linux
+    image: "kitware/vtk:ci-el8-icc-20220118"
+
+    variables:
+        CC: icx
+        CXX: icpx
+        FC: ifx
+
+.fedora_cuda_addon:
+    image: "kitware/vtk:ci-fedora34-20210824"
+    variables:
+        CUDACC: "/usr/local/cuda-11.4/bin/nvcc"
+        CUDACXX: "/usr/local/cuda-11.4/bin/nvcc"
+
+.fedora_mpich_addon:
+    variables:
+        MODULES: mpi/mpich-x86_64
+        # Even with SHM size of 512m, SIGBUS still happened. Let's just use the
+        # network instead for reliability.
+        # https://wiki.mpich.org/mpich/index.php/Frequently_Asked_Questions#Q:_Why_MPI_Put_raises_SIGBUS_error_inside_docker.3F
+        MPIR_CVAR_NOLOCAL: 1
+
+.fedora_openmpi_addon:
+    variables:
+        # Needed to work with OpenMPI
+        OMPI_ALLOW_RUN_AS_ROOT: 1
+        OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+        MODULES: mpi/openmpi-x86_64
+
+.el8_intelmpi_addon:
+    variables:
+        CMAKE_PREFIX_PATH: /usr/local/intelmpi
+        # Disable shared memory; it doesn't work so well inside of containers.
+        I_MPI_SHM: disable
+
+.el8_icc_mpi_python:
+    extends:
+        - .el8_icc
+        - .el8_intelmpi_addon
+
+    variables:
+        CMAKE_CONFIGURATION: el8_icc_mpi_python
+
+.fedora34_doxygen_mpi_python_qt_tbb:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_doxygen_mpi_python_qt_tbb
+
+.fedora34_cuda_mpi:
+    extends:
+        - .fedora34
+        - .fedora_cuda_addon
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_cuda_mpi_offscreen_osmesa
+        VTK_INSTALL: 1
+
+.fedora34_cuda_mpi_ext_vtk:
+    extends:
+        - .fedora34
+        - .fedora_cuda_addon
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_cuda_mpi_offscreen_osmesa_ext_vtk
+
+.fedora34_mpi_offscreen_osmesa_python:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_offscreen_osmesa_python
+        VTK_INSTALL: 1
+
+.fedora34_mpi_offscreen_osmesa_python_ext_vtk:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_offscreen_osmesa_python_ext_vtk
+
+.fedora34_mpi_renderless:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_renderless
+        VTK_INSTALL: 1
+
+.fedora34_mpi_renderless_ext_vtk:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_renderless_ext_vtk
+
+.fedora34_java_mpi_qt_tbb:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_java_mpi_qt_tbb
+
+.fedora34_mpi_python_qt_tbb:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb
+        VTK_INSTALL: 1
+
+.fedora34_mpi_python_qt_tbb_ext_vtk:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb_ext_vtk
+
+.fedora34_mpi_python_qt_stdthread:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_stdthread
+
+.fedora34_mpi_python_vtkmoverride:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_vtkmoverride
+
+.fedora34_tidy:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb_tidy
+        # Disabled for now. There are two deprecation warnings currently in the codebase:
+        #   - TBB deprecated header (#18107)
+        #   - a deprecated Python API call
+        # CTEST_NO_WARNINGS_ALLOWED: 1
+
+.fedora_memcheck:
+    variables:
+        CMAKE_BUILD_TYPE: RelWithDebInfo
+
+.fedora_asan_addon:
+    extends: .fedora_memcheck
+
+    variables:
+        CTEST_MEMORYCHECK_TYPE: AddressSanitizer
+        # Disable LeakSanitizer for now. It's catching all kinds of errors that
+        # need investigated or suppressed.
+        CTEST_MEMORYCHECK_SANITIZER_OPTIONS: detect_leaks=0
+
+.fedora_tsan_addon:
+    extends: .fedora_memcheck
+
+    variables:
+        CTEST_MEMORYCHECK_TYPE: ThreadSanitizer
+
+.fedora_ubsan_addon:
+    extends: .fedora_memcheck
+
+    variables:
+        CTEST_MEMORYCHECK_TYPE: UndefinedBehaviorSanitizer
+
+.fedora34_asan:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+        - .fedora_asan_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_asan_mpi_python_qt_tbb
+
+.fedora34_tsan:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+        - .fedora_tsan_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_qt_tbb_tsan
+
+.fedora34_ubsan:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+        - .fedora_ubsan_addon
+
+    variables:
+        # MPI and Python are currently not part of this list because there are
+        # issues with tests using external executables when testing UBSan
+        # around ASan not being first in the initial library list.
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb_ubsan
+
+.linux_builder_tags:
+    tags:
+        - build
+        - docker
+        - linux
+        - vtk
+
+.linux_cuda_builder_tags:
+    tags:
+        - build
+        - docker
+        - large-memory
+        - linux
+        - vtk
+
+.linux_qt_builder_tags:
+    tags:
+        - build
+        - docker
+        - linux
+        - linux-3.17
+        - vtk
+
+.linux_tester_tags:
+    tags:
+        - docker
+        - linux
+        - x11
+        - vtk
+
+.linux_cuda_tester_tags:
+    tags:
+        - cuda-rt
+        - docker
+        - linux
+        - vtk
+
+.linux_qt_tester_tags:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+        - vtk
+
+.linux_qt_tester_priv_tags:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - privileged
+        - x11
+        - vtk
+
+.linux_tester_priv_tags:
+    tags:
+        - docker
+        - linux
+        - privileged
+        - x11
+        - vtk
+
+## Linux-specific scripts
+
+.before_script_linux: &before_script_linux
+    - .gitlab/ci/cmake.sh
+    - .gitlab/ci/ninja.sh
+    - export PATH=$PWD/.gitlab:$PWD/.gitlab/cmake/bin:$PATH
+    - cmake --version
+    - ninja --version
+    - "git submodule update --init --recursive || :"
+    - git submodule foreach --recursive cmake -P "$PWD/.gitlab/ci/fetch_submodule.cmake"
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    # Load any modules that may be necessary.
+    - '[ -n "$MODULES" ] && . /etc/profile.d/modules.sh && module load $MODULES'
+    # Enable the Intel compiler if required.
+    - '[ "$CC" = "icx" ] && source /opt/intel/oneapi/setvars.sh || true'
+
+.cmake_build_linux:
+    stage: build
+    extends: .warning_policy
+
+    script:
+        - *before_script_linux
+        - .gitlab/ci/sccache.sh
+        - sccache --start-server
+        - sccache --show-stats
+        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
+        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
+        - sccache --show-stats
+        - exec .gitlab/ci/check_warnings.sh .
+
+    interruptible: true
+
+.cmake_test_linux:
+    stage: test
+
+    script:
+        - *before_script_linux
+        - ctest -V --output-on-failure -S .gitlab/ci/ctest_test.cmake
+
+    interruptible: true
+
+.cmake_test_external_linux:
+    stage: test-ext
+    extends: .warning_policy
+
+    script:
+        - *before_script_linux
+        - ctest -V --output-on-failure -S .gitlab/ci/ctest_test_external.cmake
+        - exec .gitlab/ci/check_warnings.sh ./Testing/External
+
+    interruptible: true
+
+.cmake_memcheck_linux:
+    stage: test
+
+    script:
+        - *before_script_linux
+        - "$LAUNCHER ctest --output-on-failure -V -S .gitlab/ci/ctest_memcheck.cmake"
+    interruptible: true
+
+.cmake_build_wheel_linux:
+    stage: build
+    extends: .warning_policy
+
+    script:
+        - yum install -y --setopt=install_weak_deps=False libX11-devel libXcursor-devel mesa-libGL-devel mesa-libGLU-devel git-core git-lfs gcc-c++
+        - *before_script_linux
+        - .gitlab/ci/sccache.sh
+        - sccache --start-server
+        - sccache --show-stats
+        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
+        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
+        - sccache --show-stats
+        - cd build
+        - "$PYTHON_PREFIX/bin/python setup.py bdist_wheel"
+        - auditwheel show dist/*.whl > $GIT_CLONE_PATH/wheel_output.log
+        - auditwheel repair dist/*.whl >> $GIT_CLONE_PATH/wheel_output.log
+        - mv -v dist/ dist-orig/
+        - mv -v wheelhouse/ dist/
+        - "$PYTHON_PREFIX/bin/python $GIT_CLONE_PATH/.gitlab/ci/create_wheel_sdk_archive.py"
+        - cd ..
+        - exec .gitlab/ci/check_warnings.sh .
+
+    interruptible: true
+
+.cmake_test_wheel_linux:
+    stage: test
+
+    script:
+        - yum install -y --setopt=install_weak_deps=False libXcursor
+        - "$PYTHON_PREFIX/bin/python -m venv venv"
+        - venv/bin/pip install twine
+        - venv/bin/twine check build/dist/*.whl
+        - venv/bin/pip install build/dist/*.whl
+        - venv/bin/python -c "import vtk"
+        - if [ "$VTK_DISABLE_PYI_TESTING" != "1" ]; then venv/bin/python -m vtkmodules.generate_pyi --test -p vtkmodules; else echo "pyi test is disabled."; fi
+    interruptible: true
+
+.cmake_source_tarballs:
+    stage: build
+    image: "fedora:34"
+    tags:
+        - linux
+        - docker
+        - build
+
+    script:
+        - dnf install -y --setopt=install_weak_deps=False git-core git-lfs wget xz zip
+        - 'version="$( echo "$CI_COMMIT_TAG" | sed -e "s/^v//" )"'
+        - Utilities/Maintenance/SourceTarball.bash --tgz -v "$version" "$CI_COMMIT_TAG"
+        - mkdir release
+        - mv -t release -v VTK*$version*
+
+    interruptible: true
+
+.cmake_doc_tarball:
+    stage: release-prep
+    image: "fedora:34"
+    tags:
+        - linux
+        - docker
+        - build
+
+    script:
+        - 'version="$( echo "$CI_COMMIT_TAG" | sed -e "s/^v//" )"'
+        - mkdir release
+        - cd build/install/usr/share/doc/vtk/doxygen
+        - tar czf "$CI_PROJECT_DIR/release/vtkDocHtml-$version.tar.gz" html
+    variables:
+        GIT_STRATEGY: none
+
+    interruptible: true

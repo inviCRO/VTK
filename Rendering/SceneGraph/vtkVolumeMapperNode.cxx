@@ -15,10 +15,10 @@
 #include "vtkVolumeMapperNode.h"
 
 #include "vtkActor.h"
-#include "vtkObjectFactory.h"
 #include "vtkCellArray.h"
 #include "vtkMath.h"
 #include "vtkMatrix4x4.h"
+#include "vtkObjectFactory.h"
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkPolygon.h"
@@ -27,17 +27,13 @@
 //============================================================================
 vtkStandardNewMacro(vtkVolumeMapperNode);
 
-//----------------------------------------------------------------------------
-vtkVolumeMapperNode::vtkVolumeMapperNode()
-{
-}
+//------------------------------------------------------------------------------
+vtkVolumeMapperNode::vtkVolumeMapperNode() = default;
 
-//----------------------------------------------------------------------------
-vtkVolumeMapperNode::~vtkVolumeMapperNode()
-{
-}
+//------------------------------------------------------------------------------
+vtkVolumeMapperNode::~vtkVolumeMapperNode() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkVolumeMapperNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

@@ -16,8 +16,7 @@
 #include "vtkCommand.h"
 #include "vtkObjectFactory.h"
 
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkButtonRepresentation::vtkButtonRepresentation()
 {
   this->NumberOfStates = 0;
@@ -25,80 +24,76 @@ vtkButtonRepresentation::vtkButtonRepresentation()
   this->HighlightState = vtkButtonRepresentation::HighlightNormal;
 }
 
+//------------------------------------------------------------------------------
+vtkButtonRepresentation::~vtkButtonRepresentation() = default;
 
-//----------------------------------------------------------------------
-vtkButtonRepresentation::~vtkButtonRepresentation()
-{
-}
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Implement the modulo behavior in this method
 void vtkButtonRepresentation::SetState(int state)
 {
-  if ( this->NumberOfStates < 1 )
+  if (this->NumberOfStates < 1)
   {
     return;
   }
 
   int remain = state % this->NumberOfStates;
-  if ( remain < 0 )
+  if (remain < 0)
   {
     remain += this->NumberOfStates;
   }
   state = remain;
 
   // Modify if necessary
-  if ( state != this->State )
+  if (state != this->State)
   {
     this->State = state;
     this->Modified();
   }
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkButtonRepresentation::NextState()
 {
-  this->SetState(this->State+1);
+  this->SetState(this->State + 1);
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkButtonRepresentation::PreviousState()
 {
-  this->SetState(this->State-1);
+  this->SetState(this->State - 1);
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkButtonRepresentation::Highlight(int state)
 {
   int newState;
-  if ( state == vtkButtonRepresentation::HighlightNormal )
+  if (state == vtkButtonRepresentation::HighlightNormal)
   {
     newState = vtkButtonRepresentation::HighlightNormal;
   }
-  else if ( state == vtkButtonRepresentation::HighlightHovering )
+  else if (state == vtkButtonRepresentation::HighlightHovering)
   {
     newState = vtkButtonRepresentation::HighlightHovering;
   }
-  else //if ( state == vtkButtonRepresentation::HighlightSelecting )
+  else // if ( state == vtkButtonRepresentation::HighlightSelecting )
   {
     newState = vtkButtonRepresentation::HighlightSelecting;
   }
 
-  if ( newState != this->HighlightState )
+  if (newState != this->HighlightState)
   {
     this->HighlightState = newState;
-    this->InvokeEvent(vtkCommand::HighlightEvent,&(this->HighlightState));
+    this->InvokeEvent(vtkCommand::HighlightEvent, &(this->HighlightState));
     this->Modified();
   }
 }
 
-//----------------------------------------------------------------------
-void vtkButtonRepresentation::ShallowCopy(vtkProp *prop)
+//------------------------------------------------------------------------------
+void vtkButtonRepresentation::ShallowCopy(vtkProp* prop)
 {
-  vtkButtonRepresentation *rep =
-    vtkButtonRepresentation::SafeDownCast(prop);
+  vtkButtonRepresentation* rep = vtkButtonRepresentation::SafeDownCast(prop);
 
-  if ( rep )
+  if (rep)
   {
     this->NumberOfStates = rep->NumberOfStates;
     this->State = rep->State;
@@ -108,11 +103,11 @@ void vtkButtonRepresentation::ShallowCopy(vtkProp *prop)
   this->Superclass::ShallowCopy(prop);
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkButtonRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
+  // Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Number Of States: " << this->NumberOfStates << "\n";
   os << indent << "State: " << this->State << "\n";

@@ -20,8 +20,8 @@
 #include "vtkCell.h"
 #include "vtkDebugLeaks.h"
 #include "vtkGenericCell.h"
-#include "vtkMathUtilities.h"
 #include "vtkImageData.h"
+#include "vtkMathUtilities.h"
 
 #include <sstream>
 
@@ -30,55 +30,105 @@ int TestOID(ostream& strm)
   int i, j, k;
   // actual test
   strm << "Testing vtkImageData" << endl;
-  vtkImageData *id0D = vtkImageData::New();
-  vtkImageData *id1Dx = vtkImageData::New();
-  vtkImageData *id1Dy = vtkImageData::New();
-  vtkImageData *id1Dz = vtkImageData::New();
-  vtkImageData *id2Dxy = vtkImageData::New();
-  vtkImageData *id2Dxz = vtkImageData::New();
-  vtkImageData *id2Dyz = vtkImageData::New();
-  vtkImageData *id3D = vtkImageData::New();
+  vtkImageData* id0D = vtkImageData::New();
+  vtkImageData* id1Dx = vtkImageData::New();
+  vtkImageData* id1Dy = vtkImageData::New();
+  vtkImageData* id1Dz = vtkImageData::New();
+  vtkImageData* id2Dxy = vtkImageData::New();
+  vtkImageData* id2Dxz = vtkImageData::New();
+  vtkImageData* id2Dyz = vtkImageData::New();
+  vtkImageData* id3D = vtkImageData::New();
 
-  id3D->SetDimensions(20,20,20);
+  id3D->SetDimensions(20, 20, 20);
 
-  id2Dxy->SetDimensions(20,20,1);
+  if (id3D->GetCellSize(0) != 8)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 3D image data.\n";
+    return 1;
+  }
 
-  id2Dxz->SetDimensions(20,1,20);
+  id2Dxy->SetDimensions(20, 20, 1);
 
-  id2Dyz->SetDimensions(1,20,20);
+  if (id2Dxy->GetCellSize(0) != 4)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 2D image data.\n";
+    return 1;
+  }
 
-  id1Dx->SetDimensions(20,1,1);
+  id2Dxz->SetDimensions(20, 1, 20);
 
-  id1Dy->SetDimensions(1,20,1);
+  if (id2Dxz->GetCellSize(0) != 4)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 2D image data.\n";
+    return 1;
+  }
+
+  id2Dyz->SetDimensions(1, 20, 20);
+
+  if (id2Dyz->GetCellSize(0) != 4)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 2D image data.\n";
+    return 1;
+  }
+
+  id1Dx->SetDimensions(20, 1, 1);
+
+  if (id1Dx->GetCellSize(0) != 2)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 1D image data.\n";
+    return 1;
+  }
+
+  id1Dy->SetDimensions(1, 20, 1);
+
+  if (id1Dy->GetCellSize(0) != 2)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 1D image data.\n";
+    return 1;
+  }
 
   strm << *id1Dy;
 
-  id1Dz->SetDimensions(1,1,20);
+  id1Dz->SetDimensions(1, 1, 20);
 
-  id0D->SetDimensions(1,1,1);
+  if (id1Dz->GetCellSize(0) != 2)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 1D image data.\n";
+    return 1;
+  }
+
+  id0D->SetDimensions(1, 1, 1);
+
+  if (id0D->GetCellSize(0) != 1)
+  {
+    std::cerr << "vtkImageData::GetCellSize(cellId) wrong for 0D image data.\n";
+    return 1;
+  }
 
   strm << "id3D:" << *id3D;
 
   // Test shallow copy
-  vtkImageData *scid3D = vtkImageData::New();
+  vtkImageData* scid3D = vtkImageData::New();
   scid3D->ShallowCopy(id3D);
   strm << "ShallowCopy(id3D):" << *scid3D;
 
   // Test deep copy
-  vtkImageData *dcid3D = vtkImageData::New();
+  vtkImageData* dcid3D = vtkImageData::New();
   dcid3D->DeepCopy(id3D);
   strm << "DeepCopy(id3D):" << *dcid3D;
 
   // Test GetCell
-  vtkIdList *ids = vtkIdList::New();
+  vtkIdList* ids = vtkIdList::New();
   int cellId;
   int ii;
 
-  i = 10; j = 15; k = 7;
+  i = 10;
+  j = 15;
+  k = 7;
   cellId = k * (19 * 19) + j * 19 + i;
-  vtkCell *cell3D = id3D->GetCell(cellId);
-  strm << "cell3D: " << *cell3D ;
-  id3D->GetCellPoints (cellId, ids);
+  vtkCell* cell3D = id3D->GetCell(cellId);
+  strm << "cell3D: " << *cell3D;
+  id3D->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -86,11 +136,12 @@ int TestOID(ostream& strm)
   }
   strm << endl << endl;
 
-  i = 10; j = 15;
+  i = 10;
+  j = 15;
   cellId = j * 19 + i;
-  vtkCell *cell2D = id2Dxy->GetCell(cellId);
-  strm << "cell2D: " << *cell2D ;
-  id2Dxy->GetCellPoints (cellId, ids);
+  vtkCell* cell2D = id2Dxy->GetCell(cellId);
+  strm << "cell2D: " << *cell2D;
+  id2Dxy->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -98,12 +149,12 @@ int TestOID(ostream& strm)
   }
   strm << endl << endl;
 
-
-  i = 10; j = 15;
+  i = 10;
+  j = 15;
   cellId = j * 19 + i;
   cell2D = id2Dxz->GetCell(j * 19 + i);
-  strm << "cell2D: " << *cell2D ;
-  id2Dxz->GetCellPoints (cellId, ids);
+  strm << "cell2D: " << *cell2D;
+  id2Dxz->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -111,11 +162,12 @@ int TestOID(ostream& strm)
   }
   strm << endl << endl;
 
-  i = 10; j = 15;
+  i = 10;
+  j = 15;
   cellId = j * 19 + i;
   cell2D = id2Dyz->GetCell(j * 19 + i);
-  strm << "cell2D: " << *cell2D ;
-  id2Dyz->GetCellPoints (cellId, ids);
+  strm << "cell2D: " << *cell2D;
+  id2Dyz->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -125,9 +177,9 @@ int TestOID(ostream& strm)
 
   i = 10;
   cellId = i;
-  vtkCell *cell1D = id1Dx->GetCell(i);
+  vtkCell* cell1D = id1Dx->GetCell(i);
   strm << "cell1D: " << *cell1D;
-  id1Dx->GetCellPoints (cellId, ids);
+  id1Dx->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -139,7 +191,7 @@ int TestOID(ostream& strm)
   cellId = i;
   cell1D = id1Dy->GetCell(i);
   strm << "cell1D: " << *cell1D;
-  id1Dy->GetCellPoints (cellId, ids);
+  id1Dy->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -151,7 +203,7 @@ int TestOID(ostream& strm)
   cellId = i;
   cell1D = id1Dz->GetCell(i);
   strm << "cell1D: " << *cell1D;
-  id1Dz->GetCellPoints (cellId, ids);
+  id1Dz->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -160,9 +212,9 @@ int TestOID(ostream& strm)
   strm << endl << endl;
 
   cellId = 0;
-  vtkCell *cell0D = id0D->GetCell(0);
+  vtkCell* cell0D = id0D->GetCell(0);
   strm << "cell0D: " << *cell0D;
-  id0D->GetCellPoints (cellId, ids);
+  id0D->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -171,12 +223,14 @@ int TestOID(ostream& strm)
   strm << endl << endl;
 
   // Test GetCell(i,j,k)
-  i = 10; j = 15; k = 7;
+  i = 10;
+  j = 15;
+  k = 7;
   cellId = k * (19 * 19) + j * 19 + i;
-  cell3D = id3D->GetCell(i,j,k);
-  if (cell3D == NULL)
+  cell3D = id3D->GetCell(i, j, k);
+  if (cell3D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell3D->GetCellType() != VTK_VOXEL)
@@ -185,8 +239,8 @@ int TestOID(ostream& strm)
               << "Expected: " << VTK_VOXEL << " Returned: " << cell3D->GetCellType() << '\n';
     return 1;
   }
-  strm << "cell3D: " << *cell3D ;
-  id3D->GetCellPoints (cellId, ids);
+  strm << "cell3D: " << *cell3D;
+  id3D->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -194,12 +248,13 @@ int TestOID(ostream& strm)
   }
   strm << endl << endl;
 
-  i = 10; j = 15;
+  i = 10;
+  j = 15;
   cellId = j * 19 + i;
-  cell2D = id2Dxy->GetCell(i,j,0);
-  if (cell2D == NULL)
+  cell2D = id2Dxy->GetCell(i, j, 0);
+  if (cell2D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell2D->GetCellType() != VTK_PIXEL)
@@ -210,13 +265,13 @@ int TestOID(ostream& strm)
   }
   double bounds[6];
   cell2D->GetBounds(bounds);
-  if (!vtkMathUtilities::FuzzyCompare(bounds[4],bounds[5]))
+  if (!vtkMathUtilities::FuzzyCompare(bounds[4], bounds[5]))
   {
     std::cerr << "id2Dxy has finite width along z\n";
     return 1;
   }
-  strm << "cell2D: " << *cell2D ;
-  id2Dxy->GetCellPoints (cellId, ids);
+  strm << "cell2D: " << *cell2D;
+  id2Dxy->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -224,12 +279,13 @@ int TestOID(ostream& strm)
   }
   strm << endl << endl;
 
-  i = 10; j = 15;
+  i = 10;
+  j = 15;
   cellId = j * 19 + i;
-  cell2D = id2Dxz->GetCell(i,0,j);
-  if (cell2D == NULL)
+  cell2D = id2Dxz->GetCell(i, 0, j);
+  if (cell2D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell2D->GetCellType() != VTK_PIXEL)
@@ -239,13 +295,13 @@ int TestOID(ostream& strm)
     return 1;
   }
   cell2D->GetBounds(bounds);
-  if (!vtkMathUtilities::FuzzyCompare(bounds[2],bounds[3]))
+  if (!vtkMathUtilities::FuzzyCompare(bounds[2], bounds[3]))
   {
     std::cerr << "id2Dxz has finite width along y\n";
     return 1;
   }
-  strm << "cell2D: " << *cell2D ;
-  id2Dxz->GetCellPoints (cellId, ids);
+  strm << "cell2D: " << *cell2D;
+  id2Dxz->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -253,12 +309,13 @@ int TestOID(ostream& strm)
   }
   strm << endl << endl;
 
-  i = 10; j = 15;
+  i = 10;
+  j = 15;
   cellId = j * 19 + i;
-  cell2D = id2Dyz->GetCell(0,i,j);
-  if (cell2D == NULL)
+  cell2D = id2Dyz->GetCell(0, i, j);
+  if (cell2D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell2D->GetCellType() != VTK_PIXEL)
@@ -268,13 +325,13 @@ int TestOID(ostream& strm)
     return 1;
   }
   cell2D->GetBounds(bounds);
-  if (!vtkMathUtilities::FuzzyCompare(bounds[0],bounds[1]))
+  if (!vtkMathUtilities::FuzzyCompare(bounds[0], bounds[1]))
   {
     std::cerr << "id2Dyz has finite width along x\n";
     return 1;
   }
-  strm << "cell2D: " << *cell2D ;
-  id2Dyz->GetCellPoints (cellId, ids);
+  strm << "cell2D: " << *cell2D;
+  id2Dyz->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -284,10 +341,10 @@ int TestOID(ostream& strm)
 
   i = 10;
   cellId = i;
-  cell1D = id1Dx->GetCell(i,0,0);
-  if (cell1D == NULL)
+  cell1D = id1Dx->GetCell(i, 0, 0);
+  if (cell1D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell1D->GetCellType() != VTK_LINE)
@@ -297,18 +354,18 @@ int TestOID(ostream& strm)
     return 1;
   }
   cell1D->GetBounds(bounds);
-  if (!vtkMathUtilities::FuzzyCompare(bounds[2],bounds[3]))
+  if (!vtkMathUtilities::FuzzyCompare(bounds[2], bounds[3]))
   {
     std::cerr << "id1Dx has finite width along y\n";
     return 1;
   }
-  else if(!vtkMathUtilities::FuzzyCompare(bounds[4],bounds[5]))
+  else if (!vtkMathUtilities::FuzzyCompare(bounds[4], bounds[5]))
   {
     std::cerr << "id1Dx has finite width along z\n";
     return 1;
   }
   strm << "cell1D: " << *cell1D;
-  id1Dx->GetCellPoints (cellId, ids);
+  id1Dx->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -318,10 +375,10 @@ int TestOID(ostream& strm)
 
   i = 10;
   cellId = i;
-  cell1D = id1Dy->GetCell(0,i,0);
-  if (cell1D == NULL)
+  cell1D = id1Dy->GetCell(0, i, 0);
+  if (cell1D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell1D->GetCellType() != VTK_LINE)
@@ -331,18 +388,18 @@ int TestOID(ostream& strm)
     return 1;
   }
   cell1D->GetBounds(bounds);
-  if (!vtkMathUtilities::FuzzyCompare(bounds[0],bounds[1]))
+  if (!vtkMathUtilities::FuzzyCompare(bounds[0], bounds[1]))
   {
     std::cerr << "id1Dy has finite width along x\n";
     return 1;
   }
-  else if(!vtkMathUtilities::FuzzyCompare(bounds[4],bounds[5]))
+  else if (!vtkMathUtilities::FuzzyCompare(bounds[4], bounds[5]))
   {
     std::cerr << "id1Dy has finite width along z\n";
     return 1;
   }
   strm << "cell1D: " << *cell1D;
-  id1Dy->GetCellPoints (cellId, ids);
+  id1Dy->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -352,10 +409,10 @@ int TestOID(ostream& strm)
 
   i = 10;
   cellId = i;
-  cell1D = id1Dz->GetCell(0,0,i);
-  if (cell1D == NULL)
+  cell1D = id1Dz->GetCell(0, 0, i);
+  if (cell1D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell1D->GetCellType() != VTK_LINE)
@@ -365,18 +422,18 @@ int TestOID(ostream& strm)
     return 1;
   }
   cell1D->GetBounds(bounds);
-  if (!vtkMathUtilities::FuzzyCompare(bounds[0],bounds[1]))
+  if (!vtkMathUtilities::FuzzyCompare(bounds[0], bounds[1]))
   {
     std::cerr << "id1Dz has finite width along x\n";
     return 1;
   }
-  else if(!vtkMathUtilities::FuzzyCompare(bounds[2],bounds[3]))
+  else if (!vtkMathUtilities::FuzzyCompare(bounds[2], bounds[3]))
   {
     std::cerr << "id1Dz has finite width along y\n";
     return 1;
   }
   strm << "cell1D: " << *cell1D;
-  id1Dz->GetCellPoints (cellId, ids);
+  id1Dz->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -385,10 +442,10 @@ int TestOID(ostream& strm)
   strm << endl << endl;
 
   cellId = 0;
-  cell0D = id0D->GetCell(0,0,0);
-  if (cell0D == NULL)
+  cell0D = id0D->GetCell(0, 0, 0);
+  if (cell0D == nullptr)
   {
-    std::cerr << "vtkImageData::GetCell returned NULL instead of a valid cell.\n";
+    std::cerr << "vtkImageData::GetCell returned nullptr instead of a valid cell.\n";
     return 1;
   }
   if (cell0D->GetCellType() != VTK_VERTEX)
@@ -398,7 +455,7 @@ int TestOID(ostream& strm)
     return 1;
   }
   strm << "cell0D: " << *cell0D;
-  id0D->GetCellPoints (cellId, ids);
+  id0D->GetCellPoints(cellId, ids);
   strm << "Ids for cell " << cellId << " are ";
   for (ii = 0; ii < ids->GetNumberOfIds(); ii++)
   {
@@ -407,291 +464,276 @@ int TestOID(ostream& strm)
   strm << endl << endl;
 
   // Test Thread Safe GetCell
-  vtkGenericCell *gcell3D = vtkGenericCell::New();
-  vtkGenericCell *gcell2D = vtkGenericCell::New();
-  vtkGenericCell *gcell1D = vtkGenericCell::New();
-  vtkGenericCell *gcell0D = vtkGenericCell::New();
-  i = 10; j = 15; k = 7;
+  vtkGenericCell* gcell3D = vtkGenericCell::New();
+  vtkGenericCell* gcell2D = vtkGenericCell::New();
+  vtkGenericCell* gcell1D = vtkGenericCell::New();
+  vtkGenericCell* gcell0D = vtkGenericCell::New();
+  i = 10;
+  j = 15;
+  k = 7;
   id3D->GetCell(k * (19 * 19) + j * 19 + i, gcell3D);
-  strm << "gcell3D: " << *gcell3D ;
-
-  i = 10; j = 15;
-  id2Dxy->GetCell(j * 19 + i,gcell2D);
-  strm << "gcell2D: " << *gcell2D ;
-
-  i = 10; j = 15;
-  id2Dxz->GetCell(j * 19 + i,gcell2D);
-  strm << "gcell2D: " << *gcell2D ;
-
-  i = 10; j = 15;
-  id2Dxz->GetCell(j * 19 + i,gcell2D);
-  strm << "gcell2D: " << *gcell2D ;
-
-  i = 10; j = 15;
-  id2Dyz->GetCell(j * 19 + i,gcell2D);
-  strm << "gcell2D: " << *gcell2D ;
+  strm << "gcell3D: " << *gcell3D;
 
   i = 10;
-  id1Dx->GetCell(i,gcell1D);
+  j = 15;
+  id2Dxy->GetCell(j * 19 + i, gcell2D);
+  strm << "gcell2D: " << *gcell2D;
+
+  i = 10;
+  j = 15;
+  id2Dxz->GetCell(j * 19 + i, gcell2D);
+  strm << "gcell2D: " << *gcell2D;
+
+  i = 10;
+  j = 15;
+  id2Dxz->GetCell(j * 19 + i, gcell2D);
+  strm << "gcell2D: " << *gcell2D;
+
+  i = 10;
+  j = 15;
+  id2Dyz->GetCell(j * 19 + i, gcell2D);
+  strm << "gcell2D: " << *gcell2D;
+
+  i = 10;
+  id1Dx->GetCell(i, gcell1D);
   strm << "gcell1D: " << *gcell1D;
 
   i = 10;
-  id1Dy->GetCell(i,gcell1D);
+  id1Dy->GetCell(i, gcell1D);
   strm << "gcell1D: " << *gcell1D;
 
   i = 10;
-  id1Dz->GetCell(i,gcell1D);
+  id1Dz->GetCell(i, gcell1D);
   strm << "gcell1D: " << *gcell1D;
 
   i = 10;
-  id0D->GetCell(0,gcell0D);
+  id0D->GetCell(0, gcell0D);
   strm << "gcell0D: " << *gcell0D;
 
   // Test GetCellBounds
   id3D->GetCellBounds(k * (19 * 19) + j * 19 + i, bounds);
-  strm << "GetCellBounds(id3D): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id3D): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id2Dxy->GetCellBounds(j * 19 + i, bounds);
-  strm << "GetCellBounds(id2Dxy): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id2Dxy): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id2Dxz->GetCellBounds(j * 19 + i, bounds);
-  strm << "GetCellBounds(id2Dxz): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id2Dxz): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id2Dyz->GetCellBounds(j * 19 + i, bounds);
-  strm << "GetCellBounds(id2Dyz): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id2Dyz): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id1Dx->GetCellBounds(i, bounds);
-  strm << "GetCellBounds(rg1x): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(rg1x): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id1Dy->GetCellBounds(i, bounds);
-  strm << "GetCellBounds(id1Dy): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id1Dy): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id1Dz->GetCellBounds(i, bounds);
-  strm << "GetCellBounds(id1Dz): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id1Dz): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   id0D->GetCellBounds(i, bounds);
-  strm << "GetCellBounds(id0D): "
-       << bounds[0] << ", " << bounds[1] << ", "
-       << bounds[2] << ", " << bounds[3] << ", "
-       << bounds[4] << ", " << bounds[5] << endl;
+  strm << "GetCellBounds(id0D): " << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << ", "
+       << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << endl;
 
   // Test GetPoint
 
   double point[6];
   id3D->GetPoint(k * (20 * 20) + j * 20 + i, point);
-  strm << "GetPoint(id3D): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(id3D): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   id2Dxy->GetPoint(j * 20 + i, point);
-  strm << "GetPoint(id2Dxy): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(id2Dxy): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   id2Dxz->GetPoint(j * 20 + i, point);
-  strm << "GetPoint(id2Dxz): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(id2Dxz): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  id2Dyz->GetPoint(j * 20  + i, point);
-  strm << "GetPoint(id2Dyz): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  id2Dyz->GetPoint(j * 20 + i, point);
+  strm << "GetPoint(id2Dyz): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   id1Dx->GetPoint(i, point);
-  strm << "GetPoint(rg1x): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(rg1x): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   id1Dy->GetPoint(i, point);
-  strm << "GetPoint(id1Dy): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(id1Dy): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   id1Dz->GetPoint(i, point);
-  strm << "GetPoint(id1Dz): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(id1Dz): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   id0D->GetPoint(0, point);
-  strm << "GetPoint(id0D): "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "GetPoint(id0D): " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   // Test FindPoint
 
-  double point3D[3] = {10, 12, 14};
+  double point3D[3] = { 10, 12, 14 };
 
   id3D->GetPoint(id3D->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  point3D[0] = 10; point3D[1] = 12; point3D[2] = 0;
+  point3D[0] = 10;
+  point3D[1] = 12;
+  point3D[2] = 0;
   id2Dxy->GetPoint(id2Dxy->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  point3D[0] = 10; point3D[1] = 0; point3D[2] = 14;
+  point3D[0] = 10;
+  point3D[1] = 0;
+  point3D[2] = 14;
   id2Dxz->GetPoint(id2Dxz->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  point3D[0] = 0; point3D[1] = 12; point3D[2] = 14;
+  point3D[0] = 0;
+  point3D[1] = 12;
+  point3D[2] = 14;
   id2Dyz->GetPoint(id2Dyz->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  point3D[0] = 10; point3D[1] = 0; point3D[2] = 0;
+  point3D[0] = 10;
+  point3D[1] = 0;
+  point3D[2] = 0;
   id1Dx->GetPoint(id1Dx->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  point3D[0] = 0; point3D[1] = 12; point3D[2] = 0;
+  point3D[0] = 0;
+  point3D[1] = 12;
+  point3D[2] = 0;
   id1Dy->GetPoint(id1Dy->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
-  point3D[0] = 0; point3D[1] = 0; point3D[2] = 14;
+  point3D[0] = 0;
+  point3D[1] = 0;
+  point3D[2] = 14;
   id1Dz->GetPoint(id1Dz->FindPoint(point3D), point);
-  strm << "FindPoint("
-       << point3D[0] << ", " << point3D[1] << ", " << point3D[2] << ") = "
-       << point[0] << ", " << point[1] << ", " << point[2] << endl;
+  strm << "FindPoint(" << point3D[0] << ", " << point3D[1] << ", " << point3D[2]
+       << ") = " << point[0] << ", " << point[1] << ", " << point[2] << endl;
 
   // Test FindAndGetCell
 
   double pcoords[3], weights[8];
   int subId;
-  vtkCell *dummyCell = NULL;
+  vtkCell* dummyCell = nullptr;
 
   point3D[0] = 10.5;
   point3D[1] = 12.1;
   point3D[2] = 14.7;
 
-  strm << "FindAndGetCell(id3D): " << *id3D->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  strm << "pcoords: "
-       << pcoords[0] << ", " << pcoords[1] << ", " << pcoords[2] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << ", "
-       << weights[2] << ", " << weights[3] << ", "
-       << weights[4] << ", " << weights[5] << ", "
-       << weights[6] << ", " << weights[7] << endl;
+  strm << "FindAndGetCell(id3D): "
+       << *id3D->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
+  strm << "pcoords: " << pcoords[0] << ", " << pcoords[1] << ", " << pcoords[2] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << ", " << weights[2] << ", "
+       << weights[3] << ", " << weights[4] << ", " << weights[5] << ", " << weights[6] << ", "
+       << weights[7] << endl;
 
-  point3D[0] = 10.5; point3D[1] = 12.1; point3D[2] = 0;
+  point3D[0] = 10.5;
+  point3D[1] = 12.1;
+  point3D[2] = 0;
   pcoords[0] = pcoords[1] = pcoords[2] = 0.0;
-  dummyCell = 0;
-  vtkCell *found = id2Dxy->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  if (found == NULL)
+  dummyCell = nullptr;
+  vtkCell* found = id2Dxy->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
+  if (found == nullptr)
   {
     strm << "FindAndGetCell(id2Dxy) not found!" << endl;
     return 1;
   }
 
   strm << "FindAndGetCell(id2Dxy): " << *found;
-  strm << "pcoords: "
-       << pcoords[0] << ", " << pcoords[1] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << ", " << weights[2] << ", " << weights[3] << endl;
+  strm << "pcoords: " << pcoords[0] << ", " << pcoords[1] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << ", " << weights[2] << ", "
+       << weights[3] << endl;
 
-  point3D[0] = 10.5; point3D[1] = 0.0; point3D[2] = 14.7;
+  point3D[0] = 10.5;
+  point3D[1] = 0.0;
+  point3D[2] = 14.7;
   pcoords[0] = pcoords[1] = pcoords[2] = 0.0;
   weights[0] = weights[1] = weights[2] = weights[3] = 0.0;
-  dummyCell = 0;
+  dummyCell = nullptr;
   found = id2Dxz->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  if (found == NULL)
+  if (found == nullptr)
   {
     strm << "FindAndGetCell(id2Dxz) not found!" << endl;
     return 1;
   }
 
   strm << "FindAndGetCell(id2Dxz): " << *found;
-  strm << "pcoords: "
-       << pcoords[0] << ", " << pcoords[1] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << ", " << weights[2] << ", " << weights[3] << endl;
+  strm << "pcoords: " << pcoords[0] << ", " << pcoords[1] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << ", " << weights[2] << ", "
+       << weights[3] << endl;
 
-  point3D[0] = 0.0; point3D[1] = 12.1; point3D[2] = 14.7;
+  point3D[0] = 0.0;
+  point3D[1] = 12.1;
+  point3D[2] = 14.7;
   pcoords[0] = pcoords[1] = pcoords[2] = 0.0;
   weights[0] = weights[1] = weights[2] = weights[3] = 0.0;
-  dummyCell = 0;
+  dummyCell = nullptr;
   found = id2Dyz->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  if (found == NULL)
+  if (found == nullptr)
   {
     strm << "FindAndGetCell(id2Dyz) not found!" << endl;
     return 1;
   }
 
   strm << "FindAndGetCell(id2Dyz): " << *found;
-  strm << "pcoords: "
-       << pcoords[0] << ", " << pcoords[1] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << ", " << weights[2] << ", " << weights[3] << endl;
+  strm << "pcoords: " << pcoords[0] << ", " << pcoords[1] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << ", " << weights[2] << ", "
+       << weights[3] << endl;
 
-  point3D[0] = 10.5; point3D[1] = 0.0; point3D[2] = 0.0;
-  dummyCell = 0;
+  point3D[0] = 10.5;
+  point3D[1] = 0.0;
+  point3D[2] = 0.0;
+  dummyCell = nullptr;
   found = id1Dx->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  if (found == NULL)
+  if (found == nullptr)
   {
     strm << "FindAndGetCell(id1Dx) not found!" << endl;
     return 1;
   }
 
   strm << "FindAndGetCell(id1Dx): " << *found;
-  strm << "pcoords: "
-       << pcoords[0] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << endl;
+  strm << "pcoords: " << pcoords[0] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << endl;
 
-
-  point3D[0] = 0.0; point3D[1] = 12.1; point3D[2] = 0.0;
-  dummyCell = 0;
+  point3D[0] = 0.0;
+  point3D[1] = 12.1;
+  point3D[2] = 0.0;
+  dummyCell = nullptr;
   found = id1Dy->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  if (found == NULL)
+  if (found == nullptr)
   {
     strm << "FindAndGetCell(id1Dy) not found!" << endl;
     return 1;
   }
 
   strm << "FindAndGetCell(id1Dy): " << *found;
-  strm << "pcoords: "
-       << pcoords[0] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << endl;
+  strm << "pcoords: " << pcoords[0] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << endl;
 
-
-  point3D[0] = 0.0; point3D[1] = 0.0; point3D[2] = 14.7;
-  dummyCell = 0;
+  point3D[0] = 0.0;
+  point3D[1] = 0.0;
+  point3D[2] = 14.7;
+  dummyCell = nullptr;
   found = id1Dz->FindAndGetCell(point3D, dummyCell, 0, 0, subId, pcoords, weights);
-  if (found == NULL)
+  if (found == nullptr)
   {
     strm << "FindAndGetCell(id1Dz) not found!" << endl;
     return 1;
   }
 
   strm << "FindAndGetCell(id1Dz): " << *found;
-  strm << "pcoords: "
-       << pcoords[0] << endl;
-  strm << "weights: "
-       << weights[0] << ", " << weights[1] << endl;
-
+  strm << "pcoords: " << pcoords[0] << endl;
+  strm << "weights: " << weights[0] << ", " << weights[1] << endl;
 
   // Test GetCellType
 
@@ -736,7 +778,7 @@ int TestOID(ostream& strm)
   return 0;
 }
 
-int otherImageData(int,char *[])
+int otherImageData(int, char*[])
 {
   std::ostringstream vtkmsg_with_warning_C4701;
   return TestOID(vtkmsg_with_warning_C4701);

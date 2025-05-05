@@ -24,52 +24,36 @@
  * using a vtkPlotBox instance.
  * The filter internally uses vtkOrderStatistics to compute quartiles.
  *
+ * Note: This class is being kept for backwards compatibility. Please use vtkComputeQuantiles
+ * instead which is the generalized version of this filter.
+ *
  * @sa
  * vtkTableAlgorithm vtkOrderStatistics vtkPlotBox vtkChartBox
  *
  * @par Thanks:
  * This class was written by Kitware SAS and supported by EDF - www.edf.fr
-*/
+ */
 
 #ifndef vtkComputeQuartiles_h
 #define vtkComputeQuartiles_h
 
+#include "vtkComputeQuantiles.h"
 #include "vtkFiltersStatisticsModule.h" // For export macro
-#include "vtkTableAlgorithm.h"
 
-class vtkDataSet;
-class vtkDoubleArray;
-class vtkFieldData;
-class vtkTable;
-
-
-class VTKFILTERSSTATISTICS_EXPORT vtkComputeQuartiles : public vtkTableAlgorithm
+class VTKFILTERSSTATISTICS_EXPORT vtkComputeQuartiles : public vtkComputeQuantiles
 {
 public:
   static vtkComputeQuartiles* New();
-  vtkTypeMacro(vtkComputeQuartiles, vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkComputeQuartiles, vtkComputeQuantiles);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
   vtkComputeQuartiles();
-  ~vtkComputeQuartiles() VTK_OVERRIDE;
-
-  int FillInputPortInformation (int port, vtkInformation *info) VTK_OVERRIDE;
-
-  int RequestData(vtkInformation *request,
-                  vtkInformationVector **inputVector,
-                  vtkInformationVector *outputVector) VTK_OVERRIDE;
-
-  void ComputeTable(vtkDataObject*, vtkTable*, vtkIdType);
-
-  int FieldAssociation;
+  ~vtkComputeQuartiles() override = default;
 
 private:
-  void operator=(const vtkComputeQuartiles&) VTK_DELETE_FUNCTION;
-  vtkComputeQuartiles(const vtkComputeQuartiles&) VTK_DELETE_FUNCTION;
-
-  int GetInputFieldAssociation();
-  vtkFieldData* GetInputFieldData(vtkDataObject* input);
+  void operator=(const vtkComputeQuartiles&) = delete;
+  vtkComputeQuartiles(const vtkComputeQuartiles&) = delete;
 };
 
 #endif

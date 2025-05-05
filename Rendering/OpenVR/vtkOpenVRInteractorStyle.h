@@ -14,38 +14,46 @@ PURPOSE.  See the above copyright notice for more information.
 =========================================================================*/
 /**
  * @class   vtkOpenVRInteractorStyle
- * @brief   extended from vtkInteractorStyle3D to override command methods
-*/
+ * @brief   Implements OpenVR specific functions required by vtkVRInteractorStyle.
+ */
 
 #ifndef vtkOpenVRInteractorStyle_h
 #define vtkOpenVRInteractorStyle_h
 
 #include "vtkRenderingOpenVRModule.h" // For export macro
+#include "vtkVRInteractorStyle.h"
 
-#include "vtkInteractorStyle3D.h"
+class vtkRenderWindowInteractor;
+class vtkVRControlsHelper;
 
-class VTKRENDERINGOPENVR_EXPORT vtkOpenVRInteractorStyle : public vtkInteractorStyle3D
+class VTKRENDERINGOPENVR_EXPORT vtkOpenVRInteractorStyle : public vtkVRInteractorStyle
 {
 public:
-  static vtkOpenVRInteractorStyle *New();
-  vtkTypeMacro(vtkOpenVRInteractorStyle, vtkInteractorStyle3D);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkOpenVRInteractorStyle* New();
+  vtkTypeMacro(vtkOpenVRInteractorStyle, vtkVRInteractorStyle);
 
-  //@{
   /**
-  * Override Middle Button to load next camera position
-  */
-  void OnMiddleButtonDown() VTK_OVERRIDE;
-  void OnMiddleButtonUp() VTK_OVERRIDE;
-  //@}
+   * Setup default actions defined with an action path and a corresponding command.
+   */
+  void SetupActions(vtkRenderWindowInteractor* iren) override;
+
+  /**
+   * Load the next camera pose.
+   */
+  void LoadNextCameraPose() override;
+
+  /**
+   * Creates a new ControlsHelper suitable for use with this class.
+   */
+  vtkVRControlsHelper* MakeControlsHelper() override;
 
 protected:
-  vtkOpenVRInteractorStyle();
-  ~vtkOpenVRInteractorStyle() VTK_OVERRIDE;
+  vtkOpenVRInteractorStyle() = default;
+  ~vtkOpenVRInteractorStyle() override = default;
 
 private:
-  vtkOpenVRInteractorStyle(const vtkOpenVRInteractorStyle&) VTK_DELETE_FUNCTION;  // Not implemented.
-  void operator=(const vtkOpenVRInteractorStyle&) VTK_DELETE_FUNCTION;  // Not implemented.
+  vtkOpenVRInteractorStyle(const vtkOpenVRInteractorStyle&) = delete;
+  void operator=(const vtkOpenVRInteractorStyle&) = delete;
 };
 
 #endif

@@ -13,47 +13,40 @@
 
 =========================================================================*/
 #include "vtkRectilinearWipeWidget.h"
-#include "vtkRectilinearWipeRepresentation.h"
-#include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
-#include "vtkRenderWindowInteractor.h"
-#include "vtkRenderer.h"
-#include "vtkRenderWindow.h"
+#include "vtkCommand.h"
+#include "vtkEvent.h"
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
-#include "vtkWidgetEventTranslator.h"
+#include "vtkRectilinearWipeRepresentation.h"
+#include "vtkRenderWindow.h"
+#include "vtkRenderWindowInteractor.h"
+#include "vtkRenderer.h"
 #include "vtkWidgetCallbackMapper.h"
-#include "vtkEvent.h"
 #include "vtkWidgetEvent.h"
-
+#include "vtkWidgetEventTranslator.h"
 
 vtkStandardNewMacro(vtkRectilinearWipeWidget);
 
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkRectilinearWipeWidget::vtkRectilinearWipeWidget()
 {
   // Establish the initial widget state
   this->WidgetState = vtkRectilinearWipeWidget::Start;
 
   // Define widget events
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkWidgetEvent::Select,
-                                          this, vtkRectilinearWipeWidget::SelectAction);
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent, vtkWidgetEvent::Select,
+    this, vtkRectilinearWipeWidget::SelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent,
-                                          vtkWidgetEvent::EndSelect,
-                                          this, vtkRectilinearWipeWidget::EndSelectAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
-                                          vtkWidgetEvent::Move,
-                                          this, vtkRectilinearWipeWidget::MoveAction);
+    vtkWidgetEvent::EndSelect, this, vtkRectilinearWipeWidget::EndSelectAction);
+  this->CallbackMapper->SetCallbackMethod(
+    vtkCommand::MouseMoveEvent, vtkWidgetEvent::Move, this, vtkRectilinearWipeWidget::MoveAction);
 }
 
-//----------------------------------------------------------------------
-vtkRectilinearWipeWidget::~vtkRectilinearWipeWidget()
-{
-}
+//------------------------------------------------------------------------------
+vtkRectilinearWipeWidget::~vtkRectilinearWipeWidget() = default;
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkRectilinearWipeWidget::SetCursor(int cState)
 {
   switch (cState)
@@ -72,12 +65,12 @@ void vtkRectilinearWipeWidget::SetCursor(int cState)
   }
 }
 
-//----------------------------------------------------------------------
-void vtkRectilinearWipeWidget::SelectAction(vtkAbstractWidget *w)
+//------------------------------------------------------------------------------
+void vtkRectilinearWipeWidget::SelectAction(vtkAbstractWidget* w)
 {
-  vtkRectilinearWipeWidget *self = reinterpret_cast<vtkRectilinearWipeWidget*>(w);
+  vtkRectilinearWipeWidget* self = reinterpret_cast<vtkRectilinearWipeWidget*>(w);
 
-  if ( self->WidgetRep->GetInteractionState() == vtkRectilinearWipeRepresentation::Outside )
+  if (self->WidgetRep->GetInteractionState() == vtkRectilinearWipeRepresentation::Outside)
   {
     return;
   }
@@ -103,20 +96,20 @@ void vtkRectilinearWipeWidget::SelectAction(vtkAbstractWidget *w)
 
   self->EventCallbackCommand->SetAbortFlag(1);
   self->StartInteraction();
-  self->InvokeEvent(vtkCommand::StartInteractionEvent,NULL);
+  self->InvokeEvent(vtkCommand::StartInteractionEvent, nullptr);
 }
 
-//----------------------------------------------------------------------
-void vtkRectilinearWipeWidget::MoveAction(vtkAbstractWidget *w)
+//------------------------------------------------------------------------------
+void vtkRectilinearWipeWidget::MoveAction(vtkAbstractWidget* w)
 {
-  vtkRectilinearWipeWidget *self = reinterpret_cast<vtkRectilinearWipeWidget*>(w);
+  vtkRectilinearWipeWidget* self = reinterpret_cast<vtkRectilinearWipeWidget*>(w);
 
   // compute some info we need for all cases
   int X = self->Interactor->GetEventPosition()[0];
   int Y = self->Interactor->GetEventPosition()[1];
 
   // Set the cursor appropriately
-  if ( self->WidgetState != vtkRectilinearWipeWidget::Selected )
+  if (self->WidgetState != vtkRectilinearWipeWidget::Selected)
   {
     self->WidgetRep->ComputeInteractionState(X, Y);
     self->SetCursor(self->WidgetRep->GetInteractionState());
@@ -131,17 +124,17 @@ void vtkRectilinearWipeWidget::MoveAction(vtkAbstractWidget *w)
 
   // moving something
   self->EventCallbackCommand->SetAbortFlag(1);
-  self->InvokeEvent(vtkCommand::InteractionEvent,NULL);
+  self->InvokeEvent(vtkCommand::InteractionEvent, nullptr);
   self->Render();
 }
 
-//----------------------------------------------------------------------
-void vtkRectilinearWipeWidget::EndSelectAction(vtkAbstractWidget *w)
+//------------------------------------------------------------------------------
+void vtkRectilinearWipeWidget::EndSelectAction(vtkAbstractWidget* w)
 {
-  vtkRectilinearWipeWidget *self = reinterpret_cast<vtkRectilinearWipeWidget*>(w);
+  vtkRectilinearWipeWidget* self = reinterpret_cast<vtkRectilinearWipeWidget*>(w);
 
-  if ( self->WidgetState != vtkRectilinearWipeWidget::Selected  ||
-       self->WidgetRep->GetInteractionState() == vtkRectilinearWipeRepresentation::Outside )
+  if (self->WidgetState != vtkRectilinearWipeWidget::Selected ||
+    self->WidgetRep->GetInteractionState() == vtkRectilinearWipeRepresentation::Outside)
   {
     return;
   }
@@ -152,24 +145,22 @@ void vtkRectilinearWipeWidget::EndSelectAction(vtkAbstractWidget *w)
 
   self->EventCallbackCommand->SetAbortFlag(1);
   self->EndInteraction();
-  self->InvokeEvent(vtkCommand::EndInteractionEvent,NULL);
+  self->InvokeEvent(vtkCommand::EndInteractionEvent, nullptr);
   self->WidgetState = vtkRectilinearWipeWidget::Start;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkRectilinearWipeWidget::CreateDefaultRepresentation()
 {
-  if ( ! this->WidgetRep )
+  if (!this->WidgetRep)
   {
     this->WidgetRep = vtkRectilinearWipeRepresentation::New();
   }
 }
 
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkRectilinearWipeWidget::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
-
+  // Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
+  this->Superclass::PrintSelf(os, indent);
 }

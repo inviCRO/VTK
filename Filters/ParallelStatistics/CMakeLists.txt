@@ -1,13 +1,15 @@
-set(Module_SRCS
-  vtkPAutoCorrelativeStatistics.cxx
-  vtkPContingencyStatistics.cxx
-  vtkPCorrelativeStatistics.cxx
-  vtkPDescriptiveStatistics.cxx
-  vtkPKMeansStatistics.cxx
-  vtkPMultiCorrelativeStatistics.cxx
-  vtkPOrderStatistics.cxx
-  vtkPPCAStatistics.cxx
-  vtkPBivariateLinearTableThreshold.cxx
-  )
+set(classes
+  vtkPAutoCorrelativeStatistics
+  vtkPBivariateLinearTableThreshold
+  vtkPComputeQuantiles
+  vtkPComputeQuartiles
+  vtkPContingencyStatistics
+  vtkPCorrelativeStatistics
+  vtkPDescriptiveStatistics
+  vtkPKMeansStatistics
+  vtkPMultiCorrelativeStatistics
+  vtkPOrderStatistics
+  vtkPPCAStatistics)
 
-vtk_module_library(vtkFiltersParallelStatistics ${Module_SRCS})
+vtk_module_add_module(VTK::FiltersParallelStatistics
+  CLASSES ${classes})

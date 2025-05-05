@@ -6,7 +6,7 @@ all of the tribal knowledge around it.
 ## Current Maintainers
 
   - Ben Boeckel (@ben.boeckel) <ben.boeckel@kitware.com>
-  - Dave DeMarle (@demarle) <dave.demarle@kitware.com>
+  - TJ Corona (@tjcorona) <tj.corona@kitware.com>
   - Chuck Atkins (@chuck.atkins) <chuck.atkins@kitware.com>
 
 ## Initial steps
@@ -22,12 +22,12 @@ another for rc1). Plausible deadlines should be used; they can be edited later.
 
 ### Annoucements
 
-Announcements should be sent to developers first and Linux distribution
+Announcements should be posted on the [VTK Discourse][] forum and Linux distribution
 maintainers.
 
-#### Mailing List
+#### VTK Community Announcement
 
-Announce to the developer list (vtk-developers@vtk.org) that a release is being
+Announce to the [Development][] category that a release is being
 planned. Template:
 
     Hi,
@@ -60,6 +60,16 @@ Here are some places to look for patches:
     * https://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/sci-libs/vtk/files/
   - openSUSE
     * https://build.opensuse.org/package/show/openSUSE:Factory/vtk
+
+### Increment the Version Number
+
+If the version number in CMake/vtkVersion.cmake is not already set accordingly,
+submit a merge request to update VTK's version number in the master branch to
+what the new release is to be called by. Any point beyond that in the master
+branch could serve as the start of the new release branch.
+
+After creating the release branch, submit another merge request to update the
+master branch's minor version number.
 
 ### Creating the Branch
 
@@ -187,7 +197,7 @@ endings.
 ### Documentation
 
 On a machine with `doxygen` installed, configure a build with
-`BUILD_DOCUMENTATION=ON` and run the `DoxygenDoc` target. To create the
+`VTK_BUILD_DOCUMENTATION=ON` and run the `DoxygenDoc` target. To create the
 documentation tarball, run:
 
 ```sh
@@ -326,8 +336,11 @@ Previous examples:
 
 ## Announcing
 
-Sen and email to `vtk-developers@vtk.org`, `vtkusers@vtk.org`. Also inform
+Send an email to `vtk-developers@vtk.org`, `vtkusers@vtk.org`. Also inform
 `comm@kitware.com`.
 
 For the final release, a blog post, release notes, and a Source article should
 be made.
+
+[VTK Discourse]: https://discourse.vtk.org
+[Development]: https://discourse.vtk.org/c/development

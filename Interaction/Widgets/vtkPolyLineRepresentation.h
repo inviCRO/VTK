@@ -24,24 +24,23 @@
  * Based on vtkCurveRepresentation
  * @sa
  * vtkSplineRepresentation
-*/
+ */
 
 #ifndef vtkPolyLineRepresentation_h
 #define vtkPolyLineRepresentation_h
 
-#include "vtkInteractionWidgetsModule.h" // For export macro
 #include "vtkCurveRepresentation.h"
+#include "vtkInteractionWidgetsModule.h" // For export macro
 
 class vtkPolyLineSource;
-class vtkPoints;
-class vtkPolyData;
+class vtkPointHandleSource;
 
 class VTKINTERACTIONWIDGETS_EXPORT vtkPolyLineRepresentation : public vtkCurveRepresentation
 {
 public:
   static vtkPolyLineRepresentation* New();
   vtkTypeMacro(vtkPolyLineRepresentation, vtkCurveRepresentation);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Grab the polydata (including points) that defines the poly line.
@@ -51,23 +50,23 @@ public:
    * provides the vtkPolyData and the points and polyline are added to
    * it.
    */
-  void GetPolyData(vtkPolyData *pd) VTK_OVERRIDE;
+  void GetPolyData(vtkPolyData* pd) override;
 
   /**
    * Set the number of handles for this widget.
    */
-  void SetNumberOfHandles(int npts) VTK_OVERRIDE;
+  void SetNumberOfHandles(int npts) override;
 
   /**
    * Get the positions of the handles.
    */
-  vtkDoubleArray* GetHandlePositions() VTK_OVERRIDE;
+  vtkDoubleArray* GetHandlePositions() override;
 
   /**
    * Get the true length of the poly line. Calculated as the summed
    * lengths of the individual straight line segments.
    */
-  double GetSummedLength() VTK_OVERRIDE;
+  double GetSummedLength() override;
 
   /**
    * Convenience method to allocate and set the handles from a
@@ -75,27 +74,61 @@ public:
    * the poly line sets Closed to on and disregards the last point,
    * otherwise Closed remains unchanged.
    */
-  void InitializeHandles(vtkPoints* points) VTK_OVERRIDE;
+  void InitializeHandles(vtkPoints* points) override;
 
   /**
    * Build the representation for the poly line.
    */
-  void BuildRepresentation() VTK_OVERRIDE;
+  void BuildRepresentation() override;
 
 protected:
   vtkPolyLineRepresentation();
-  ~vtkPolyLineRepresentation() VTK_OVERRIDE;
+  ~vtkPolyLineRepresentation() override;
 
   // The poly line source
-  vtkPolyLineSource *PolyLineSource;
+  vtkNew<vtkPolyLineSource> PolyLineSource;
 
-  // Specialized method to insert a handle on the poly line.
-  void InsertHandleOnLine(double* pos) VTK_OVERRIDE;
+  /**
+   * Specialized method to insert a handle on the poly line.
+   */
+  int InsertHandleOnLine(double* pos) override;
+
+  /**
+   * Delete all the handles.
+   */
+  void ClearHandles();
+
+  /**
+   * Allocate/Reallocate the handles according
+   * to npts.
+   */
+  void AllocateHandles(int npts);
+
+  /**
+   * Create npts default handles.
+   */
+  void CreateDefaultHandles(int npts);
+
+  /**
+   * Recreate the handles according to a
+   * number of points equal to npts.
+   * It uses the current spline to recompute
+   * the positions of the new handles.
+   */
+  void ReconfigureHandles(int npts);
+
+  // Specialized methods to access handles
+  vtkActor* GetHandleActor(int index) override;
+  vtkHandleSource* GetHandleSource(int index) override;
+  virtual int GetHandleIndex(vtkProp* prop) override;
 
 private:
-  vtkPolyLineRepresentation(const vtkPolyLineRepresentation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPolyLineRepresentation&) VTK_DELETE_FUNCTION;
+  vtkPolyLineRepresentation(const vtkPolyLineRepresentation&) = delete;
+  void operator=(const vtkPolyLineRepresentation&) = delete;
 
+  // Glyphs representing hot spots (e.g., handles)
+  std::vector<vtkSmartPointer<vtkPointHandleSource>> PointHandles;
+  std::vector<vtkSmartPointer<vtkActor>> HandleActors;
 };
 
 #endif

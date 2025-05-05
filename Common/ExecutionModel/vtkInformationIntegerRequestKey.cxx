@@ -17,23 +17,20 @@
 #include "vtkInformation.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
-//----------------------------------------------------------------------------
-vtkInformationIntegerRequestKey::vtkInformationIntegerRequestKey(const char* name, const char* location) :
-  vtkInformationIntegerKey(name, location)
+//------------------------------------------------------------------------------
+vtkInformationIntegerRequestKey::vtkInformationIntegerRequestKey(
+  const char* name, const char* location)
+  : vtkInformationIntegerKey(name, location)
 {
-  this->DataKey = 0;
+  this->DataKey = nullptr;
 }
 
-//----------------------------------------------------------------------------
-vtkInformationIntegerRequestKey::~vtkInformationIntegerRequestKey()
-{
-}
+//------------------------------------------------------------------------------
+vtkInformationIntegerRequestKey::~vtkInformationIntegerRequestKey() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationIntegerRequestKey::CopyDefaultInformation(
-  vtkInformation* request,
-  vtkInformation* fromInfo,
-  vtkInformation* toInfo)
+  vtkInformation* request, vtkInformation* fromInfo, vtkInformation* toInfo)
 {
   if (request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
   {
@@ -41,27 +38,25 @@ void vtkInformationIntegerRequestKey::CopyDefaultInformation(
   }
 }
 
-//----------------------------------------------------------------------------
-bool vtkInformationIntegerRequestKey::NeedToExecute(vtkInformation* pipelineInfo,
-                                                    vtkInformation* dobjInfo)
+//------------------------------------------------------------------------------
+bool vtkInformationIntegerRequestKey::NeedToExecute(
+  vtkInformation* pipelineInfo, vtkInformation* dobjInfo)
 {
-  if (!dobjInfo->Has(this->DataKey) ||
-    dobjInfo->Get(this->DataKey) != pipelineInfo->Get(this))
+  if (!dobjInfo->Has(this->DataKey) || dobjInfo->Get(this->DataKey) != pipelineInfo->Get(this))
   {
     return true;
   }
   return false;
 }
 
-//----------------------------------------------------------------------------
-void vtkInformationIntegerRequestKey::StoreMetaData(vtkInformation*,
-                                                    vtkInformation* pipelineInfo,
-                                                    vtkInformation* dobjInfo)
+//------------------------------------------------------------------------------
+void vtkInformationIntegerRequestKey::StoreMetaData(
+  vtkInformation*, vtkInformation* pipelineInfo, vtkInformation* dobjInfo)
 {
   dobjInfo->Set(this->DataKey, pipelineInfo->Get(this));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationIntegerRequestKey::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

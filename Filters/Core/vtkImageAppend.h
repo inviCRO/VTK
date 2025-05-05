@@ -24,7 +24,7 @@
  * The output has the same origin and spacing as the first input.
  * The origin and spacing of all other inputs are ignored.  All inputs
  * must have the same scalar type.
-*/
+ */
 
 #ifndef vtkImageAppend_h
 #define vtkImageAppend_h
@@ -35,9 +35,9 @@
 class VTKFILTERSCORE_EXPORT vtkImageAppend : public vtkThreadedImageAlgorithm
 {
 public:
-  static vtkImageAppend *New();
-  vtkTypeMacro(vtkImageAppend,vtkThreadedImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkImageAppend* New();
+  vtkTypeMacro(vtkImageAppend, vtkThreadedImageAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Replace one of the input connections with a new input.  You can
@@ -47,34 +47,34 @@ public:
    */
   virtual void ReplaceNthInputConnection(int idx, vtkAlgorithmOutput* input);
 
-  //@{
+  ///@{
   /**
    * Assign a data object as input. Note that this method does not
    * establish a pipeline connection. Use SetInputConnection() to
    * setup a pipeline connection.
    */
-  void SetInputData(int num, vtkDataObject *input);
-  void SetInputData(vtkDataObject *input) { this->SetInputData(0, input); };
-  //@}
+  void SetInputData(int idx, vtkDataObject* input);
+  void SetInputData(vtkDataObject* input) { this->SetInputData(0, input); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get one input to this filter. This method is only for support of
    * old-style pipeline connections.  When writing new code you should
    * use vtkAlgorithm::GetInputConnection(0, num).
    */
-  vtkDataObject *GetInput(int num);
-  vtkDataObject *GetInput() { return this->GetInput(0); };
-  //@}
+  vtkDataObject* GetInput(int idx);
+  vtkDataObject* GetInput() { return this->GetInput(0); }
+  ///@}
 
   /**
    * Get the number of inputs to this filter. This method is only for
    * support of old-style pipeline connections.  When writing new code
    * you should use vtkAlgorithm::GetNumberOfInputConnections(0).
    */
-  int GetNumberOfInputs() { return this->GetNumberOfInputConnections(0); };
+  int GetNumberOfInputs() { return this->GetNumberOfInputConnections(0); }
 
-  //@{
+  ///@{
   /**
    * This axis is expanded to hold the multiple images.
    * The default AppendAxis is the X axis.
@@ -83,9 +83,9 @@ public:
    */
   vtkSetMacro(AppendAxis, int);
   vtkGetMacro(AppendAxis, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * By default "PreserveExtents" is off and the append axis is used.
    * When "PreseveExtents" is on, the extent of the inputs is used to
@@ -94,62 +94,46 @@ public:
    * output not covered by the inputs is set to zero.  The origin and
    * spacing is taken from the first input.
    */
-  vtkSetMacro(PreserveExtents, int);
-  vtkGetMacro(PreserveExtents, int);
-  vtkBooleanMacro(PreserveExtents, int);
-  //@}
+  vtkSetMacro(PreserveExtents, vtkTypeBool);
+  vtkGetMacro(PreserveExtents, vtkTypeBool);
+  vtkBooleanMacro(PreserveExtents, vtkTypeBool);
+  ///@}
 
 protected:
   vtkImageAppend();
-  ~vtkImageAppend() VTK_OVERRIDE;
+  ~vtkImageAppend() override;
 
-  int PreserveExtents;
+  vtkTypeBool PreserveExtents;
   int AppendAxis;
   // Array holds the AppendAxisExtent shift for each input.
-  int *Shifts;
+  int* Shifts;
 
-  int RequestInformation (vtkInformation *,
-                          vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int RequestUpdateExtent(vtkInformation *,
-                          vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  void ThreadedRequestData (vtkInformation* request,
-                            vtkInformationVector** inputVector,
-                            vtkInformationVector* outputVector,
-                            vtkImageData ***inData, vtkImageData **outData,
-                            int ext[6], int id) VTK_OVERRIDE;
-
+  void ThreadedRequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector, vtkImageData*** inData, vtkImageData** outData, int ext[6],
+    int id) override;
 
   // see vtkAlgorithm for docs.
-  int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  int FillInputPortInformation(int, vtkInformation*) override;
 
-  void InitOutput(int outExt[6], vtkImageData *outData);
+  void InitOutput(int outExt[6], vtkImageData* outData);
 
-  void InternalComputeInputUpdateExtent(
-    int *inExt, int *outExt, int *inWextent, int whichInput);
+  void InternalComputeInputUpdateExtent(int* inExt, int* outExt, int* inWextent, int whichInput);
 
   // overridden to allocate all of the output arrays, not just active scalars
-  void AllocateOutputData(vtkImageData *out,
-                          vtkInformation* outInfo,
-                          int *uExtent) VTK_OVERRIDE;
-  vtkImageData *AllocateOutputData(vtkDataObject *out,
-                                   vtkInformation* outInfo) VTK_OVERRIDE;
+  void AllocateOutputData(vtkImageData* out, vtkInformation* outInfo, int* uExtent) override;
+  vtkImageData* AllocateOutputData(vtkDataObject* out, vtkInformation* outInfo) override;
 
   // overridden to prevent shallow copies across, since we have to do it elementwise
-  void CopyAttributeData(vtkImageData *in, vtkImageData *out,
-                         vtkInformationVector** inputVector) VTK_OVERRIDE;
-
+  void CopyAttributeData(
+    vtkImageData* in, vtkImageData* out, vtkInformationVector** inputVector) override;
 
 private:
-  vtkImageAppend(const vtkImageAppend&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageAppend&) VTK_DELETE_FUNCTION;
+  vtkImageAppend(const vtkImageAppend&) = delete;
+  void operator=(const vtkImageAppend&) = delete;
 };
 
 #endif
-
-
-
-

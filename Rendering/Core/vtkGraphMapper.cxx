@@ -21,7 +21,6 @@
 
 #include "vtkActor.h"
 #include "vtkActor2D.h"
-#include "vtkMapArrayValues.h"
 #include "vtkCamera.h"
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
@@ -35,6 +34,7 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkLookupTableWithEnabling.h"
+#include "vtkMapArrayValues.h"
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlaneSource.h"
@@ -52,54 +52,50 @@
 
 vtkStandardNewMacro(vtkGraphMapper);
 
-#define VTK_CREATE(type,name) \
-  vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
+#define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkGraphMapper::vtkGraphMapper()
 {
-  this->GraphToPoly       = vtkSmartPointer<vtkGraphToPolyData>::New();
-  this->VertexGlyph       = vtkSmartPointer<vtkVertexGlyphFilter>::New();
-  this->IconTypeToIndex   = vtkSmartPointer<vtkMapArrayValues>::New();
-  this->CircleGlyph       = vtkSmartPointer<vtkGlyph3D>::New();
-  this->CircleOutlineGlyph      = vtkSmartPointer<vtkGlyph3D>::New();
-  this->IconGlyph         = vtkSmartPointer<vtkIconGlyphFilter>::New();
-  this->IconTransform     = vtkSmartPointer<vtkTransformCoordinateSystems>::New();
-  this->EdgeMapper        = vtkSmartPointer<vtkPolyDataMapper>::New();
-  this->VertexMapper      = vtkSmartPointer<vtkPolyDataMapper>::New();
-  this->OutlineMapper     = vtkSmartPointer<vtkPolyDataMapper>::New();
-  this->IconMapper        = vtkSmartPointer<vtkPolyDataMapper2D>::New();
-  this->EdgeActor         = vtkSmartPointer<vtkActor>::New();
-  this->VertexActor       = vtkSmartPointer<vtkActor>::New();
-  this->OutlineActor      = vtkSmartPointer<vtkActor>::New();
-  this->IconActor         = vtkSmartPointer<vtkTexturedActor2D>::New();
+  this->GraphToPoly = vtkSmartPointer<vtkGraphToPolyData>::New();
+  this->VertexGlyph = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+  this->IconTypeToIndex = vtkSmartPointer<vtkMapArrayValues>::New();
+  this->CircleGlyph = vtkSmartPointer<vtkGlyph3D>::New();
+  this->CircleOutlineGlyph = vtkSmartPointer<vtkGlyph3D>::New();
+  this->IconGlyph = vtkSmartPointer<vtkIconGlyphFilter>::New();
+  this->IconTransform = vtkSmartPointer<vtkTransformCoordinateSystems>::New();
+  this->EdgeMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  this->VertexMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  this->OutlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  this->IconMapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+  this->EdgeActor = vtkSmartPointer<vtkActor>::New();
+  this->VertexActor = vtkSmartPointer<vtkActor>::New();
+  this->OutlineActor = vtkSmartPointer<vtkActor>::New();
+  this->IconActor = vtkSmartPointer<vtkTexturedActor2D>::New();
   this->VertexLookupTable = vtkLookupTableWithEnabling::New();
-  this->EdgeLookupTable   = vtkLookupTableWithEnabling::New();
-  this->VertexColorArrayNameInternal = 0;
-  this->EdgeColorArrayNameInternal = 0;
-  this->EnabledEdgesArrayName = 0;
-  this->EnabledVerticesArrayName = 0;
+  this->EdgeLookupTable = vtkLookupTableWithEnabling::New();
+  this->VertexColorArrayNameInternal = nullptr;
+  this->EdgeColorArrayNameInternal = nullptr;
+  this->EnabledEdgesArrayName = nullptr;
+  this->EnabledVerticesArrayName = nullptr;
   this->VertexPointSize = 5;
   this->EdgeLineWidth = 1;
   this->ScaledGlyphs = false;
-  this->ScalingArrayName = 0;
+  this->ScalingArrayName = nullptr;
 
   this->VertexMapper->SetScalarModeToUsePointData();
   this->VertexMapper->SetLookupTable(this->VertexLookupTable);
   this->VertexMapper->SetScalarVisibility(false);
-  this->VertexMapper->ImmediateModeRenderingOn();
   this->VertexActor->PickableOff();
   this->VertexActor->GetProperty()->SetPointSize(this->GetVertexPointSize());
   this->OutlineActor->PickableOff();
-  this->OutlineActor->GetProperty()->SetPointSize(this->GetVertexPointSize()+2);
+  this->OutlineActor->GetProperty()->SetPointSize(this->GetVertexPointSize() + 2);
   this->OutlineActor->SetPosition(0, 0, -0.001);
   this->OutlineActor->GetProperty()->SetRepresentationToWireframe();
   this->OutlineMapper->SetScalarVisibility(false);
-  this->OutlineMapper->ImmediateModeRenderingOn();
   this->EdgeMapper->SetScalarModeToUseCellData();
   this->EdgeMapper->SetLookupTable(this->EdgeLookupTable);
   this->EdgeMapper->SetScalarVisibility(false);
-  this->EdgeMapper->ImmediateModeRenderingOn();
   this->EdgeActor->SetPosition(0, 0, -0.003);
   this->EdgeActor->GetProperty()->SetLineWidth(this->GetEdgeLineWidth());
 
@@ -119,7 +115,7 @@ vtkGraphMapper::vtkGraphMapper()
   this->IconMapper->ScalarVisibilityOff();
 
   this->IconActor->SetMapper(this->IconMapper);
-  this->IconArrayNameInternal = 0;
+  this->IconArrayNameInternal = nullptr;
 
   this->VertexMapper->SetInputConnection(this->VertexGlyph->GetOutputPort());
   this->OutlineMapper->SetInputConnection(this->VertexGlyph->GetOutputPort());
@@ -141,65 +137,64 @@ vtkGraphMapper::vtkGraphMapper()
   this->IconVisibilityOff();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkGraphMapper::~vtkGraphMapper()
 {
   // Delete internally created objects.
   // Note: All of the smartpointer objects
   //       will be deleted for us
 
-  this->SetVertexColorArrayNameInternal(0);
-  this->SetEdgeColorArrayNameInternal(0);
-  this->SetEnabledEdgesArrayName(0);
-  this->SetEnabledVerticesArrayName(0);
-  this->SetIconArrayNameInternal(0);
+  this->SetVertexColorArrayNameInternal(nullptr);
+  this->SetEdgeColorArrayNameInternal(nullptr);
+  this->SetEnabledEdgesArrayName(nullptr);
+  this->SetEnabledVerticesArrayName(nullptr);
+  this->SetIconArrayNameInternal(nullptr);
   this->VertexLookupTable->Delete();
-  this->VertexLookupTable = 0;
+  this->VertexLookupTable = nullptr;
   this->EdgeLookupTable->Delete();
-  this->EdgeLookupTable = 0;
+  this->EdgeLookupTable = nullptr;
   delete[] this->ScalingArrayName;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetIconArrayName(const char* name)
 {
   this->SetIconArrayNameInternal(name);
-  this->IconGlyph->SetInputArrayToProcess(0,0,0,
-          vtkDataObject::FIELD_ASSOCIATION_POINTS,name);
+  this->IconGlyph->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, name);
   this->IconTypeToIndex->SetInputArrayName(name);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkGraphMapper::GetIconArrayName()
 {
   return this->GetIconArrayNameInternal();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetScaledGlyphs(bool arg)
 {
   if (arg)
   {
     if (this->ScalingArrayName)
     {
-      vtkPolyData *circle = this->CreateCircle(true);
+      vtkPolyData* circle = this->CreateCircle(true);
       this->CircleGlyph->SetSourceData(circle);
       circle->Delete();
       this->CircleGlyph->SetInputConnection(this->VertexGlyph->GetOutputPort());
       this->CircleGlyph->SetScaling(1);
-      //this->CircleGlyph->SetScaleFactor(.1); // Total hack
-      this->CircleGlyph->SetInputArrayToProcess(0,0,0,
-               vtkDataObject::FIELD_ASSOCIATION_POINTS, this->ScalingArrayName);
+      // this->CircleGlyph->SetScaleFactor(.1); // Total hack
+      this->CircleGlyph->SetInputArrayToProcess(
+        0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, this->ScalingArrayName);
       this->VertexMapper->SetInputConnection(this->CircleGlyph->GetOutputPort());
 
-      vtkPolyData *outline = this->CreateCircle(false);
+      vtkPolyData* outline = this->CreateCircle(false);
       this->CircleOutlineGlyph->SetSourceData(outline);
       outline->Delete();
       this->CircleOutlineGlyph->SetInputConnection(this->VertexGlyph->GetOutputPort());
       this->CircleOutlineGlyph->SetScaling(1);
-      //this->CircleOutlineGlyph->SetScaleFactor(.1); // Total hack
-      this->CircleOutlineGlyph->SetInputArrayToProcess(0,0,0,
-               vtkDataObject::FIELD_ASSOCIATION_POINTS, this->ScalingArrayName);
+      // this->CircleOutlineGlyph->SetScaleFactor(.1); // Total hack
+      this->CircleOutlineGlyph->SetInputArrayToProcess(
+        0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, this->ScalingArrayName);
       this->OutlineMapper->SetInputConnection(this->CircleOutlineGlyph->GetOutputPort());
       this->OutlineActor->SetPosition(0, 0, 0.001);
       this->OutlineActor->GetProperty()->SetLineWidth(2);
@@ -217,8 +212,7 @@ void vtkGraphMapper::SetScaledGlyphs(bool arg)
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Helper method
 vtkPolyData* vtkGraphMapper::CreateCircle(bool filled)
 {
@@ -227,25 +221,25 @@ vtkPolyData* vtkGraphMapper::CreateCircle(bool filled)
   double x[3], theta;
 
   // Allocate storage
-  vtkPolyData *poly = vtkPolyData::New();
-  VTK_CREATE(vtkPoints,pts);
+  vtkPolyData* poly = vtkPolyData::New();
+  VTK_CREATE(vtkPoints, pts);
   VTK_CREATE(vtkCellArray, circle);
   VTK_CREATE(vtkCellArray, outline);
 
   // generate points around the circle
   x[2] = 0.0;
   theta = 2.0 * vtkMath::Pi() / circleRes;
-  for (int i=0; i<circleRes; i++)
+  for (int i = 0; i < circleRes; i++)
   {
-    x[0] = 0.5 * cos(i*theta);
-    x[1] = 0.5 * sin(i*theta);
+    x[0] = 0.5 * cos(i * theta);
+    x[1] = 0.5 * sin(i * theta);
     ptIds[i] = pts->InsertNextPoint(x);
   }
-  circle->InsertNextCell(circleRes,ptIds);
+  circle->InsertNextCell(circleRes, ptIds);
 
   // Outline
   ptIds[circleRes] = ptIds[0];
-  outline->InsertNextCell(circleRes+1,ptIds);
+  outline->InsertNextCell(circleRes + 1, ptIds);
 
   // Set up polydata
   poly->SetPoints(pts);
@@ -261,8 +255,7 @@ vtkPolyData* vtkGraphMapper::CreateCircle(bool filled)
   return poly;
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetVertexColorArrayName(const char* name)
 {
   this->SetVertexColorArrayNameInternal(name);
@@ -270,49 +263,49 @@ void vtkGraphMapper::SetVertexColorArrayName(const char* name)
   this->VertexMapper->SelectColorArray(name);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkGraphMapper::GetVertexColorArrayName()
 {
   return this->GetVertexColorArrayNameInternal();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetColorVertices(bool vis)
 {
   this->VertexMapper->SetScalarVisibility(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkGraphMapper::GetColorVertices()
 {
-  return this->VertexMapper->GetScalarVisibility() ? true : false;
+  return this->VertexMapper->GetScalarVisibility() != 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::ColorVerticesOn()
 {
   this->VertexMapper->SetScalarVisibility(true);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::ColorVerticesOff()
 {
   this->VertexMapper->SetScalarVisibility(false);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetIconVisibility(bool vis)
 {
   this->IconActor->SetVisibility(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkGraphMapper::GetIconVisibility()
 {
-  return this->IconActor->GetVisibility() ? true : false;
+  return this->IconActor->GetVisibility() != 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetEdgeColorArrayName(const char* name)
 {
   this->SetEdgeColorArrayNameInternal(name);
@@ -320,160 +313,159 @@ void vtkGraphMapper::SetEdgeColorArrayName(const char* name)
   this->EdgeMapper->SelectColorArray(name);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkGraphMapper::GetEdgeColorArrayName()
 {
   return this->GetEdgeColorArrayNameInternal();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetColorEdges(bool vis)
 {
   this->EdgeMapper->SetScalarVisibility(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkGraphMapper::GetColorEdges()
 {
-  return this->EdgeMapper->GetScalarVisibility() ? true : false;
+  return this->EdgeMapper->GetScalarVisibility() != 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::ColorEdgesOn()
 {
   this->EdgeMapper->SetScalarVisibility(true);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::ColorEdgesOff()
 {
   this->EdgeMapper->SetScalarVisibility(false);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetVertexPointSize(float size)
 {
   this->VertexPointSize = size;
   this->VertexActor->GetProperty()->SetPointSize(this->GetVertexPointSize());
-  this->OutlineActor->GetProperty()->SetPointSize(this->GetVertexPointSize()+2);
+  this->OutlineActor->GetProperty()->SetPointSize(this->GetVertexPointSize() + 2);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetEdgeLineWidth(float width)
 {
   this->EdgeLineWidth = width;
   this->EdgeActor->GetProperty()->SetLineWidth(this->GetEdgeLineWidth());
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphMapper::AddIconType(char *type, int index)
+//------------------------------------------------------------------------------
+void vtkGraphMapper::AddIconType(const char* type, int index)
 {
   this->IconTypeToIndex->AddToMap(type, index);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::ClearIconTypes()
 {
   this->IconTypeToIndex->ClearMap();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetEdgeVisibility(bool vis)
 {
   this->EdgeActor->SetVisibility(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkGraphMapper::GetEdgeVisibility()
 {
-  return this->EdgeActor->GetVisibility() ? true : false;
+  return this->EdgeActor->GetVisibility() != 0;
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphMapper::SetIconSize(int *size)
+//------------------------------------------------------------------------------
+void vtkGraphMapper::SetIconSize(int* size)
 {
   this->IconGlyph->SetIconSize(size);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::SetIconAlignment(int alignment)
 {
   this->IconGlyph->SetGravity(alignment);
 }
 
-//----------------------------------------------------------------------------
-int *vtkGraphMapper::GetIconSize()
+//------------------------------------------------------------------------------
+int* vtkGraphMapper::GetIconSize()
 {
   return this->IconGlyph->GetIconSize();
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphMapper::SetIconTexture(vtkTexture *texture)
+//------------------------------------------------------------------------------
+void vtkGraphMapper::SetIconTexture(vtkTexture* texture)
 {
   this->IconActor->SetTexture(texture);
 }
 
-//----------------------------------------------------------------------------
-vtkTexture *vtkGraphMapper::GetIconTexture()
+//------------------------------------------------------------------------------
+vtkTexture* vtkGraphMapper::GetIconTexture()
 {
   return this->IconActor->GetTexture();
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphMapper::SetInputData(vtkGraph *input)
+//------------------------------------------------------------------------------
+void vtkGraphMapper::SetInputData(vtkGraph* input)
 {
   this->SetInputDataInternal(0, input);
 }
 
-//----------------------------------------------------------------------------
-vtkGraph *vtkGraphMapper::GetInput()
+//------------------------------------------------------------------------------
+vtkGraph* vtkGraphMapper::GetInput()
 {
-  vtkGraph *inputGraph =
-  vtkGraph::SafeDownCast(this->Superclass::GetInputAsDataSet());
+  vtkGraph* inputGraph = vtkGraph::SafeDownCast(this->Superclass::GetInputAsDataSet());
   return inputGraph;
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphMapper::ReleaseGraphicsResources( vtkWindow *renWin )
+//------------------------------------------------------------------------------
+void vtkGraphMapper::ReleaseGraphicsResources(vtkWindow* renWin)
 {
   if (this->EdgeActor)
   {
-    this->EdgeActor->ReleaseGraphicsResources( renWin );
+    this->EdgeActor->ReleaseGraphicsResources(renWin);
   }
   if (this->VertexActor)
   {
-    this->VertexActor->ReleaseGraphicsResources( renWin );
+    this->VertexActor->ReleaseGraphicsResources(renWin);
   }
   if (this->OutlineActor)
   {
-    this->OutlineActor->ReleaseGraphicsResources( renWin );
+    this->OutlineActor->ReleaseGraphicsResources(renWin);
   }
   if (this->IconActor)
   {
-    this->IconActor->ReleaseGraphicsResources( renWin );
+    this->IconActor->ReleaseGraphicsResources(renWin);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Receives from Actor -> maps data to primitives
 //
-void vtkGraphMapper::Render(vtkRenderer *ren, vtkActor * vtkNotUsed(act))
+void vtkGraphMapper::Render(vtkRenderer* ren, vtkActor* vtkNotUsed(act))
 {
   // make sure that we've been properly initialized
-  if ( !this->GetExecutive()->GetInputData(0, 0) )
+  if (!this->GetExecutive()->GetInputData(0, 0))
   {
     vtkErrorMacro(<< "No input!\n");
     return;
   }
 
   // Update the pipeline up until the graph to poly data
-  vtkGraph *input = vtkGraph::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
+  vtkGraph* input = vtkGraph::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
   if (!input)
   {
     vtkErrorMacro(<< "Input is not a graph!\n");
     return;
   }
-  vtkGraph *graph = 0;
+  vtkGraph* graph = nullptr;
   if (vtkDirectedGraph::SafeDownCast(input))
   {
     graph = vtkDirectedGraph::New();
@@ -495,7 +487,7 @@ void vtkGraphMapper::Render(vtkRenderer *ren, vtkActor * vtkNotUsed(act))
   // Try to find the range the user-specified color array.
   // If we cannot find that array, use the scalar range.
   double range[2];
-  vtkDataArray* arr = 0;
+  vtkDataArray* arr = nullptr;
   if (this->GetColorEdges())
   {
     if (this->GetEdgeColorArrayName())
@@ -513,19 +505,19 @@ void vtkGraphMapper::Render(vtkRenderer *ren, vtkActor * vtkNotUsed(act))
     }
   }
 
-  arr = 0;
+  arr = nullptr;
   if (this->EnableEdgesByArray && this->EnabledEdgesArrayName)
   {
-    vtkLookupTableWithEnabling::SafeDownCast(this->EdgeLookupTable)->SetEnabledArray(
-        edgePd->GetCellData()->GetArray(this->GetEnabledEdgesArrayName()));
+    vtkLookupTableWithEnabling::SafeDownCast(this->EdgeLookupTable)
+      ->SetEnabledArray(edgePd->GetCellData()->GetArray(this->GetEnabledEdgesArrayName()));
   }
   else
   {
-    vtkLookupTableWithEnabling::SafeDownCast(this->EdgeLookupTable)->SetEnabledArray(0);
+    vtkLookupTableWithEnabling::SafeDownCast(this->EdgeLookupTable)->SetEnabledArray(nullptr);
   }
 
   // Do the same thing for the vertex array.
-  arr = 0;
+  arr = nullptr;
   if (this->GetColorVertices())
   {
     if (this->GetVertexColorArrayName())
@@ -543,33 +535,31 @@ void vtkGraphMapper::Render(vtkRenderer *ren, vtkActor * vtkNotUsed(act))
     }
   }
 
-  arr = 0;
+  arr = nullptr;
   if (this->EnableVerticesByArray && this->EnabledVerticesArrayName)
   {
-    vtkLookupTableWithEnabling::SafeDownCast(this->VertexLookupTable)->SetEnabledArray(
-        vertPd->GetPointData()->GetArray(this->GetEnabledVerticesArrayName()));
+    vtkLookupTableWithEnabling::SafeDownCast(this->VertexLookupTable)
+      ->SetEnabledArray(vertPd->GetPointData()->GetArray(this->GetEnabledVerticesArrayName()));
   }
   else
   {
-    vtkLookupTableWithEnabling::SafeDownCast(this->VertexLookupTable)->SetEnabledArray(0);
+    vtkLookupTableWithEnabling::SafeDownCast(this->VertexLookupTable)->SetEnabledArray(nullptr);
   }
 
-  if (this->IconActor->GetTexture() &&
-      this->IconActor->GetTexture()->GetInput() &&
-      this->IconActor->GetVisibility())
+  if (this->IconActor->GetTexture() && this->IconActor->GetTexture()->GetInput() &&
+    this->IconActor->GetVisibility())
   {
     this->IconTransform->SetViewport(ren);
-    this->IconActor->GetTexture()->MapColorScalarsThroughLookupTableOff();
+    this->IconActor->GetTexture()->SetColorMode(VTK_COLOR_MODE_DEFAULT);
     this->IconActor->GetTexture()->GetInputAlgorithm()->Update();
-    int *dim = this->IconActor->GetTexture()->GetInput()->GetDimensions();
+    int* dim = this->IconActor->GetTexture()->GetInput()->GetDimensions();
     this->IconGlyph->SetIconSheetSize(dim);
     // Override the array for vtkIconGlyphFilter to process if we have
     // a map of icon types.
-    if(this->IconTypeToIndex->GetMapSize())
+    if (this->IconTypeToIndex->GetMapSize())
     {
-      this->IconGlyph->SetInputArrayToProcess(0,0,0,
-              vtkDataObject::FIELD_ASSOCIATION_POINTS,
-              this->IconTypeToIndex->GetOutputArrayName());
+      this->IconGlyph->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS,
+        this->IconTypeToIndex->GetOutputArrayName());
     }
   }
   if (this->EdgeActor->GetVisibility())
@@ -599,38 +589,36 @@ void vtkGraphMapper::Render(vtkRenderer *ren, vtkActor * vtkNotUsed(act))
   {
     this->IconActor->RenderTranslucentPolygonalGeometry(ren);
   }
-  if(this->IconActor->GetVisibility())
+  if (this->IconActor->GetVisibility())
   {
     this->IconActor->RenderOverlay(ren);
   }
-  this->TimeToDraw = this->EdgeMapper->GetTimeToDraw() +
-                     this->VertexMapper->GetTimeToDraw() +
-                     this->OutlineMapper->GetTimeToDraw() +
-                     this->IconMapper->GetTimeToDraw();
+  this->TimeToDraw = this->EdgeMapper->GetTimeToDraw() + this->VertexMapper->GetTimeToDraw() +
+    this->OutlineMapper->GetTimeToDraw() + this->IconMapper->GetTimeToDraw();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
- if ( this->CircleGlyph )
- {
+  if (this->CircleGlyph)
+  {
     os << indent << "CircleGlyph: (" << this->CircleGlyph << ")\n";
- }
+  }
   else
   {
     os << indent << "CircleGlyph: (none)\n";
   }
- if ( this->CircleOutlineGlyph )
- {
+  if (this->CircleOutlineGlyph)
+  {
     os << indent << "CircleOutlineGlyph: (" << this->CircleOutlineGlyph << ")\n";
- }
+  }
   else
   {
     os << indent << "CircleOutlineGlyph: (none)\n";
   }
-  if ( this->EdgeMapper )
+  if (this->EdgeMapper)
   {
     os << indent << "EdgeMapper: (" << this->EdgeMapper << ")\n";
   }
@@ -638,23 +626,23 @@ void vtkGraphMapper::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << indent << "EdgeMapper: (none)\n";
   }
- if ( this->VertexMapper )
- {
+  if (this->VertexMapper)
+  {
     os << indent << "VertexMapper: (" << this->VertexMapper << ")\n";
- }
+  }
   else
   {
     os << indent << "VertexMapper: (none)\n";
   }
- if ( this->OutlineMapper )
- {
+  if (this->OutlineMapper)
+  {
     os << indent << "OutlineMapper: (" << this->OutlineMapper << ")\n";
- }
+  }
   else
   {
     os << indent << "OutlineMapper: (none)\n";
   }
-  if ( this->EdgeActor )
+  if (this->EdgeActor)
   {
     os << indent << "EdgeActor: (" << this->EdgeActor << ")\n";
   }
@@ -662,24 +650,24 @@ void vtkGraphMapper::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << indent << "EdgeActor: (none)\n";
   }
- if ( this->VertexActor )
- {
+  if (this->VertexActor)
+  {
     os << indent << "VertexActor: (" << this->VertexActor << ")\n";
- }
+  }
   else
   {
     os << indent << "VertexActor: (none)\n";
   }
- if ( this->OutlineActor )
- {
+  if (this->OutlineActor)
+  {
     os << indent << "OutlineActor: (" << this->OutlineActor << ")\n";
- }
+  }
   else
   {
     os << indent << "OutlineActor: (none)\n";
   }
 
-  if ( this->GraphToPoly )
+  if (this->GraphToPoly)
   {
     os << indent << "GraphToPoly: (" << this->GraphToPoly << ")\n";
   }
@@ -688,7 +676,7 @@ void vtkGraphMapper::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "GraphToPoly: (none)\n";
   }
 
-  if ( this->VertexLookupTable )
+  if (this->VertexLookupTable)
   {
     os << indent << "VertexLookupTable: (" << this->VertexLookupTable << ")\n";
   }
@@ -697,7 +685,7 @@ void vtkGraphMapper::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "VertexLookupTable: (none)\n";
   }
 
-  if ( this->EdgeLookupTable )
+  if (this->EdgeLookupTable)
   {
     os << indent << "EdgeLookupTable: (" << this->EdgeLookupTable << ")\n";
   }
@@ -712,38 +700,38 @@ void vtkGraphMapper::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ScalingArrayName: " << (this->ScalingArrayName ? "" : "(null)") << endl;
   os << indent << "EnableEdgesByArray: " << this->EnableEdgesByArray << endl;
   os << indent << "EnableVerticesByArray: " << this->EnableVerticesByArray << endl;
-  os << indent << "EnabledEdgesArrayName: " << (this->EnabledEdgesArrayName ? "" : "(null)") << endl;
-  os << indent << "EnabledVerticesArrayName: " << (this->EnabledVerticesArrayName ? "" : "(null)") << endl;
-
+  os << indent << "EnabledEdgesArrayName: " << (this->EnabledEdgesArrayName ? "" : "(null)")
+     << endl;
+  os << indent << "EnabledVerticesArrayName: " << (this->EnabledVerticesArrayName ? "" : "(null)")
+     << endl;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkGraphMapper::GetMTime()
 {
-  vtkMTimeType mTime=this->vtkMapper::GetMTime();
+  vtkMTimeType mTime = this->vtkMapper::GetMTime();
   vtkMTimeType time;
 
-  if ( this->LookupTable != NULL )
+  if (this->LookupTable != nullptr)
   {
     time = this->LookupTable->GetMTime();
-    mTime = ( time > mTime ? time : mTime );
+    mTime = (time > mTime ? time : mTime);
   }
 
   return mTime;
 }
 
-//----------------------------------------------------------------------------
-int vtkGraphMapper::FillInputPortInformation(
-  int vtkNotUsed(port), vtkInformation* info)
+//------------------------------------------------------------------------------
+int vtkGraphMapper::FillInputPortInformation(int vtkNotUsed(port), vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkGraph");
   return 1;
 }
 
-//----------------------------------------------------------------------------
-double *vtkGraphMapper::GetBounds()
+//------------------------------------------------------------------------------
+double* vtkGraphMapper::GetBounds()
 {
-  vtkGraph *graph = vtkGraph::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
+  vtkGraph* graph = vtkGraph::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
   if (!graph)
   {
     vtkMath::UninitializeBounds(this->Bounds);
@@ -764,13 +752,13 @@ double *vtkGraphMapper::GetBounds()
 }
 
 #if 1
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphMapper::ReportReferences(vtkGarbageCollector* collector)
 {
   this->Superclass::ReportReferences(collector);
   // These filters share our input and are therefore involved in a
   // reference loop.
-  //vtkGarbageCollectorReport(collector, this->GraphToPoly,
+  // vtkGarbageCollectorReport(collector, this->GraphToPoly,
   //                          "GraphToPoly");
 }
 

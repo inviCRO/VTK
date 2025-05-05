@@ -18,22 +18,22 @@
 #include "vtkObjectFactory.h"
 
 vtkStandardNewMacro(vtkMatrixToLinearTransform);
-vtkCxxSetObjectMacro(vtkMatrixToLinearTransform,Input,vtkMatrix4x4);
+vtkCxxSetObjectMacro(vtkMatrixToLinearTransform, Input, vtkMatrix4x4);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMatrixToLinearTransform::vtkMatrixToLinearTransform()
 {
-  this->Input = NULL;
+  this->Input = nullptr;
   this->InverseFlag = 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMatrixToLinearTransform::~vtkMatrixToLinearTransform()
 {
-  this->SetInput(NULL);
+  this->SetInput(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMatrixToLinearTransform::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Update();
@@ -43,14 +43,14 @@ void vtkMatrixToLinearTransform::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "InverseFlag: " << this->InverseFlag << "\n";
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMatrixToLinearTransform::Inverse()
 {
   this->InverseFlag = !this->InverseFlag;
   this->Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMatrixToLinearTransform::InternalUpdate()
 {
   if (this->Input)
@@ -67,11 +67,10 @@ void vtkMatrixToLinearTransform::InternalUpdate()
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkMatrixToLinearTransform::InternalDeepCopy(vtkAbstractTransform *gtrans)
+//------------------------------------------------------------------------------
+void vtkMatrixToLinearTransform::InternalDeepCopy(vtkAbstractTransform* gtrans)
 {
-  vtkMatrixToLinearTransform *transform =
-    static_cast<vtkMatrixToLinearTransform *>(gtrans);
+  vtkMatrixToLinearTransform* transform = static_cast<vtkMatrixToLinearTransform*>(gtrans);
 
   this->SetInput(transform->Input);
 
@@ -81,13 +80,13 @@ void vtkMatrixToLinearTransform::InternalDeepCopy(vtkAbstractTransform *gtrans)
   }
 }
 
-//----------------------------------------------------------------------------
-vtkAbstractTransform *vtkMatrixToLinearTransform::MakeTransform()
+//------------------------------------------------------------------------------
+vtkAbstractTransform* vtkMatrixToLinearTransform::MakeTransform()
 {
   return vtkMatrixToLinearTransform::New();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Get the MTime
 vtkMTimeType vtkMatrixToLinearTransform::GetMTime()
 {

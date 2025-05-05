@@ -27,11 +27,11 @@
  *
  * @bug
  * There are several limitations on what type of nrrd files we can read.  This
- * reader only supports nrrd files in raw or ascii format.  Other encodings
+ * reader only supports nrrd files in raw, ascii and gzip format.  Other encodings
  * like hex will result in errors.  When reading in detached headers, this only
  * supports reading one file that is detached.
  *
-*/
+ */
 
 #ifndef vtkNrrdReader_h
 #define vtkNrrdReader_h
@@ -45,41 +45,45 @@ class VTKIOIMAGE_EXPORT vtkNrrdReader : public vtkImageReader
 {
 public:
   vtkTypeMacro(vtkNrrdReader, vtkImageReader);
-  static vtkNrrdReader *New();
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkNrrdReader* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  int CanReadFile(const char *filename) VTK_OVERRIDE;
+  int CanReadFile(VTK_FILEPATH const char* filename) override;
 
 protected:
   vtkNrrdReader();
-  ~vtkNrrdReader() VTK_OVERRIDE;
+  ~vtkNrrdReader() override;
 
-  int RequestInformation(vtkInformation *request,
-                                 vtkInformationVector **inputVector,
-                                 vtkInformationVector *outputVector) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
-  int RequestData(vtkInformation *request,
-                          vtkInformationVector **inputVector,
-                          vtkInformationVector *outputVector) VTK_OVERRIDE;
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
-  int ReadHeaderInternal(vtkCharArray *headerBuffer);
+  int ReadHeaderInternal(vtkCharArray* headerBuffer);
   virtual int ReadHeader();
-  virtual int ReadHeader(vtkCharArray *headerBuffer);
+  virtual int ReadHeader(vtkCharArray* headerBuffer);
 
-  virtual int ReadDataAscii(vtkImageData *output);
+  virtual int ReadDataAscii(vtkImageData* output);
 
-  vtkStringArray *DataFiles;
+  template <typename T>
+  int vtkNrrdReaderReadDataGZipTemplate(vtkImageData* output, T* outBuffer);
+  virtual int ReadDataGZip(vtkImageData* output);
 
-  enum {
+  vtkStringArray* DataFiles;
+
+  enum
+  {
     ENCODING_RAW,
-    ENCODING_ASCII
+    ENCODING_ASCII,
+    ENCODING_GZIP
   };
 
   int Encoding;
 
 private:
-  vtkNrrdReader(const vtkNrrdReader &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkNrrdReader &) VTK_DELETE_FUNCTION;
+  vtkNrrdReader(const vtkNrrdReader&) = delete;
+  void operator=(const vtkNrrdReader&) = delete;
 };
 
-#endif //vtkNrrdReader_h
+#endif // vtkNrrdReader_h

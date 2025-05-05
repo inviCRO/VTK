@@ -22,6 +22,10 @@
 
 #include "vtkObjectFactory.h"
 
+void vtkQtTimePointUtility::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+}
 
 QDateTime vtkQtTimePointUtility::TimePointToQDateTime(vtkTypeUInt64 time)
 {
@@ -38,24 +42,19 @@ QDateTime vtkQtTimePointUtility::TimePointToQDateTime(vtkTypeUInt64 time)
 
 vtkTypeUInt64 vtkQtTimePointUtility::QDateTimeToTimePoint(QDateTime time)
 {
-  vtkTypeUInt64 timePoint =
-    QDateToTimePoint(time.date()) + QTimeToTimePoint(time.time());
+  vtkTypeUInt64 timePoint = QDateToTimePoint(time.date()) + QTimeToTimePoint(time.time());
   return timePoint;
 }
 
 vtkTypeUInt64 vtkQtTimePointUtility::QDateToTimePoint(QDate date)
 {
-  vtkTypeUInt64 timePoint =
-    static_cast<vtkTypeUInt64>(date.toJulianDay())*86400000;
+  vtkTypeUInt64 timePoint = static_cast<vtkTypeUInt64>(date.toJulianDay()) * 86400000;
   return timePoint;
 }
 
 vtkTypeUInt64 vtkQtTimePointUtility::QTimeToTimePoint(QTime time)
 {
   vtkTypeUInt64 timePoint =
-    + time.hour()*3600000
-    + time.minute()*60000
-    + time.second()*1000
-    + time.msec();
+    +time.hour() * 3600000 + time.minute() * 60000 + time.second() * 1000 + time.msec();
   return timePoint;
 }

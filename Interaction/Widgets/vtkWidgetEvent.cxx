@@ -17,7 +17,7 @@
 
 // this list should only contain the initial, contiguous
 // set of events and should not include UserEvent
-static const char *vtkWidgetEventStrings[] = {
+static const char* vtkWidgetEventStrings[] = {
   "NoEvent",
   "Select",
   "EndSelect",
@@ -38,20 +38,21 @@ static const char *vtkWidgetEventStrings[] = {
   "TimedOut",
   "ModifyEvent",
   "Reset",
-  NULL
+  "HoverLeave",
+  nullptr,
 };
 
 vtkStandardNewMacro(vtkWidgetEvent);
 
-//----------------------------------------------------------------------
-const char *vtkWidgetEvent::GetStringFromEventId(unsigned long event)
+//------------------------------------------------------------------------------
+const char* vtkWidgetEvent::GetStringFromEventId(unsigned long event)
 {
   static unsigned long numevents = 0;
 
   // find length of table
   if (!numevents)
   {
-    while (vtkWidgetEventStrings[numevents] != NULL)
+    while (vtkWidgetEventStrings[numevents] != nullptr)
     {
       numevents++;
     }
@@ -67,14 +68,14 @@ const char *vtkWidgetEvent::GetStringFromEventId(unsigned long event)
   }
 }
 
-//----------------------------------------------------------------------
-unsigned long vtkWidgetEvent::GetEventIdFromString(const char *event)
+//------------------------------------------------------------------------------
+unsigned long vtkWidgetEvent::GetEventIdFromString(const char* event)
 {
   unsigned long i;
 
-  for (i = 0; vtkWidgetEventStrings[i] != NULL; i++)
+  for (i = 0; vtkWidgetEventStrings[i] != nullptr; i++)
   {
-    if (!strcmp(vtkWidgetEventStrings[i],event))
+    if (!strcmp(vtkWidgetEventStrings[i], event))
     {
       return i;
     }
@@ -82,9 +83,9 @@ unsigned long vtkWidgetEvent::GetEventIdFromString(const char *event)
   return vtkWidgetEvent::NoEvent;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWidgetEvent::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
+  // Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
+  this->Superclass::PrintSelf(os, indent);
 }

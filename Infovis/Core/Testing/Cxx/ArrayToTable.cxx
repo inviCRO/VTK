@@ -30,17 +30,19 @@
 #include <iostream>
 #include <stdexcept>
 
-#define test_expression(expression) \
-{ \
-  if(!(expression)) \
-    throw std::runtime_error("Expression failed: " #expression); \
-}
+#define test_expression(expression)                                                                \
+  do                                                                                               \
+  {                                                                                                \
+    if (!(expression))                                                                             \
+      throw std::runtime_error("Expression failed: " #expression);                                 \
+  } while (false)
 
-int ArrayToTable(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
+int ArrayToTable(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   try
   {
-    vtkSmartPointer<vtkDenseArray<vtkStdString> > a = vtkSmartPointer<vtkDenseArray<vtkStdString> >::New();
+    vtkSmartPointer<vtkDenseArray<vtkStdString>> a =
+      vtkSmartPointer<vtkDenseArray<vtkStdString>>::New();
     a->Resize(2);
     a->SetValue(0, "Howdy");
     a->SetValue(1, "World!");
@@ -54,11 +56,11 @@ int ArrayToTable(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
 
     test_expression(c->GetOutput()->GetNumberOfColumns() == 1);
     test_expression(c->GetOutput()->GetNumberOfRows() == 2);
-    test_expression(vtkStdString(c->GetOutput()->GetColumn(0)->GetName()) == "");
+    test_expression(vtkStdString(c->GetOutput()->GetColumn(0)->GetName()).empty());
     test_expression(c->GetOutput()->GetValue(0, 0).ToString() == "Howdy");
     test_expression(c->GetOutput()->GetValue(1, 0).ToString() == "World!");
 
-    vtkSmartPointer<vtkSparseArray<double> > d = vtkSmartPointer<vtkSparseArray<double> >::New();
+    vtkSmartPointer<vtkSparseArray<double>> d = vtkSmartPointer<vtkSparseArray<double>>::New();
     d->Resize(2, 2);
     d->SetValue(0, 0, 1.0);
     d->SetValue(1, 1, 2.0);
@@ -81,10 +83,9 @@ int ArrayToTable(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
 
     return 0;
   }
-  catch(std::exception& e)
+  catch (std::exception& e)
   {
     cerr << e.what() << endl;
     return 1;
   }
 }
-

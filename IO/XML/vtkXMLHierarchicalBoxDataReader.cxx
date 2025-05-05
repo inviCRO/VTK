@@ -18,17 +18,13 @@
 
 vtkStandardNewMacro(vtkXMLHierarchicalBoxDataReader);
 
-//----------------------------------------------------------------------------
-vtkXMLHierarchicalBoxDataReader::vtkXMLHierarchicalBoxDataReader()
-{
-}
+//------------------------------------------------------------------------------
+vtkXMLHierarchicalBoxDataReader::vtkXMLHierarchicalBoxDataReader() = default;
 
-//----------------------------------------------------------------------------
-vtkXMLHierarchicalBoxDataReader::~vtkXMLHierarchicalBoxDataReader()
-{
-}
+//------------------------------------------------------------------------------
+vtkXMLHierarchicalBoxDataReader::~vtkXMLHierarchicalBoxDataReader() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLHierarchicalBoxDataReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

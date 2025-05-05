@@ -33,7 +33,7 @@
  * for details.  vtkRISReader will convert an RIS file into a vtkTable, with
  * the set of table columns determined dynamically from the contents of the
  * file.
-*/
+ */
 
 #ifndef vtkRISReader_h
 #define vtkRISReader_h
@@ -47,49 +47,46 @@ class VTKIOINFOVIS_EXPORT vtkRISReader : public vtkTableAlgorithm
 {
 public:
   static vtkRISReader* New();
-  vtkTypeMacro(vtkRISReader,vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkRISReader, vtkTableAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set/get the file to load
    */
-  vtkGetStringMacro(FileName);
-  vtkSetStringMacro(FileName);
-  //@}
+  vtkGetFilePathMacro(FileName);
+  vtkSetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the delimiter to be used for concatenating field data (default: ";")
    */
   vtkGetStringMacro(Delimiter);
   vtkSetStringMacro(Delimiter);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the maximum number of records to read from the file (zero = unlimited)
    */
-  vtkGetMacro(MaxRecords,int);
-  vtkSetMacro(MaxRecords,int);
-  //@}
+  vtkGetMacro(MaxRecords, int);
+  vtkSetMacro(MaxRecords, int);
+  ///@}
 
- protected:
+protected:
   vtkRISReader();
-  ~vtkRISReader() VTK_OVERRIDE;
+  ~vtkRISReader() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   char* FileName;
   char* Delimiter;
   int MaxRecords;
 
 private:
-  vtkRISReader(const vtkRISReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRISReader&) VTK_DELETE_FUNCTION;
+  vtkRISReader(const vtkRISReader&) = delete;
+  void operator=(const vtkRISReader&) = delete;
 };
 
 #endif

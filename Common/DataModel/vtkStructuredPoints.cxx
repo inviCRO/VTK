@@ -19,6 +19,9 @@
 
 vtkStandardNewMacro(vtkStructuredPoints);
 
-vtkStructuredPoints::vtkStructuredPoints()
+vtkStructuredPoints::vtkStructuredPoints() = default;
+
+void vtkStructuredPoints::PrintSelf(ostream& os, vtkIndent indent)
 {
+  this->Superclass::PrintSelf(os, indent);
 }

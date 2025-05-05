@@ -21,31 +21,30 @@
  * a stencil to an image.
  * @sa
  * vtkImageStencil vtkImplicitFunctionToImageStencil vtkPolyDataToImageStencil
-*/
+ */
 
 #ifndef vtkImageToImageStencil_h
 #define vtkImageToImageStencil_h
 
-
-#include "vtkImagingStencilModule.h" // For export macro
 #include "vtkImageStencilAlgorithm.h"
+#include "vtkImagingStencilModule.h" // For export macro
 
 class vtkImageData;
 
 class VTKIMAGINGSTENCIL_EXPORT vtkImageToImageStencil : public vtkImageStencilAlgorithm
 {
 public:
-  static vtkImageToImageStencil *New();
+  static vtkImageToImageStencil* New();
   vtkTypeMacro(vtkImageToImageStencil, vtkImageStencilAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify the image data to convert into a stencil.
    */
-  void SetInputData(vtkImageData *input);
-  vtkImageData *GetInput();
-  //@}
+  void SetInputData(vtkImageData* input);
+  vtkImageData* GetInput();
+  ///@}
 
   /**
    * The values greater than or equal to the value match.
@@ -62,7 +61,7 @@ public:
    */
   void ThresholdBetween(double lower, double upper);
 
-  //@{
+  ///@{
   /**
    * Get the Upper and Lower thresholds.
    */
@@ -70,23 +69,24 @@ public:
   vtkGetMacro(UpperThreshold, double);
   vtkSetMacro(LowerThreshold, double);
   vtkGetMacro(LowerThreshold, double);
-  //@}
+  ///@}
 
 protected:
   vtkImageToImageStencil();
-  ~vtkImageToImageStencil() VTK_OVERRIDE;
+  ~vtkImageToImageStencil() override;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int RequestUpdateExtent(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int, vtkInformation*) override;
 
   double UpperThreshold;
   double LowerThreshold;
   double Threshold;
+
 private:
-  vtkImageToImageStencil(const vtkImageToImageStencil&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageToImageStencil&) VTK_DELETE_FUNCTION;
+  vtkImageToImageStencil(const vtkImageToImageStencil&) = delete;
+  void operator=(const vtkImageToImageStencil&) = delete;
 };
 
 #endif

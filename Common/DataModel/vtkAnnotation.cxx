@@ -45,7 +45,7 @@ vtkInformationKeyMacro(vtkAnnotation, DATA, DataObject);
 
 vtkAnnotation::vtkAnnotation()
 {
-  this->Selection = 0;
+  this->Selection = nullptr;
 }
 
 vtkAnnotation::~vtkAnnotation()
@@ -61,7 +61,7 @@ void vtkAnnotation::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Selection: ";
-  if(this->Selection)
+  if (this->Selection)
   {
     os << "\n";
     this->Selection->PrintSelf(os, indent.GetNextIndent());
@@ -89,33 +89,33 @@ void vtkAnnotation::ShallowCopy(vtkDataObject* other)
 
   vtkInformation* info = this->GetInformation();
   vtkInformation* otherInfo = obj->GetInformation();
-  if(otherInfo->Has(vtkAnnotation::ENABLE()))
+  if (otherInfo->Has(vtkAnnotation::ENABLE()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::ENABLE());
+    info->CopyEntry(otherInfo, vtkAnnotation::ENABLE());
   }
-  if(otherInfo->Has(vtkAnnotation::HIDE()))
+  if (otherInfo->Has(vtkAnnotation::HIDE()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::HIDE());
+    info->CopyEntry(otherInfo, vtkAnnotation::HIDE());
   }
-  if(otherInfo->Has(vtkAnnotation::LABEL()))
+  if (otherInfo->Has(vtkAnnotation::LABEL()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::LABEL());
+    info->CopyEntry(otherInfo, vtkAnnotation::LABEL());
   }
-  if(otherInfo->Has(vtkAnnotation::COLOR()))
+  if (otherInfo->Has(vtkAnnotation::COLOR()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::COLOR());
+    info->CopyEntry(otherInfo, vtkAnnotation::COLOR());
   }
-  if(otherInfo->Has(vtkAnnotation::OPACITY()))
+  if (otherInfo->Has(vtkAnnotation::OPACITY()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::OPACITY());
+    info->CopyEntry(otherInfo, vtkAnnotation::OPACITY());
   }
-  if(otherInfo->Has(vtkAnnotation::DATA()))
+  if (otherInfo->Has(vtkAnnotation::DATA()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::DATA());
+    info->CopyEntry(otherInfo, vtkAnnotation::DATA());
   }
-  if(otherInfo->Has(vtkAnnotation::ICON_INDEX()))
+  if (otherInfo->Has(vtkAnnotation::ICON_INDEX()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::ICON_INDEX());
+    info->CopyEntry(otherInfo, vtkAnnotation::ICON_INDEX());
   }
 }
 
@@ -133,33 +133,33 @@ void vtkAnnotation::DeepCopy(vtkDataObject* other)
 
   vtkInformation* info = this->GetInformation();
   vtkInformation* otherInfo = obj->GetInformation();
-  if(otherInfo->Has(vtkAnnotation::ENABLE()))
+  if (otherInfo->Has(vtkAnnotation::ENABLE()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::ENABLE());
+    info->CopyEntry(otherInfo, vtkAnnotation::ENABLE());
   }
-  if(otherInfo->Has(vtkAnnotation::HIDE()))
+  if (otherInfo->Has(vtkAnnotation::HIDE()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::HIDE());
+    info->CopyEntry(otherInfo, vtkAnnotation::HIDE());
   }
-  if(otherInfo->Has(vtkAnnotation::LABEL()))
+  if (otherInfo->Has(vtkAnnotation::LABEL()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::LABEL());
+    info->CopyEntry(otherInfo, vtkAnnotation::LABEL());
   }
-  if(otherInfo->Has(vtkAnnotation::COLOR()))
+  if (otherInfo->Has(vtkAnnotation::COLOR()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::COLOR());
+    info->CopyEntry(otherInfo, vtkAnnotation::COLOR());
   }
-  if(otherInfo->Has(vtkAnnotation::OPACITY()))
+  if (otherInfo->Has(vtkAnnotation::OPACITY()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::OPACITY());
+    info->CopyEntry(otherInfo, vtkAnnotation::OPACITY());
   }
-  if(otherInfo->Has(vtkAnnotation::DATA()))
+  if (otherInfo->Has(vtkAnnotation::DATA()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::DATA());
+    info->CopyEntry(otherInfo, vtkAnnotation::DATA());
   }
-  if(otherInfo->Has(vtkAnnotation::ICON_INDEX()))
+  if (otherInfo->Has(vtkAnnotation::ICON_INDEX()))
   {
-    info->CopyEntry(otherInfo,vtkAnnotation::ICON_INDEX());
+    info->CopyEntry(otherInfo, vtkAnnotation::ICON_INDEX());
   }
 }
 
@@ -179,7 +179,7 @@ vtkMTimeType vtkAnnotation::GetMTime()
 
 vtkAnnotation* vtkAnnotation::GetData(vtkInformation* info)
 {
-  return info ? vtkAnnotation::SafeDownCast(info->Get(DATA_OBJECT())) : 0;
+  return info ? vtkAnnotation::SafeDownCast(info->Get(DATA_OBJECT())) : nullptr;
 }
 
 vtkAnnotation* vtkAnnotation::GetData(vtkInformationVector* v, int i)

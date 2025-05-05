@@ -28,70 +28,67 @@
 
 #include "vtkDatabaseToTableReader.h"
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDatabaseToTableReader::vtkDatabaseToTableReader()
 {
-  this->Database = 0;
+  this->Database = nullptr;
   this->SetNumberOfInputPorts(0);
 }
 
-//----------------------------------------------------------------------------
-vtkDatabaseToTableReader::~vtkDatabaseToTableReader()
-{
-}
+//------------------------------------------------------------------------------
+vtkDatabaseToTableReader::~vtkDatabaseToTableReader() = default;
 
-//----------------------------------------------------------------------------
-bool vtkDatabaseToTableReader::SetDatabase(vtkSQLDatabase *db)
+//------------------------------------------------------------------------------
+bool vtkDatabaseToTableReader::SetDatabase(vtkSQLDatabase* db)
 {
-  if(!db)
+  if (!db)
   {
     return false;
   }
   this->Database = db;
-  if(this->Database->IsOpen() == false)
+  if (!this->Database->IsOpen())
   {
-    vtkErrorMacro(<<"SetDatabase must be passed an open database connection");
-    this->Database = 0;
+    vtkErrorMacro(<< "SetDatabase must be passed an open database connection");
+    this->Database = nullptr;
     return false;
   }
 
-  if(this->TableName != "")
+  if (!this->TableName.empty())
   {
     return this->CheckIfTableExists();
   }
   return true;
 }
 
-//----------------------------------------------------------------------------
-bool vtkDatabaseToTableReader::SetTableName(const char *name)
+//------------------------------------------------------------------------------
+bool vtkDatabaseToTableReader::SetTableName(const char* name)
 {
   std::string nameStr = name;
   this->TableName = nameStr;
-  if(this->Database->IsOpen())
+  if (this->Database->IsOpen())
   {
     return this->CheckIfTableExists();
   }
   return true;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkDatabaseToTableReader::CheckIfTableExists()
 {
-  if(!this->Database->IsOpen())
+  if (!this->Database->IsOpen())
   {
-    vtkErrorMacro(<<"CheckIfTableExists() called with no open database!");
+    vtkErrorMacro(<< "CheckIfTableExists() called with no open database!");
     return false;
   }
-  if(this->TableName == "")
+  if (this->TableName.empty())
   {
-    vtkErrorMacro(<<"CheckIfTableExists() called but no table name specified.");
+    vtkErrorMacro(<< "CheckIfTableExists() called but no table name specified.");
     return false;
   }
 
-  if(this->Database->GetTables()->LookupValue(this->TableName) == -1)
+  if (this->Database->GetTables()->LookupValue(this->TableName) == -1)
   {
-    vtkErrorMacro(<<"Table " << this->TableName
-                  << " does not exist in the database!");
+    vtkErrorMacro(<< "Table " << this->TableName << " does not exist in the database!");
     this->TableName = "";
     return false;
   }
@@ -99,8 +96,8 @@ bool vtkDatabaseToTableReader::CheckIfTableExists()
   return true;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDatabaseToTableReader::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }

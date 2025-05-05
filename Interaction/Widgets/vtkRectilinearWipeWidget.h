@@ -72,16 +72,16 @@
  * @sa
  * vtkRectilinearWipeProp vtkImageRectilinearWipe vtkImageActor
  * vtkCheckerboardWidget
-*/
+ */
 
 #ifndef vtkRectilinearWipeWidget_h
 #define vtkRectilinearWipeWidget_h
 
-#include "vtkInteractionWidgetsModule.h" // For export macro
 #include "vtkAbstractWidget.h"
+#include "vtkDeprecation.h"              // For VTK_DEPRECATED_IN_9_2_0
+#include "vtkInteractionWidgetsModule.h" // For export macro
 
 class vtkRectilinearWipeRepresentation;
-
 
 class VTKINTERACTIONWIDGETS_EXPORT vtkRectilinearWipeWidget : public vtkAbstractWidget
 {
@@ -89,38 +89,42 @@ public:
   /**
    * Instantiate the class.
    */
-  static vtkRectilinearWipeWidget *New();
+  static vtkRectilinearWipeWidget* New();
 
-  //@{
+  ///@{
   /**
    * Standard macros.
    */
-  vtkTypeMacro(vtkRectilinearWipeWidget,vtkAbstractWidget);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkRectilinearWipeWidget, vtkAbstractWidget);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Specify an instance of vtkWidgetRepresentation used to represent this
    * widget in the scene. Note that the representation is a subclass of vtkProp
    * so it can be added to the renderer independent of the widget.
    */
-  void SetRepresentation(vtkRectilinearWipeRepresentation *r)
-    {this->Superclass::SetWidgetRepresentation(reinterpret_cast<vtkWidgetRepresentation*>(r));}
+  void SetRepresentation(vtkRectilinearWipeRepresentation* r)
+  {
+    this->Superclass::SetWidgetRepresentation(reinterpret_cast<vtkWidgetRepresentation*>(r));
+  }
 
   /**
    * Return the representation as a vtkRectilinearWipeRepresentation.
    */
-  vtkRectilinearWipeRepresentation *GetRectilinearWipeRepresentation()
-    {return reinterpret_cast<vtkRectilinearWipeRepresentation*>(this->WidgetRep);}
+  vtkRectilinearWipeRepresentation* GetRectilinearWipeRepresentation()
+  {
+    return reinterpret_cast<vtkRectilinearWipeRepresentation*>(this->WidgetRep);
+  }
 
   /**
    * Create the default widget representation if one is not set.
    */
-  void CreateDefaultRepresentation() VTK_OVERRIDE;
+  void CreateDefaultRepresentation() override;
 
 protected:
   vtkRectilinearWipeWidget();
-  ~vtkRectilinearWipeWidget() VTK_OVERRIDE;
+  ~vtkRectilinearWipeWidget() override;
 
   // These methods handle events
   static void SelectAction(vtkAbstractWidget*);
@@ -128,19 +132,23 @@ protected:
   static void EndSelectAction(vtkAbstractWidget*);
 
   // helper methods for cursor management
-  void SetCursor(int state) VTK_OVERRIDE;
+  void SetCursor(int state) override;
 
   // Manage the state of the widget
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
-    Start=0,
+    Start = 0,
     Selected
   };
+#if !defined(VTK_LEGACY_REMOVE)
+  VTK_DEPRECATED_IN_9_2_0("because leading underscore is reserved")
+  typedef WidgetStateType _WidgetState;
+#endif
 
 private:
-  vtkRectilinearWipeWidget(const vtkRectilinearWipeWidget&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRectilinearWipeWidget&) VTK_DELETE_FUNCTION;
+  vtkRectilinearWipeWidget(const vtkRectilinearWipeWidget&) = delete;
+  void operator=(const vtkRectilinearWipeWidget&) = delete;
 };
 
 #endif

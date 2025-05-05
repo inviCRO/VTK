@@ -14,8 +14,9 @@
 =========================================================================*/
 #include "vtkXMLGenericDataObjectReader.h"
 
+#include "vtkCommand.h"
+#include "vtkDataObjectTypes.h"
 #include "vtkHierarchicalBoxDataSet.h"
-#include "vtkHyperOctree.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -29,240 +30,238 @@
 #include "vtkStructuredGrid.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkXMLFileReadTester.h"
-#include "vtkXMLHyperOctreeReader.h"
 #include "vtkXMLImageDataReader.h"
 #include "vtkXMLMultiBlockDataReader.h"
 #include "vtkXMLPImageDataReader.h"
-#include "vtkXMLPolyDataReader.h"
 #include "vtkXMLPPolyDataReader.h"
 #include "vtkXMLPRectilinearGridReader.h"
 #include "vtkXMLPStructuredGridReader.h"
 #include "vtkXMLPUnstructuredGridReader.h"
+#include "vtkXMLPolyDataReader.h"
 #include "vtkXMLRectilinearGridReader.h"
 #include "vtkXMLStructuredGridReader.h"
 #include "vtkXMLUniformGridAMRReader.h"
 #include "vtkXMLUnstructuredGridReader.h"
-#include "vtkCommand.h"
 
 #include <cassert>
 
 vtkStandardNewMacro(vtkXMLGenericDataObjectReader);
 
-// ---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLGenericDataObjectReader::vtkXMLGenericDataObjectReader()
 {
-  this->Reader=0;
+  this->Reader = nullptr;
 }
 
-// ---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLGenericDataObjectReader::~vtkXMLGenericDataObjectReader()
 {
-  if(this->Reader!=0)
+  if (this->Reader != nullptr)
   {
+    if (auto observer = this->GetReaderErrorObserver())
+    {
+      this->Reader->RemoveObserver(observer);
+    }
+    if (auto observer = this->GetParserErrorObserver())
+    {
+      this->Reader->RemoveObserver(observer);
+    }
     this->Reader->Delete();
   }
 }
 
-// ---------------------------------------------------------------------------
-int vtkXMLGenericDataObjectReader::ReadOutputType(const char *name,
-  bool &parallel)
+//------------------------------------------------------------------------------
+int vtkXMLGenericDataObjectReader::ReadOutputType(const char* name, bool& parallel)
 {
-  parallel=false;
+  parallel = false;
 
   // Test if the file with the given name is a VTKFile with the given
   // type.
-  vtkSmartPointer<vtkXMLFileReadTester> tester=
-    vtkSmartPointer<vtkXMLFileReadTester>::New();
+  vtkSmartPointer<vtkXMLFileReadTester> tester = vtkSmartPointer<vtkXMLFileReadTester>::New();
 
   tester->SetFileName(name);
-  if(tester->TestReadFile())
+  if (tester->TestReadFile())
   {
-    char *cfileDataType=tester->GetFileDataType();
-    if(cfileDataType!=0)
+    const char* cfileDataType = tester->GetFileDataType();
+    if (cfileDataType != nullptr)
     {
       std::string fileDataType(cfileDataType);
-      if(fileDataType.compare("HierarchicalBoxDataSet")==0 ||
-         fileDataType.compare("vtkHierarchicalBoxDataSet") == 0)
+      if (fileDataType == "HierarchicalBoxDataSet" || fileDataType == "vtkHierarchicalBoxDataSet")
       {
         return VTK_HIERARCHICAL_BOX_DATA_SET;
       }
-      if (fileDataType.compare("vtkOverlappingAMR") == 0)
+      if (fileDataType == "vtkOverlappingAMR")
       {
         return VTK_OVERLAPPING_AMR;
       }
-      if (fileDataType.compare("vtkNonOverlappingAMR") == 0)
+      if (fileDataType == "vtkNonOverlappingAMR")
       {
         return VTK_NON_OVERLAPPING_AMR;
       }
-      if(fileDataType.compare("HyperOctree")==0)
-      {
-        return VTK_HYPER_OCTREE;
-      }
-      if(fileDataType.compare("ImageData")==0)
+      if (fileDataType == "ImageData")
       {
         return VTK_IMAGE_DATA;
       }
-      if(fileDataType.compare("PImageData")==0)
+      if (fileDataType == "PImageData")
       {
-        parallel=true;
+        parallel = true;
         return VTK_IMAGE_DATA;
       }
-      if(fileDataType.compare("vtkMultiBlockDataSet")==0)
+      if (fileDataType == "vtkMultiBlockDataSet")
       {
         return VTK_MULTIBLOCK_DATA_SET;
       }
-      if(fileDataType.compare("PolyData")==0)
+      if (fileDataType == "PolyData")
       {
         return VTK_POLY_DATA;
       }
-      if(fileDataType.compare("PPolyData")==0)
+      if (fileDataType == "PPolyData")
       {
-        parallel=true;
+        parallel = true;
         return VTK_POLY_DATA;
       }
-      if(fileDataType.compare("RectilinearGrid")==0)
+      if (fileDataType == "RectilinearGrid")
       {
         return VTK_RECTILINEAR_GRID;
       }
-      if(fileDataType.compare("PRectilinearGrid")==0)
+      if (fileDataType == "PRectilinearGrid")
       {
-        parallel=true;
+        parallel = true;
         return VTK_RECTILINEAR_GRID;
       }
-      if(fileDataType.compare("StructuredGrid")==0)
+      if (fileDataType == "StructuredGrid")
       {
         return VTK_STRUCTURED_GRID;
       }
-      if(fileDataType.compare("PStructuredGrid")==0)
+      if (fileDataType == "PStructuredGrid")
       {
-        parallel=true;
+        parallel = true;
         return VTK_STRUCTURED_GRID;
       }
-      if(fileDataType.compare("UnstructuredGrid")==0 ||
-         fileDataType.compare("UnstructuredGridBase")==0)
+      if (fileDataType == "UnstructuredGrid" || fileDataType == "UnstructuredGridBase")
       {
         return VTK_UNSTRUCTURED_GRID;
       }
-      if(fileDataType.compare("PUnstructuredGrid")==0 ||
-         fileDataType.compare("PUnstructuredGridBase")==0)
+      if (fileDataType == "PUnstructuredGrid" || fileDataType == "PUnstructuredGridBase")
       {
-        parallel=true;
+        parallel = true;
         return VTK_UNSTRUCTURED_GRID;
       }
     }
   }
 
-  vtkErrorMacro(<<"could not load " << name);
+  vtkErrorMacro(<< "could not load " << name);
   return -1;
 }
 
-// ---------------------------------------------------------------------------
-int vtkXMLGenericDataObjectReader::RequestDataObject(
-  vtkInformation *request,
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkXMLReader> vtkXMLGenericDataObjectReader::CreateReader(
+  int data_object_type, bool parallel)
 {
-  if(!this->Stream && !this->FileName)
+  switch (data_object_type)
+  {
+    case VTK_HIERARCHICAL_BOX_DATA_SET:
+      return vtkSmartPointer<vtkXMLUniformGridAMRReader>::New();
+    case VTK_OVERLAPPING_AMR:
+      return vtkSmartPointer<vtkXMLUniformGridAMRReader>::New();
+    case VTK_NON_OVERLAPPING_AMR:
+      return vtkSmartPointer<vtkXMLUniformGridAMRReader>::New();
+    case VTK_IMAGE_DATA:
+      if (parallel)
+      {
+        return vtkSmartPointer<vtkXMLPImageDataReader>::New();
+      }
+      else
+      {
+        return vtkSmartPointer<vtkXMLImageDataReader>::New();
+      }
+    case VTK_MULTIBLOCK_DATA_SET:
+      return vtkSmartPointer<vtkXMLMultiBlockDataReader>::New();
+    case VTK_POLY_DATA:
+      if (parallel)
+      {
+        return vtkSmartPointer<vtkXMLPPolyDataReader>::New();
+      }
+      else
+      {
+        return vtkSmartPointer<vtkXMLPolyDataReader>::New();
+      }
+    case VTK_RECTILINEAR_GRID:
+      if (parallel)
+      {
+        return vtkSmartPointer<vtkXMLPRectilinearGridReader>::New();
+      }
+      else
+      {
+        return vtkSmartPointer<vtkXMLRectilinearGridReader>::New();
+      }
+    case VTK_STRUCTURED_GRID:
+      if (parallel)
+      {
+        return vtkSmartPointer<vtkXMLPStructuredGridReader>::New();
+      }
+      else
+      {
+        return vtkSmartPointer<vtkXMLStructuredGridReader>::New();
+      }
+    case VTK_UNSTRUCTURED_GRID:
+      if (parallel)
+      {
+        return vtkSmartPointer<vtkXMLPUnstructuredGridReader>::New();
+      }
+      else
+      {
+        return vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+      }
+    default:
+      return nullptr;
+  }
+}
+
+//------------------------------------------------------------------------------
+int vtkXMLGenericDataObjectReader::RequestDataObject(
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+{
+  if (!this->Stream && !this->FileName)
   {
     vtkErrorMacro("File name not specified");
     return 0;
   }
 
-  if(this->Reader!=0)
+  if (this->Reader != nullptr)
   {
+    if (auto observer = this->GetReaderErrorObserver())
+    {
+      this->Reader->RemoveObserver(observer);
+    }
+    if (auto observer = this->GetParserErrorObserver())
+    {
+      this->Reader->RemoveObserver(observer);
+    }
     this->Reader->Delete();
-    this->Reader=0;
+    this->Reader = nullptr;
   }
 
-  vtkDataObject *output=0;
+  vtkDataObject* output = nullptr;
 
   // Create reader.
-  bool parallel=false;
-  switch(this->ReadOutputType(this->FileName,parallel))
+  bool parallel = false;
+  auto data_type = this->ReadOutputType(this->FileName, parallel);
+  if (auto reader = vtkXMLGenericDataObjectReader::CreateReader(data_type, parallel))
   {
-    case VTK_HIERARCHICAL_BOX_DATA_SET:
-      this->Reader = vtkXMLUniformGridAMRReader::New();
-      output=vtkHierarchicalBoxDataSet::New();
-      break;
-    case VTK_OVERLAPPING_AMR:
-      this->Reader = vtkXMLUniformGridAMRReader::New();
-      output = vtkOverlappingAMR::New();
-      break;
-    case VTK_NON_OVERLAPPING_AMR:
-      this->Reader = vtkXMLUniformGridAMRReader::New();
-      output = vtkNonOverlappingAMR::New();
-      break;
-    case VTK_HYPER_OCTREE:
-      this->Reader=vtkXMLHyperOctreeReader::New();
-      output=vtkHyperOctree::New();
-      break;
-    case VTK_IMAGE_DATA:
-      if(parallel)
-      {
-        this->Reader=vtkXMLPImageDataReader::New();
-      }
-      else
-      {
-        this->Reader=vtkXMLImageDataReader::New();
-      }
-      output=vtkImageData::New();
-      break;
-    case VTK_MULTIBLOCK_DATA_SET:
-      this->Reader=vtkXMLMultiBlockDataReader::New();
-      output=vtkMultiBlockDataSet::New();
-      break;
-    case VTK_POLY_DATA:
-      if(parallel)
-      {
-        this->Reader=vtkXMLPPolyDataReader::New();
-      }
-      else
-      {
-        this->Reader=vtkXMLPolyDataReader::New();
-      }
-      output=vtkPolyData::New();
-      break;
-    case VTK_RECTILINEAR_GRID:
-      if(parallel)
-      {
-        this->Reader=vtkXMLPRectilinearGridReader::New();
-      }
-      else
-      {
-        this->Reader=vtkXMLRectilinearGridReader::New();
-      }
-      output=vtkRectilinearGrid::New();
-      break;
-    case VTK_STRUCTURED_GRID:
-      if(parallel)
-      {
-        this->Reader=vtkXMLPStructuredGridReader::New();
-      }
-      else
-      {
-        this->Reader=vtkXMLStructuredGridReader::New();
-      }
-      output=vtkStructuredGrid::New();
-      break;
-    case VTK_UNSTRUCTURED_GRID:
-      if(parallel)
-      {
-        this->Reader=vtkXMLPUnstructuredGridReader::New();
-      }
-      else
-      {
-        this->Reader=vtkXMLUnstructuredGridReader::New();
-      }
-      output=vtkUnstructuredGrid::New();
-      break;
-    default:
-      this->Reader=0;
+    output = vtkDataObjectTypes::NewDataObject(data_type);
+    this->Reader = reader;
+    this->Reader->Register(this);
+  }
+  else
+  {
+    this->Reader = nullptr;
   }
 
-  if(this->Reader!=0)
+  if (this->Reader != nullptr)
   {
     this->Reader->SetFileName(this->GetFileName());
-//    this->Reader->SetStream(this->GetStream());
+    //    this->Reader->SetStream(this->GetStream());
     // Delegate the error observers
     if (this->GetReaderErrorObserver())
     {
@@ -274,14 +273,14 @@ int vtkXMLGenericDataObjectReader::RequestDataObject(
     }
     // Delegate call. RequestDataObject() would be more appropriate but it is
     // protected.
-    int result=this->Reader->ProcessRequest(request,inputVector,outputVector);
-    if(result)
+    int result = this->Reader->ProcessRequest(request, inputVector, outputVector);
+    if (result)
     {
       vtkInformation* outInfo = outputVector->GetInformationObject(0);
       outInfo->Set(vtkDataObject::DATA_OBJECT(), output);
 
-//      outInfo->Set(vtkDataObject::DATA_OBJECT(),output);
-      if(output!=0)
+      //      outInfo->Set(vtkDataObject::DATA_OBJECT(),output);
+      if (output != nullptr)
       {
         output->Delete();
       }
@@ -294,14 +293,12 @@ int vtkXMLGenericDataObjectReader::RequestDataObject(
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLGenericDataObjectReader::RequestInformation(
-  vtkInformation *request,
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // reader is created in RequestDataObject.
-  if(this->Reader!=0)
+  if (this->Reader != nullptr)
   {
     // RequestInformation() would be more appropriate but it is protected.
     return this->Reader->ProcessRequest(request, inputVector, outputVector);
@@ -312,14 +309,12 @@ int vtkXMLGenericDataObjectReader::RequestInformation(
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLGenericDataObjectReader::RequestUpdateExtent(
-  vtkInformation *request,
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // reader is created in RequestDataObject.
-  if(this->Reader!=0)
+  if (this->Reader != nullptr)
   {
     // RequestUpdateExtent() would be more appropriate but it is protected.
     return this->Reader->ProcessRequest(request, inputVector, outputVector);
@@ -330,14 +325,12 @@ int vtkXMLGenericDataObjectReader::RequestUpdateExtent(
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLGenericDataObjectReader::RequestData(
-  vtkInformation *request,
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // reader is created in RequestDataObject.
-  if(this->Reader!=0)
+  if (this->Reader != nullptr)
   {
     // RequestData() would be more appropriate but it is protected.
     return this->Reader->ProcessRequest(request, inputVector, outputVector);
@@ -348,98 +341,87 @@ int vtkXMLGenericDataObjectReader::RequestData(
   }
 }
 
-
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLGenericDataObjectReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject* vtkXMLGenericDataObjectReader::GetOutput()
 {
   return this->GetOutput(0);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject* vtkXMLGenericDataObjectReader::GetOutput(int idx)
 {
   return this->GetOutputDataObject(idx);
 }
 
-// ---------------------------------------------------------------------------
-vtkHierarchicalBoxDataSet *
-vtkXMLGenericDataObjectReader::GetHierarchicalBoxDataSetOutput()
+//------------------------------------------------------------------------------
+vtkHierarchicalBoxDataSet* vtkXMLGenericDataObjectReader::GetHierarchicalBoxDataSetOutput()
 {
   return vtkHierarchicalBoxDataSet::SafeDownCast(this->GetOutput());
 }
 
-// ---------------------------------------------------------------------------
-vtkHyperOctree *vtkXMLGenericDataObjectReader::GetHyperOctreeOutput()
-{
-  return vtkHyperOctree::SafeDownCast(this->GetOutput());
-}
-
-// ---------------------------------------------------------------------------
-vtkImageData *vtkXMLGenericDataObjectReader::GetImageDataOutput()
+//------------------------------------------------------------------------------
+vtkImageData* vtkXMLGenericDataObjectReader::GetImageDataOutput()
 {
   return vtkImageData::SafeDownCast(this->GetOutput());
 }
 
-// ---------------------------------------------------------------------------
-vtkMultiBlockDataSet *
-vtkXMLGenericDataObjectReader::GetMultiBlockDataSetOutput()
+//------------------------------------------------------------------------------
+vtkMultiBlockDataSet* vtkXMLGenericDataObjectReader::GetMultiBlockDataSetOutput()
 {
   return vtkMultiBlockDataSet::SafeDownCast(this->GetOutput());
 }
 
-// ---------------------------------------------------------------------------
-vtkPolyData *vtkXMLGenericDataObjectReader::GetPolyDataOutput()
+//------------------------------------------------------------------------------
+vtkPolyData* vtkXMLGenericDataObjectReader::GetPolyDataOutput()
 {
   return vtkPolyData::SafeDownCast(this->GetOutput());
 }
 
-// ---------------------------------------------------------------------------
-vtkRectilinearGrid *vtkXMLGenericDataObjectReader::GetRectilinearGridOutput()
+//------------------------------------------------------------------------------
+vtkRectilinearGrid* vtkXMLGenericDataObjectReader::GetRectilinearGridOutput()
 {
   return vtkRectilinearGrid::SafeDownCast(this->GetOutput());
 }
 
-// ---------------------------------------------------------------------------
-vtkStructuredGrid *vtkXMLGenericDataObjectReader::GetStructuredGridOutput()
+//------------------------------------------------------------------------------
+vtkStructuredGrid* vtkXMLGenericDataObjectReader::GetStructuredGridOutput()
 {
   return vtkStructuredGrid::SafeDownCast(this->GetOutput());
 }
 
-// ---------------------------------------------------------------------------
-vtkUnstructuredGrid *vtkXMLGenericDataObjectReader::GetUnstructuredGridOutput()
+//------------------------------------------------------------------------------
+vtkUnstructuredGrid* vtkXMLGenericDataObjectReader::GetUnstructuredGridOutput()
 {
   return vtkUnstructuredGrid::SafeDownCast(this->GetOutput());
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkXMLGenericDataObjectReader::GetDataSetName()
 {
   assert("check: not_used" && 0); // should not be used.
-  return "DataObject"; // not used.
+  return "DataObject";            // not used.
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLGenericDataObjectReader::SetupEmptyOutput()
 {
   this->GetCurrentOutput()->Initialize();
 }
 
-// ----------------------------------------------------------------------------
-int vtkXMLGenericDataObjectReader::FillOutputPortInformation(
-  int,
-  vtkInformation *info)
+//------------------------------------------------------------------------------
+int vtkXMLGenericDataObjectReader::FillOutputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkDataObject");
   return 1;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkXMLGenericDataObjectReader::GetNumberOfPoints()
 {
   vtkIdType numPts = 0;
@@ -451,7 +433,7 @@ vtkIdType vtkXMLGenericDataObjectReader::GetNumberOfPoints()
   return numPts;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkXMLGenericDataObjectReader::GetNumberOfCells()
 {
   vtkIdType numCells = 0;

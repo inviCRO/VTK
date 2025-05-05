@@ -26,6 +26,7 @@ Before you begin, perform initial setup:
 
         $ git clone https://gitlab.kitware.com/vtk/vtk.git VTK
         $ cd VTK
+        $ git submodule update --init
     The main repository will be configured as your `origin` remote.
 
 4.  Run the [developer setup script][] to prepare your VTK work tree and
@@ -35,7 +36,7 @@ Before you begin, perform initial setup:
     This will prompt for your GitLab user name and configure a remote
     called `gitlab` to refer to it.
 
-5.  (Optional but highly recommended.)
+5.  (Optional, but highly recommended.)
     [Register](https://open.cdash.org/register.php) with the VTK project
     on Kitware's CDash instance to better know how your code performs in
     regression tests.  After registering and signing in, click on
@@ -43,7 +44,7 @@ Before you begin, perform initial setup:
     "Subscribe to this project" on the right of VTK.
 
 [GitLab Access]: https://gitlab.kitware.com/users/sign_in
-[Fork VTK]: https://gitlab.kitware.com/vtk/vtk/forks/new
+[Fork VTK]: https://gitlab.kitware.com/vtk/vtk/-/forks/new
 [developer setup script]: /Utilities/SetupForDevelopment.sh
 
 Workflow
@@ -126,6 +127,7 @@ A reader should have a general idea of the feature or fix to be developed given 
     * To add data follow [these instructions](data.md).
     * If your change modifies third party code, see [its
       documentation](../../../ThirdParty/UPDATING.md).
+    * To deprecate APIs, follow [these instructions](deprecation.md).
 
 Guidelines for Commit logs
 --------------------------
@@ -195,7 +197,7 @@ left, and use the "**New Merge Request**" button in the upper right to
 reach the URL printed at the end of the [previous step](#share-a-topic).
 It should be of the form:
 
-    https://gitlab.kitware.com/<username>/vtk/merge_requests/new
+    https://gitlab.kitware.com/<username>/vtk/-/merge_requests/new
 
 Follow these steps:
 
@@ -273,9 +275,8 @@ A well written merge request will motivate your reviewers, and bring them up
 to speed faster. Future software developers will be able to understand the
 reasons why something was done, and possibly avoid chasing down dead ends,
 Although it may take you a little more time to write a good merge request,
-you’ll likely see payback in faster reviews and better understood and
+you'll likely see payback in faster reviews and better understood and
 maintainable software.
-
 
 Review a Merge Request
 ----------------------
@@ -285,6 +286,44 @@ draw their attention and have the topic reviewed.  After typing `@` and
 some text, GitLab will offer completions for developers whose real names
 or user names match.
 
+Here is a list of developers usernames and their specific area of
+expertise. A merge request without a developer tagged has very low chance
+to be merged in a reasonable timeframe.
+
+ * @mwestphal: Qt, filters, data Model, widgets, parallel, anything else.
+ * @charles.gueunet: filters, data model, SMP, events, pipeline.
+ * @kmorel: General VTK Expertise, VTK-m accelerators.
+ * @demarle: Ray tracing.
+ * @will.schroeder: algorithms, computational geometry, filters, SPH, SMP, widgets,  point cloud, spatial locators.
+ * @sujin.philip: VTK-m Accelerators, SMP, DIY.
+ * @robertmaynard: build-system, VTK-m accelerators, filters, data model, IO.
+ * @yohann.bearzi: filters, data model, HTG, computational geometry, algorithms.
+ * @ken-martin: OpenGL, polygonal and volume rendering, OpenVR, Vulkan, native windows, WebAssembly.
+ * @sebastien.jourdain: web, WebAssembly, Python, Java
+ * @allisonvacanti: VTK-m, vtkDataArray, vtkArrayDispatch, vtk::Range, data model, text rendering.
+ * @sankhesh: volume rendering, Qt, OpenGL, widgets, vtkImageData, DICOM, VR.
+ * @ben.boeckel: CMake, module system, third-parties.
+ * @cory.quammen: readers, filters, data modeling, general usage, documentation.
+ * @seanm: macOS, Cocoa, cppcheck, clang
+
+If you would like to be included in this list, juste create a merge request.
+
+### Human Reviews ###
+
+Reviewers may add comments providing feedback or to acknowledge their
+approval. When a human reviewers suggest a change, please take it into
+account or discuss your choices with the reviewers until an agreement
+is reached. At this point, please `resolve` the discussion by clicking
+on the dedicated button.
+
+When all discussion have been adressed, the reviewers will either do
+another pass of comment or acknowledge their approval in some form.
+
+Please be swift to adress or discuss comments, it will increase
+the speed at which your changes will be merged.
+
+### Comments Formatting ###
+
 Comments use [GitLab Flavored Markdown][] for formatting.  See GitLab
 documentation on [Special GitLab References][] to add links to things
 like merge requests and commits in other repositories.
@@ -292,10 +331,7 @@ like merge requests and commits in other repositories.
 [GitLab Flavored Markdown]: https://gitlab.kitware.com/help/markdown/markdown
 [Special GitLab References]: https://gitlab.kitware.com/help/markdown/markdown#special-gitlab-references
 
-### Human Reviews ###
-
-Reviewers may add comments providing feedback or to acknowledge their
-approval.  Lines of specific forms will be extracted during
+Lines of specific forms will be extracted during
 [merging](#merge-a-topic) and included as trailing lines of the
 generated merge commit message.
 
@@ -311,9 +347,8 @@ following votes followed by nothing but whitespace before the end
 of the line:
 
 *   `-1` or :-1: (`:-1:`) means "The change is not ready for integration."
-*   `+1` or :+1: (`:+1:`) means "I like the change but defer to others."
-*   `+2` means "The change is ready for integration."
-*   `+3` means "I have tested the change and verified it works."
+*   `+1` or :+1: (`:+1:`) means "The change is ready for integration."
+*   `+2` means "I have tested the change and verified it works."
 
 #### Middle Lines ####
 
@@ -372,54 +407,105 @@ A re-check may be explicitly requested by adding a comment with a single
 A topic cannot be [merged](#merge-a-topic) until the automatic review
 succeeds.
 
-### Testing ###
+### Continuous Integration ###
 
-VTK has a [buildbot](http://buildbot.net) instance watching for merge requests
-to test.  A developer must issue a command to buildbot to enable builds:
+VTK uses [GitLab CI](https://gitlab.kitware.com/help/ci/examples/README.md) to
+test its functionality. CI results are published to CDash and a link is added
+to the `External` stage of the CI pipeline by `@kwrobot`. Developers and
+reviewers should start jobs which make sense for the change using the following
+methods:
+
+- The first thing to check is that CI is enabled in your fork of VTK. If you
+  see a `CI/CD` item on the left sidebar in your fork's project, you're all
+  set. If not, go to `Settings > General` and enable `CI/CD` for "Everyone With
+  Access" under the "Visibility, project features, permissions" section.
+
+- Merge request authors should visit their merge request's pipeline and click
+  the "Play" button on one or more jobs manually. If the merge request has the
+  "Allow commits from members who can merge to the target branch" check box
+  enabled, VTK developers and maintainers may use the "Play" button as well.
+  This flag is visible when editing the merge request. When in doubt, it's a
+  good idea to run a few jobs as smoke tests to catch early build/test failures
+  before a full CI run that would tie up useful resources. Note that, as detailed below,
+  a full CI run is necessary before the request can be merged.
+
+- VTK Project developers may trigger CI on a merge request by adding a comment
+  with a command among the [trailing lines][#trailing-lines]:
 
     Do: test
 
-The buildbot user (@buildbot) will respond with a comment linking to the CDash
-results when it schedules builds.
+  `@kwrobot` will add an award emoji to the comment to indicate that it was
+  processed and trigger all jobs that are awaiting manual interaction in the
+  merge request's pipelines.
 
-The `Do: test` command accepts the following arguments:
+  The `Do: test` command accepts the following arguments:
 
-  * `--oneshot`
-        only build the *current* hash of the branch; updates will not be built
-        using this command
-  * `--stop`
-        clear the list of commands for the merge request
-  * `--superbuild`
-        build the superbuilds related to the project
-  * `--clear`
-        clear previous commands before adding this command
-  * `--regex-include <arg>` or `-i <arg>`
-        only build on builders matching `<arg>` (a Python regular expression)
-  * `--regex-exclude <arg>` or `-e <arg>`
-        excludes builds on builders matching `<arg>` (a Python regular
-        expression)
+  * `--named <regex>` or `-n <regex>`: Trigger jobs matching `<regex>` anywhere
+    in their name. Job names may be seen on the merge request's Pipelines tab.
+  * `--stage <stage>` or `-s <stage>`: Only affect jobs in a given stage. Stage
+    names may be seen on the merge request's Pipelines tab. Note that the stage
+    names are determined by what is in the `.gitlab-ci.yml` file and may be
+    capitalized in the web page, so lowercasing the webpage's display name for
+    stages may be required.
+  * `--action <action>` or `-a <action>`: The action to perform on the jobs.
+    Possible actions:
 
-Multiple `Do: test` commands may be given in separate comments. A new `Do: test`
-command must be explicitly issued for each branch update for which testing is
-desired. Buildbot may skip tests for older branch updates that have not started
-before a test for a new update is requested.
+    - `manual` (the default): Start jobs awaiting manual interaction.
+    - `unsuccessful`: Start or restart jobs which have not completed
+      successfully.
+    - `failed`: Restart jobs which have completed, but without success.
+    - `completed`: Restart all completed jobs.
 
-Builder names always follow this pattern:
+If the merge request topic branch is updated by a push, a new manual trigger
+using one of the above methods is needed to start CI again.
 
-        project-host-os-libtype-buildtype+feature1+feature2
+Before the merge, all the jobs, including tidy, must be run and reviewed, see below.
 
-  * project: always `vtk` for vtk
-  * host: the buildbot host
-  * os: one of `windows`, `osx`, or `linux`
-  * libtype: `shared` or `static`
-  * buildtype: `release` or `debug`
-  * feature: alphabetical list of features enabled for the build
+If you have any question about the CI process, do not hesitate to ask a CI maintainer:
+ - @ben.boeckel
+ - @mathieu.westphal
 
-For a list of all builders, see:
+### Reading CI Results ###
 
-  * [vtk-expected](https://buildbot.kitware.com/builders?category=vtk-expected)
-  * [vtk-superbuild](https://buildbot.kitware.com/builders?category=vtk-superbuild)
-  * [vtk-experimental](https://buildbot.kitware.com/builders?category=vtk-experimental)
+Reading CI results is a very important part of the merge request process
+and is the responsibility of the author of the merge request, although reviewers
+can usually help. There are two locations to read the results, GitLab CI and CDash.
+Both should be checked and considered clean before merging.
+
+To read GitLab CI result, click on the Pipelines tab then on the last pipeline.
+It is expected to be fully green. If there is a yellow warning job, please consult CDash.
+If there is a red failed job, click on it to see the reason for the failure.
+It should clearly appears at the bottom of the log.
+Possible failures are:
+ - Timeouts: please rerun the job and report to CI maintainers
+ - Memory related errors: please rerun the job and report to CI maintainers
+ - Testing errors: please consult CDash for more information, usually an issue in your code
+ - Non disclosed error: please consult CDash, usually a build error in your code
+
+To read CDash results, on the job page, click on the "cdash-commit" external job which
+will open the commit-specific CDash page. Once it is open, make sure to show "All Build" on the bottom left of the page.
+CDash results displays error, warnings, and test failures for all the jobs.
+It is expected to be green *except* for the "NoRun" and "Test Timings" categories, which can be ignored.
+
+ - Configure warnings: there **must** not be any; to fix before the merge
+ - Configure errors: there **must** not be any; to fix before the merge
+ - Build warnings: there **must** not be any; to fix before the merge. If unrelated to your code, report to CI maintainers.
+ - Build errors: there **must** not be any; to fix before the merge. If unrelated to your code, rerun the job and report to CI maintainers.
+ - NotRun test : ignore; these tests have self-diagnosed that they are not relevant on the testing machine.
+ - Testing failure: there **should** not be any, ideally, to fix before the merge. If unrelated to your code, check the test history to see if it is a flaky test and report to CI maintainers.
+ - Testing success: if your MR creates or modifies tests, please check that your test are listed there.
+ - Test timings errors: can be ignored, but if it is all red, you may want to report it to CI maintainers.
+
+To check the history of a failing test, on the test page, click on the "Summary" link to see a summary of the test for the day,
+then click on the date controls on the top of the page to go back in time.
+If the test fails on other MRs or on master, this is probably a flaky test, currently in the process of being fixed or excluded.
+A flaky test can be ignored.
+
+As a reminder, here is our current policy regarding CI results.
+All the jobs must be run before merging, *including tidy*.
+Configure warnings and errors are not acceptable to merge and must be fixed.
+Build warning and errors are not acceptable to merge and must be fixed.
+Testing failure should be fixed before merging but can be accepted if a flaky test has been clearly identified.
 
 Revise a Topic
 --------------
@@ -450,10 +536,45 @@ authorized developers may add a comment with a single
 
     Do: merge
 
-to ask that the change be merged into the upstream repository.  By
-convention, do not request a merge if any `-1` or `Rejected-by:`
+in order for your change to be merged into the upstream repository.
+
+If your merge request has been already approved by developers
+but not merged yet, do not hesitate to tag an authorized developer
+and ask for a merge.
+
+By convention, do not request a merge if any `-1` or `Rejected-by:`
 review comments have not been resolved and superseded by at least
 `+1` or `Acked-by:` review comments from the same user.
+
+The `Do: merge` command accepts the following arguments:
+
+* `-t <topic>`: substitute `<topic>` for the name of the MR topic
+  branch in the constructed merge commit message.
+
+Additionally, `Do: merge` extracts configuration from trailing lines
+in the MR description (the following have no effect if used in a MR
+comment instead):
+
+* `Backport: release[:<commit-ish>]`: merge the topic branch into
+  the `release` branch to backport the change.  This is allowed
+  only if the topic branch is based on a commit in `release` already.
+  If only part of the topic branch should be backported, specify it as
+  `:<commit-ish>`.  The `<commit-ish>` may use [git rev-parse](https://git-scm.com/docs/git-rev-parse)
+  syntax to reference commits relative to the topic `HEAD`.
+  See additional [backport instructions](https://gitlab.kitware.com/utils/git-workflow/-/wikis/Backport-topics) for details.
+  For example:
+
+ * `Backport: release`
+    Merge the topic branch head into both `release` and `master`.
+ * `Backport: release:HEAD~1^2`
+    Merge the topic branch head's parent's second parent commit into
+    the `release` branch.  Merge the topic branch head to `master`.
+
+* `Topic-rename: <topic>`: substitute `<topic>` for the name of
+  the MR topic branch in the constructed merge commit message.
+  It is also used in merge commits constructed by `Do: stage`.
+  The `-t` option to a `Do: merge` command overrides any topic
+  rename set in the MR description.
 
 ### Merge Success ###
 

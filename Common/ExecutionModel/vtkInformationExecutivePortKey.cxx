@@ -18,27 +18,25 @@
 #include "vtkInformation.h"
 #include "vtkSmartPointer.h"
 
-
-//----------------------------------------------------------------------------
-vtkInformationExecutivePortKey::vtkInformationExecutivePortKey(const char* name, const char* location):
-  vtkInformationKey(name, location)
+//------------------------------------------------------------------------------
+vtkInformationExecutivePortKey::vtkInformationExecutivePortKey(
+  const char* name, const char* location)
+  : vtkInformationKey(name, location)
 {
   vtkFilteringInformationKeyManager::Register(this);
 }
 
-//----------------------------------------------------------------------------
-vtkInformationExecutivePortKey::~vtkInformationExecutivePortKey()
-{
-}
+//------------------------------------------------------------------------------
+vtkInformationExecutivePortKey::~vtkInformationExecutivePortKey() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationExecutivePortKey::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
-class vtkInformationExecutivePortValue: public vtkObjectBase
+//------------------------------------------------------------------------------
+class vtkInformationExecutivePortValue : public vtkObjectBase
 {
 public:
   vtkBaseTypeMacro(vtkInformationExecutivePortValue, vtkObjectBase);
@@ -46,15 +44,13 @@ public:
   int Port;
 };
 
-//----------------------------------------------------------------------------
-void vtkInformationExecutivePortKey::Set(vtkInformation* info,
-                                         vtkExecutive* executive, int port)
+//------------------------------------------------------------------------------
+void vtkInformationExecutivePortKey::Set(vtkInformation* info, vtkExecutive* executive, int port)
 {
-  if(executive)
+  if (executive)
   {
-    if(vtkInformationExecutivePortValue* oldv =
-       static_cast<vtkInformationExecutivePortValue *>(
-         this->GetAsObjectBase(info)))
+    if (vtkInformationExecutivePortValue* oldv =
+          static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info)))
     {
       // Replace the existing value.
       oldv->Executive = executive;
@@ -67,8 +63,7 @@ void vtkInformationExecutivePortKey::Set(vtkInformation* info,
     else
     {
       // Allocate a new value.
-      vtkInformationExecutivePortValue* v =
-        new vtkInformationExecutivePortValue;
+      vtkInformationExecutivePortValue* v = new vtkInformationExecutivePortValue;
       v->InitializeObjectBase();
       v->Executive = executive;
       v->Port = port;
@@ -78,81 +73,73 @@ void vtkInformationExecutivePortKey::Set(vtkInformation* info,
   }
   else
   {
-    this->SetAsObjectBase(info, 0);
+    this->SetAsObjectBase(info, nullptr);
   }
 }
 
-void vtkInformationExecutivePortKey::Get(vtkInformation *info, vtkExecutive*& executive, int &port)
+void vtkInformationExecutivePortKey::Get(vtkInformation* info, vtkExecutive*& executive, int& port)
 {
-  if(vtkInformationExecutivePortValue* v =
-     static_cast<vtkInformationExecutivePortValue *>(
-       this->GetAsObjectBase(info)))
+  if (vtkInformationExecutivePortValue* v =
+        static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info)))
   {
     executive = v->Executive;
     port = v->Port;
     return;
   }
 
-  executive = 0;
+  executive = nullptr;
   port = 0;
 }
 
-//----------------------------------------------------------------------------
-vtkExecutive*
-vtkInformationExecutivePortKey::GetExecutive(vtkInformation* info)
+//------------------------------------------------------------------------------
+vtkExecutive* vtkInformationExecutivePortKey::GetExecutive(vtkInformation* info)
 {
-  if(vtkInformationExecutivePortValue* v =
-     static_cast<vtkInformationExecutivePortValue *>(
-       this->GetAsObjectBase(info)))
+  if (vtkInformationExecutivePortValue* v =
+        static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info)))
   {
     return v->Executive;
   }
-  return 0;
+  return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkInformationExecutivePortKey::GetPort(vtkInformation* info)
 {
   vtkInformationExecutivePortValue* v =
-    static_cast<vtkInformationExecutivePortValue *>(
-      this->GetAsObjectBase(info));
-  return v?v->Port:0;
+    static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info));
+  return v ? v->Port : 0;
 }
 
-//----------------------------------------------------------------------------
-void vtkInformationExecutivePortKey::ShallowCopy(vtkInformation* from,
-                                          vtkInformation* to)
+//------------------------------------------------------------------------------
+void vtkInformationExecutivePortKey::ShallowCopy(vtkInformation* from, vtkInformation* to)
 {
   this->Set(to, this->GetExecutive(from), this->GetPort(from));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationExecutivePortKey::Print(ostream& os, vtkInformation* info)
 {
   // Print the value.
-  if(this->Has(info))
+  if (this->Has(info))
   {
     vtkExecutive* executive = this->GetExecutive(info);
     int port = this->GetPort(info);
-    if(executive)
+    if (executive)
     {
-      os << executive->GetClassName() << "(" << executive << ") port "
-         << port;
+      os << executive->GetClassName() << "(" << executive << ") port " << port;
     }
     else
     {
-      os << "(NULL) port " << port;
+      os << "(nullptr) port " << port;
     }
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkInformationExecutivePortKey::Report(vtkInformation* info,
-                                            vtkGarbageCollector* collector)
+//------------------------------------------------------------------------------
+void vtkInformationExecutivePortKey::Report(vtkInformation* info, vtkGarbageCollector* collector)
 {
-  if(vtkInformationExecutivePortValue* v =
-     static_cast<vtkInformationExecutivePortValue *>(
-       this->GetAsObjectBase(info)))
+  if (vtkInformationExecutivePortValue* v =
+        static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info)))
   {
     v->Executive.Report(collector, this->GetName());
   }

@@ -14,14 +14,14 @@
 =========================================================================*/
 /**
  * @class   vtkEnSightMasterServerReader
- * @brief   reader for compund EnSight files
-*/
+ * @brief   reader for compound EnSight files
+ */
 
 #ifndef vtkEnSightMasterServerReader_h
 #define vtkEnSightMasterServerReader_h
 
-#include "vtkIOEnSightModule.h" // For export macro
 #include "vtkGenericEnSightReader.h"
+#include "vtkIOEnSightModule.h" // For export macro
 
 class vtkCollection;
 
@@ -29,7 +29,7 @@ class VTKIOENSIGHT_EXPORT vtkEnSightMasterServerReader : public vtkGenericEnSigh
 {
 public:
   vtkTypeMacro(vtkEnSightMasterServerReader, vtkGenericEnSightReader);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   static vtkEnSightMasterServerReader* New();
 
@@ -38,40 +38,38 @@ public:
    */
   int DetermineFileName(int piece);
 
-  //@{
+  ///@{
   /**
    * Get the file name that will be read.
    */
-  vtkGetStringMacro(PieceCaseFileName);
-  //@}
+  vtkGetFilePathMacro(PieceCaseFileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set or get the current piece.
    */
   vtkSetMacro(CurrentPiece, int);
   vtkGetMacro(CurrentPiece, int);
-  //@}
+  ///@}
 
-  int CanReadFile(const char *fname);
+  int CanReadFile(VTK_FILEPATH const char* fname) override;
 
 protected:
   vtkEnSightMasterServerReader();
-  ~vtkEnSightMasterServerReader() VTK_OVERRIDE;
+  ~vtkEnSightMasterServerReader() override;
 
-  int RequestData(vtkInformation *, vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
-  int RequestInformation(vtkInformation *, vtkInformationVector **,
-                                 vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  vtkSetStringMacro(PieceCaseFileName);
+  vtkSetFilePathMacro(PieceCaseFileName);
   char* PieceCaseFileName;
   int MaxNumberOfPieces;
   int CurrentPiece;
 
 private:
-  vtkEnSightMasterServerReader(const vtkEnSightMasterServerReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkEnSightMasterServerReader&) VTK_DELETE_FUNCTION;
+  vtkEnSightMasterServerReader(const vtkEnSightMasterServerReader&) = delete;
+  void operator=(const vtkEnSightMasterServerReader&) = delete;
 };
 
 #endif

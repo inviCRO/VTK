@@ -49,23 +49,23 @@
  * @par Thanks:
  * Developed by Timothy M. Shead (tshead@sandia.gov) at  Sandia National
  * Laboratories.
-*/
+ */
 
 #ifndef vtkArray_h
 #define vtkArray_h
 
+#include "vtkArrayCoordinates.h" // for vtkArrayCoordinates
+#include "vtkArrayExtents.h"     // for vtkArrayExtents
 #include "vtkCommonCoreModule.h" // For export macro
-#include "vtkArrayCoordinates.h"
-#include "vtkArrayExtents.h"
 #include "vtkObject.h"
-#include "vtkStdString.h"
-#include "vtkVariant.h"
+#include "vtkStdString.h" // for vtkStdString
+#include "vtkVariant.h"   // for vtkVariant
 
 class VTKCOMMONCORE_EXPORT vtkArray : public vtkObject
 {
 public:
   vtkTypeMacro(vtkArray, vtkObject);
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   typedef vtkArrayExtents::CoordinateT CoordinateT;
   typedef vtkArrayExtents::DimensionT DimensionT;
@@ -97,11 +97,11 @@ public:
    */
   virtual bool IsDense() = 0;
 
-  //@{
+  ///@{
   /**
    * Resizes the array to the given extents (number of dimensions and
    * size of each dimension).  Note that concrete implementations of
-   * vtkArray may place constraints on the the extents that they will
+   * vtkArray may place constraints on the extents that they will
    * store, so you cannot assume that GetExtents() will always return
    * the same value passed to Resize().
 
@@ -117,13 +117,13 @@ public:
   void Resize(const vtkArrayRange& i, const vtkArrayRange& j);
   void Resize(const vtkArrayRange& i, const vtkArrayRange& j, const vtkArrayRange& k);
   void Resize(const vtkArrayExtents& extents);
-  //@}
+  ///@}
 
   /**
    * Returns the extent (valid coordinate range) along the given
    * dimension.
    */
-  const vtkArrayRange GetExtent(DimensionT dimension);
+  vtkArrayRange GetExtent(DimensionT dimension);
   /**
    * Returns the extents (the number of dimensions and size along each
    * dimension) of the array.
@@ -140,7 +140,7 @@ public:
    * Returns the number of values stored in the array.  Note that this is
    * the same as calling GetExtents().GetSize(), and represents the
    * maximum number of values that could ever be stored using the current
-   * extents.  This is equal to the number of values stored in a  dense
+   * extents.  This is equal to the number of values stored in a dense
    * array, but may be larger than the number of values stored in a
    * sparse array.
    */
@@ -181,7 +181,7 @@ public:
    */
   virtual void GetCoordinatesN(const SizeT n, vtkArrayCoordinates& coordinates) = 0;
 
-  //@{
+  ///@{
   /**
    * Returns the value stored in the array at the given coordinates.
    * Note that the number of dimensions in the supplied coordinates must
@@ -191,7 +191,7 @@ public:
   inline vtkVariant GetVariantValue(CoordinateT i, CoordinateT j);
   inline vtkVariant GetVariantValue(CoordinateT i, CoordinateT j, CoordinateT k);
   virtual vtkVariant GetVariantValue(const vtkArrayCoordinates& coordinates) = 0;
-  //@}
+  ///@}
 
   /**
    * Returns the n-th value stored in the array, where n is in the
@@ -202,7 +202,7 @@ public:
    */
   virtual vtkVariant GetVariantValueN(const SizeT n) = 0;
 
-  //@{
+  ///@{
   /**
    * Overwrites the value stored in the array at the given coordinates.
    * Note that the number of dimensions in the supplied coordinates must
@@ -212,7 +212,7 @@ public:
   inline void SetVariantValue(CoordinateT i, CoordinateT j, const vtkVariant& value);
   inline void SetVariantValue(CoordinateT i, CoordinateT j, CoordinateT k, const vtkVariant& value);
   virtual void SetVariantValue(const vtkArrayCoordinates& coordinates, const vtkVariant& value) = 0;
-  //@}
+  ///@}
 
   /**
    * Overwrites the n-th value stored in the array, where n is in the
@@ -223,15 +223,18 @@ public:
    */
   virtual void SetVariantValueN(const SizeT n, const vtkVariant& value) = 0;
 
-  //@{
+  ///@{
   /**
    * Overwrites a value with a value retrieved from another array.  Both
    * arrays must store the same data types.
    */
-  virtual void CopyValue(vtkArray* source, const vtkArrayCoordinates& source_coordinates, const vtkArrayCoordinates& target_coordinates) = 0;
-  virtual void CopyValue(vtkArray* source, const SizeT source_index, const vtkArrayCoordinates& target_coordinates) = 0;
-  virtual void CopyValue(vtkArray* source, const vtkArrayCoordinates& source_coordinates, const SizeT target_index) = 0;
-  //@}
+  virtual void CopyValue(vtkArray* source, const vtkArrayCoordinates& source_coordinates,
+    const vtkArrayCoordinates& target_coordinates) = 0;
+  virtual void CopyValue(
+    vtkArray* source, const SizeT source_index, const vtkArrayCoordinates& target_coordinates) = 0;
+  virtual void CopyValue(
+    vtkArray* source, const vtkArrayCoordinates& source_coordinates, const SizeT target_index) = 0;
+  ///@}
 
   /**
    * Returns a new array that is a deep copy of this array.
@@ -240,11 +243,11 @@ public:
 
 protected:
   vtkArray();
-  ~vtkArray() VTK_OVERRIDE;
+  ~vtkArray() override;
 
 private:
-  vtkArray(const vtkArray&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkArray&) VTK_DELETE_FUNCTION;
+  vtkArray(const vtkArray&) = delete;
+  void operator=(const vtkArray&) = delete;
 
   /**
    * Stores the array name.
@@ -262,13 +265,13 @@ private:
    */
   virtual void InternalSetDimensionLabel(DimensionT i, const vtkStdString& label) = 0;
 
-  //@{
+  ///@{
   /**
    * Implemented in concrete derivatives to get dimension labels.
    */
   virtual vtkStdString InternalGetDimensionLabel(DimensionT i) = 0;
+  ///@}
 };
-  //@}
 
 vtkVariant vtkArray::GetVariantValue(CoordinateT i)
 {
@@ -301,5 +304,3 @@ void vtkArray::SetVariantValue(CoordinateT i, CoordinateT j, CoordinateT k, cons
 }
 
 #endif
-
-// VTK-HeaderTest-Exclude: vtkArray.h

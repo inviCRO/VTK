@@ -28,20 +28,16 @@
 #include "vtkTrivialProducer.h"
 
 vtkStandardNewMacro(vtkHierarchicalGraphView);
-//----------------------------------------------------------------------------
-vtkHierarchicalGraphView::vtkHierarchicalGraphView()
-{
-}
+//------------------------------------------------------------------------------
+vtkHierarchicalGraphView::vtkHierarchicalGraphView() = default;
 
-//----------------------------------------------------------------------------
-vtkHierarchicalGraphView::~vtkHierarchicalGraphView()
-{
-}
+//------------------------------------------------------------------------------
+vtkHierarchicalGraphView::~vtkHierarchicalGraphView() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkRenderedGraphRepresentation* vtkHierarchicalGraphView::GetGraphRepresentation()
 {
-  vtkRenderedHierarchyRepresentation* graphRep = 0;
+  vtkRenderedHierarchyRepresentation* graphRep = nullptr;
   for (int i = 0; i < this->GetNumberOfRepresentations(); ++i)
   {
     vtkDataRepresentation* rep = this->GetRepresentation(i);
@@ -54,21 +50,21 @@ vtkRenderedGraphRepresentation* vtkHierarchicalGraphView::GetGraphRepresentation
   if (!graphRep)
   {
     vtkSmartPointer<vtkTree> t = vtkSmartPointer<vtkTree>::New();
-    graphRep = vtkRenderedHierarchyRepresentation::SafeDownCast(
-      this->AddRepresentationFromInput(t));
+    graphRep =
+      vtkRenderedHierarchyRepresentation::SafeDownCast(this->AddRepresentationFromInput(t));
     vtkSmartPointer<vtkDirectedGraph> g = vtkSmartPointer<vtkDirectedGraph>::New();
     graphRep->SetInputData(1, g);
   }
   return graphRep;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkRenderedHierarchyRepresentation* vtkHierarchicalGraphView::GetHierarchyRepresentation()
 {
   return vtkRenderedHierarchyRepresentation::SafeDownCast(this->GetGraphRepresentation());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataRepresentation* vtkHierarchicalGraphView::CreateDefaultRepresentation(
   vtkAlgorithmOutput* port)
 {
@@ -77,14 +73,15 @@ vtkDataRepresentation* vtkHierarchicalGraphView::CreateDefaultRepresentation(
   return rep;
 }
 
-//----------------------------------------------------------------------------
-vtkDataRepresentation* vtkHierarchicalGraphView::SetHierarchyFromInputConnection(vtkAlgorithmOutput* conn)
+//------------------------------------------------------------------------------
+vtkDataRepresentation* vtkHierarchicalGraphView::SetHierarchyFromInputConnection(
+  vtkAlgorithmOutput* conn)
 {
   this->GetHierarchyRepresentation()->SetInputConnection(0, conn);
   return this->GetHierarchyRepresentation();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataRepresentation* vtkHierarchicalGraphView::SetHierarchyFromInput(vtkDataObject* input)
 {
   vtkSmartPointer<vtkTrivialProducer> tp = vtkSmartPointer<vtkTrivialProducer>::New();
@@ -92,14 +89,15 @@ vtkDataRepresentation* vtkHierarchicalGraphView::SetHierarchyFromInput(vtkDataOb
   return this->SetHierarchyFromInputConnection(tp->GetOutputPort());
 }
 
-//----------------------------------------------------------------------------
-vtkDataRepresentation* vtkHierarchicalGraphView::SetGraphFromInputConnection(vtkAlgorithmOutput* conn)
+//------------------------------------------------------------------------------
+vtkDataRepresentation* vtkHierarchicalGraphView::SetGraphFromInputConnection(
+  vtkAlgorithmOutput* conn)
 {
   this->GetHierarchyRepresentation()->SetInputConnection(1, conn);
   return this->GetHierarchyRepresentation();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataRepresentation* vtkHierarchicalGraphView::SetGraphFromInput(vtkDataObject* input)
 {
   vtkSmartPointer<vtkTrivialProducer> tp = vtkSmartPointer<vtkTrivialProducer>::New();
@@ -107,99 +105,98 @@ vtkDataRepresentation* vtkHierarchicalGraphView::SetGraphFromInput(vtkDataObject
   return this->SetGraphFromInputConnection(tp->GetOutputPort());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetGraphEdgeLabelArrayName(const char* name)
 {
   this->GetHierarchyRepresentation()->SetGraphEdgeLabelArrayName(name);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkHierarchicalGraphView::GetGraphEdgeLabelArrayName()
 {
   return this->GetHierarchyRepresentation()->GetGraphEdgeLabelArrayName();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetGraphEdgeLabelVisibility(bool vis)
 {
   this->GetHierarchyRepresentation()->SetGraphEdgeLabelVisibility(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkHierarchicalGraphView::GetGraphEdgeLabelVisibility()
 {
   return this->GetHierarchyRepresentation()->GetGraphEdgeLabelVisibility();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetGraphEdgeColorArrayName(const char* name)
 {
   this->GetHierarchyRepresentation()->SetGraphEdgeColorArrayName(name);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkHierarchicalGraphView::GetGraphEdgeColorArrayName()
 {
   return this->GetHierarchyRepresentation()->GetGraphEdgeColorArrayName();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetGraphEdgeColorToSplineFraction()
 {
   this->GetHierarchyRepresentation()->SetGraphEdgeColorToSplineFraction();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetColorGraphEdgesByArray(bool vis)
 {
   this->GetHierarchyRepresentation()->SetColorGraphEdgesByArray(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkHierarchicalGraphView::GetColorGraphEdgesByArray()
 {
   return this->GetHierarchyRepresentation()->GetColorGraphEdgesByArray();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetGraphVisibility(bool vis)
 {
   this->GetHierarchyRepresentation()->SetGraphVisibility(vis);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkHierarchicalGraphView::GetGraphVisibility()
 {
   return this->GetHierarchyRepresentation()->GetGraphVisibility();
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetBundlingStrength(double strength)
 {
   this->GetHierarchyRepresentation()->SetBundlingStrength(strength);
 }
 
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkHierarchicalGraphView::GetBundlingStrength()
 {
   return this->GetHierarchyRepresentation()->GetBundlingStrength();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::SetGraphEdgeLabelFontSize(const int size)
 {
   this->GetHierarchyRepresentation()->SetGraphEdgeLabelFontSize(size);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkHierarchicalGraphView::GetGraphEdgeLabelFontSize()
 {
   return this->GetHierarchyRepresentation()->GetGraphEdgeLabelFontSize();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkHierarchicalGraphView::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
-

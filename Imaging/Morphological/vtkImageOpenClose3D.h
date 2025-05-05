@@ -28,47 +28,46 @@
  * Values other than open value and close value are not touched.
  * This enables the filter to processes segmented images containing more than
  * two tags.
-*/
+ */
 
 #ifndef vtkImageOpenClose3D_h
 #define vtkImageOpenClose3D_h
 
-
-#include "vtkImagingMorphologicalModule.h" // For export macro
 #include "vtkImageAlgorithm.h"
+#include "vtkImagingMorphologicalModule.h" // For export macro
 
 class vtkImageDilateErode3D;
 
 class VTKIMAGINGMORPHOLOGICAL_EXPORT vtkImageOpenClose3D : public vtkImageAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Default open value is 0, and default close value is 255.
    */
-  static vtkImageOpenClose3D *New();
-  vtkTypeMacro(vtkImageOpenClose3D,vtkImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkImageOpenClose3D* New();
+  vtkTypeMacro(vtkImageOpenClose3D, vtkImageAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * This method considers the sub filters MTimes when computing this objects
    * modified time.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
-  //@{
+  ///@{
   /**
    * Turn debugging output on. (in sub filters also)
    */
-  void DebugOn() VTK_OVERRIDE;
-  void DebugOff() VTK_OVERRIDE;
-  //@}
+  void DebugOn() override;
+  void DebugOff() override;
+  ///@}
 
   /**
    * Pass modified message to sub filters.
    */
-  void Modified() VTK_OVERRIDE;
+  void Modified() override;
 
   // Forward Source messages to filter1
 
@@ -77,63 +76,56 @@ public:
    */
   void SetKernelSize(int size0, int size1, int size2);
 
-  //@{
+  ///@{
   /**
    * Determines the value that will opened.
    * Open value is first eroded, and then dilated.
    */
   void SetOpenValue(double value);
   double GetOpenValue();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Determines the value that will closed.
    * Close value is first dilated, and then eroded
    */
   void SetCloseValue(double value);
   double GetCloseValue();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Needed for Progress functions
    */
   vtkGetObjectMacro(Filter0, vtkImageDilateErode3D);
   vtkGetObjectMacro(Filter1, vtkImageDilateErode3D);
-  //@}
+  ///@}
 
   /**
    * see vtkAlgorithm for details
    */
-  int ProcessRequest(vtkInformation*,
-                             vtkInformationVector**,
-                             vtkInformationVector*) VTK_OVERRIDE;
+  vtkTypeBool ProcessRequest(
+    vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   /**
    * Override to send the request to internal pipeline.
    */
-  int
-  ComputePipelineMTime(vtkInformation* request,
-                       vtkInformationVector** inInfoVec,
-                       vtkInformationVector* outInfoVec,
-                       int requestFromOutputPort,
-                       vtkMTimeType* mtime) VTK_OVERRIDE;
+  int ComputePipelineMTime(vtkInformation* request, vtkInformationVector** inInfoVec,
+    vtkInformationVector* outInfoVec, int requestFromOutputPort, vtkMTimeType* mtime) override;
 
 protected:
   vtkImageOpenClose3D();
-  ~vtkImageOpenClose3D() VTK_OVERRIDE;
+  ~vtkImageOpenClose3D() override;
 
-  vtkImageDilateErode3D *Filter0;
-  vtkImageDilateErode3D *Filter1;
+  vtkImageDilateErode3D* Filter0;
+  vtkImageDilateErode3D* Filter1;
 
-  void ReportReferences(vtkGarbageCollector*) VTK_OVERRIDE;
+  void ReportReferences(vtkGarbageCollector*) override;
+
 private:
-  vtkImageOpenClose3D(const vtkImageOpenClose3D&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageOpenClose3D&) VTK_DELETE_FUNCTION;
+  vtkImageOpenClose3D(const vtkImageOpenClose3D&) = delete;
+  void operator=(const vtkImageOpenClose3D&) = delete;
 };
 
 #endif
-
-
-

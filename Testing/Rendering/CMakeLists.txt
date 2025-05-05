@@ -1,10 +1,15 @@
-set(module_SRCS
-  vtkRegressionTestImage.h
-  vtkTesting.cxx
-  vtkTestingInteractor.cxx
-  vtkTestingObjectFactory.cxx
-  )
+set(classes
+  vtkTesting
+  vtkTestingInteractor
+  vtkTestingObjectFactory)
 
-set_source_files_properties(vtkRegressionTestImage WRAP_EXCLUDE)
+set(headers
+  vtkMultiBaselineRegressionTest.h)
 
-vtk_module_library(vtkTestingRendering ${module_SRCS})
+set(nowrap_headers
+  vtkRegressionTestImage.h)
+
+vtk_module_add_module(VTK::TestingRendering
+  CLASSES ${classes}
+  HEADERS ${headers}
+  NOWRAP_HEADERS ${nowrap_headers})

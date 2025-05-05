@@ -45,7 +45,7 @@
  * vtkAbstractTransform vtkSphere vtkCylinder vtkImplicitBoolean vtkPlane
  * vtkPlanes vtkQuadric vtkImplicitVolume vtkSampleFunction vtkCutter
  * vtkClipPolyData
-*/
+ */
 
 #ifndef vtkImplicitFunction_h
 #define vtkImplicitFunction_h
@@ -60,50 +60,58 @@ class vtkAbstractTransform;
 class VTKCOMMONDATAMODEL_EXPORT vtkImplicitFunction : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkImplicitFunction,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkImplicitFunction, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Overload standard modified time function. If Transform is modified,
    * then this object is modified as well.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
-  //@{
+  ///@{
   /**
    * Evaluate function at position x-y-z and return value. Point x[3] is
    * transformed through transform (if provided).
    */
   virtual void FunctionValue(vtkDataArray* input, vtkDataArray* output);
   double FunctionValue(const double x[3]);
-  double FunctionValue(double x, double y, double z) {
-    double xyz[3] = {x, y, z}; return this->FunctionValue(xyz); };
-  //@}
+  double FunctionValue(double x, double y, double z)
+  {
+    double xyz[3] = { x, y, z };
+    return this->FunctionValue(xyz);
+  }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Evaluate function gradient at position x-y-z and pass back vector. Point
    * x[3] is transformed through transform (if provided).
    */
   void FunctionGradient(const double x[3], double g[3]);
-  double *FunctionGradient(const double x[3]) {
-    this->FunctionGradient(x,this->ReturnValue);
-    return this->ReturnValue; };
-  double *FunctionGradient(double x, double y, double z) {
-    double xyz[3] = {x, y, z}; return this->FunctionGradient(xyz); };
-  //@}
+  double* FunctionGradient(const double x[3]) VTK_SIZEHINT(3)
+  {
+    this->FunctionGradient(x, this->ReturnValue);
+    return this->ReturnValue;
+  }
+  double* FunctionGradient(double x, double y, double z) VTK_SIZEHINT(3)
+  {
+    double xyz[3] = { x, y, z };
+    return this->FunctionGradient(xyz);
+  }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get a transformation to apply to input points before
    * executing the implicit function.
    */
   virtual void SetTransform(vtkAbstractTransform*);
   virtual void SetTransform(const double elements[16]);
-  vtkGetObjectMacro(Transform,vtkAbstractTransform);
-  //@}
+  vtkGetObjectMacro(Transform, vtkAbstractTransform);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Evaluate function at position x-y-z and return value.  You should
    * generally not call this method directly, you should use
@@ -112,9 +120,12 @@ public:
    */
   virtual double EvaluateFunction(double x[3]) = 0;
   virtual void EvaluateFunction(vtkDataArray* input, vtkDataArray* output);
-  virtual double EvaluateFunction(double x, double y, double z) {
-    double xyz[3] = {x, y, z}; return this->EvaluateFunction(xyz); };
-  //@}
+  virtual double EvaluateFunction(double x, double y, double z)
+  {
+    double xyz[3] = { x, y, z };
+    return this->EvaluateFunction(xyz);
+  }
+  ///@}
 
   /**
    * Evaluate function gradient at position x-y-z and pass back vector.
@@ -126,13 +137,14 @@ public:
 
 protected:
   vtkImplicitFunction();
-  ~vtkImplicitFunction() VTK_OVERRIDE;
+  ~vtkImplicitFunction() override;
 
-  vtkAbstractTransform *Transform;
+  vtkAbstractTransform* Transform;
   double ReturnValue[3];
+
 private:
-  vtkImplicitFunction(const vtkImplicitFunction&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImplicitFunction&) VTK_DELETE_FUNCTION;
+  vtkImplicitFunction(const vtkImplicitFunction&) = delete;
+  void operator=(const vtkImplicitFunction&) = delete;
 };
 
 #endif

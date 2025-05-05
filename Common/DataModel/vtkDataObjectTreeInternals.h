@@ -15,7 +15,7 @@
 /**
  * @class   vtkDataObjectTreeInternals
  *
-*/
+ */
 
 #ifndef vtkDataObjectTreeInternals_h
 #define vtkDataObjectTreeInternals_h
@@ -33,7 +33,7 @@ struct vtkDataObjectTreeItem
   vtkSmartPointer<vtkDataObject> DataObject;
   vtkSmartPointer<vtkInformation> MetaData;
 
-  vtkDataObjectTreeItem(vtkDataObject* dobj =0, vtkInformation* info=0)
+  vtkDataObjectTreeItem(vtkDataObject* dobj = nullptr, vtkInformation* info = nullptr)
   {
     this->DataObject = dobj;
     this->MetaData = info;
@@ -51,17 +51,12 @@ public:
   VectorOfDataObjects Children;
 };
 
-
 //-----------------------------------------------------------------------------
 class vtkDataObjectTreeIndex : public std::vector<unsigned int>
 {
-  int IsValid()
-  {
-    return (this->size()> 0);
-  }
+  int IsValid() { return !this->empty(); }
 };
 
 #endif
-
 
 // VTK-HeaderTest-Exclude: vtkDataObjectTreeInternals.h

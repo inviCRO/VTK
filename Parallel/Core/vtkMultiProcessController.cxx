@@ -15,33 +15,35 @@
 // This will be the default.
 #include "vtkMultiProcessController.h"
 
+#include "vtkBoundingBox.h"
 #include "vtkByteSwap.h"
 #include "vtkCollection.h"
 #include "vtkCommand.h"
+#include "vtkDataArraySelection.h"
 #include "vtkDummyController.h"
+#include "vtkEndian.h"
+#include "vtkMultiProcessStream.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOutputWindow.h"
+#include "vtkProcess.h"
 #include "vtkProcessGroup.h"
 #include "vtkSubCommunicator.h"
-#include "vtkToolkits.h"
-#include "vtkProcess.h"
-#include "vtkSmartPointer.h"
 #include "vtkWeakPointer.h"
-#define VTK_CREATE(type, name) \
-  vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
+#include <algorithm>
 #include <list>
+#include <unordered_map>
 #include <vector>
-#include <vtksys/hash_map.hxx>
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Stores internal members that cannot or should not be exposed in the header
 // file (for example, because they use templated types).
 class vtkMultiProcessController::vtkInternal
 {
 public:
-  vtksys::hash_map<int, vtkProcessFunctionType> MultipleMethod;
-  vtksys::hash_map<int, void *> MultipleData;
+  std::unordered_map<int, vtkProcessFunctionType> MultipleMethod;
+  std::unordered_map<int, void*> MultipleData;
 
   class vtkRMICallback
   {
@@ -54,65 +56,62 @@ public:
   typedef std::vector<vtkRMICallback> RMICallbackVector;
 
   // key == tag, value == vector of vtkRMICallback instances.
-  typedef vtksys::hash_map<int, RMICallbackVector> RMICallbackMap;
+  typedef std::unordered_map<int, RMICallbackVector> RMICallbackMap;
   RMICallbackMap RMICallbacks;
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // An RMI function that will break the "ProcessRMIs" loop.
-static void vtkMultiProcessControllerBreakRMI(void *localArg,
-                                              void *remoteArg, int remoteArgLength,
-                                              int vtkNotUsed(remoteId))
+static void vtkMultiProcessControllerBreakRMI(
+  void* localArg, void* remoteArg, int remoteArgLength, int vtkNotUsed(remoteId))
 {
   (void)remoteArg;
   (void)remoteArgLength;
-  vtkMultiProcessController *controller = (vtkMultiProcessController*)(localArg);
+  vtkMultiProcessController* controller = (vtkMultiProcessController*)(localArg);
   controller->SetBreakFlag(1);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Single method used when launching a single process.
-static void vtkMultiProcessControllerRun(vtkMultiProcessController *c,
-                                         void *arg)
+static void vtkMultiProcessControllerRun(vtkMultiProcessController* c, void* arg)
 {
-  vtkProcess *p=reinterpret_cast<vtkProcess *>(arg);
+  vtkProcess* p = reinterpret_cast<vtkProcess*>(arg);
   p->SetController(c);
   p->Execute();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMultiProcessController::vtkMultiProcessController()
 {
   this->Internal = new vtkInternal;
 
   this->RMICount = 1;
 
-  this->SingleMethod = 0;
-  this->SingleData = 0;
+  this->SingleMethod = nullptr;
+  this->SingleData = nullptr;
 
-  this->Communicator = 0;
-  this->RMICommunicator = 0;
+  this->Communicator = nullptr;
+  this->RMICommunicator = nullptr;
 
   this->BreakFlag = 0;
   this->ForceDeepCopy = 1;
 
   this->BroadcastTriggerRMI = false;
 
-  this->OutputWindow = 0;
+  this->OutputWindow = nullptr;
 
   // Define an rmi internally to exit from the processing loop.
   this->AddRMI(vtkMultiProcessControllerBreakRMI, this, BREAK_RMI_TAG);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This is an old comment that I do not know is true:
 // (We need to have a "GetNetReferenceCount" to avoid memory leaks.)
 vtkMultiProcessController::~vtkMultiProcessController()
 {
-  if ( this->OutputWindow &&
-       (this->OutputWindow == vtkOutputWindow::GetInstance()) )
+  if (this->OutputWindow && (this->OutputWindow == vtkOutputWindow::GetInstance()))
   {
-    vtkOutputWindow::SetInstance(0);
+    vtkOutputWindow::SetInstance(nullptr);
   }
 
   if (this->OutputWindow)
@@ -123,20 +122,16 @@ vtkMultiProcessController::~vtkMultiProcessController()
   delete this->Internal;
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMultiProcessController::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   vtkIndent nextIndent = indent.GetNextIndent();
 
-  os << indent << "Break flag: " << (this->BreakFlag ? "(yes)" : "(no)")
-     << endl;
-  os << indent << "Force deep copy: " << (this->ForceDeepCopy ? "(yes)" : "(no)")
-     << endl;
+  os << indent << "Break flag: " << (this->BreakFlag ? "(yes)" : "(no)") << endl;
+  os << indent << "Force deep copy: " << (this->ForceDeepCopy ? "(yes)" : "(no)") << endl;
   os << indent << "Output window: ";
-  os << indent << "BroadcastTriggerRMI: " <<
-      (this->BroadcastTriggerRMI ? "(yes)" : "(no)");
+  os << indent << "BroadcastTriggerRMI: " << (this->BroadcastTriggerRMI ? "(yes)" : "(no)");
   if (this->OutputWindow)
   {
     os << endl;
@@ -168,10 +163,10 @@ void vtkMultiProcessController::PrintSelf(ostream& os, vtkIndent indent)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMultiProcessController::SetNumberOfProcesses(int num)
 {
-  if(this->Communicator)
+  if (this->Communicator)
   {
     this->Communicator->SetNumberOfProcesses(num);
   }
@@ -181,10 +176,10 @@ void vtkMultiProcessController::SetNumberOfProcesses(int num)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkMultiProcessController::GetNumberOfProcesses()
 {
-  if(this->Communicator)
+  if (this->Communicator)
   {
     return this->Communicator->GetNumberOfProcesses();
   }
@@ -195,10 +190,10 @@ int vtkMultiProcessController::GetNumberOfProcesses()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkMultiProcessController::GetLocalProcessId()
 {
-  if(this->Communicator)
+  if (this->Communicator)
   {
     return this->Communicator->GetLocalProcessId();
   }
@@ -209,83 +204,78 @@ int vtkMultiProcessController::GetLocalProcessId()
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkMultiProcessController::SetSingleMethod( vtkProcessFunctionType f,
-                                                 void *data )
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::SetSingleMethod(vtkProcessFunctionType f, void* data)
 {
   this->SingleMethod = f;
-  this->SingleData   = data;
+  this->SingleData = data;
 }
 
-// ----------------------------------------------------------------------------
-void vtkMultiProcessController::SetSingleProcessObject(vtkProcess *p)
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::SetSingleProcessObject(vtkProcess* p)
 {
-  this->SetSingleMethod(vtkMultiProcessControllerRun,p);
+  this->SetSingleMethod(vtkMultiProcessControllerRun, p);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Set one of the user defined methods that will be run on NumberOfProcesses
 // processes when MultipleMethodExecute is called. This method should be
 // called with index = 0, 1, ..,  NumberOfProcesses-1 to set up all the
 // required user defined methods
-void vtkMultiProcessController::SetMultipleMethod( int index,
-                                 vtkProcessFunctionType f, void *data )
+void vtkMultiProcessController::SetMultipleMethod(int index, vtkProcessFunctionType f, void* data)
 {
   // You can only set the method for 0 through NumberOfProcesses-1
-  if ( index >= this->GetNumberOfProcesses() )
+  if (index >= this->GetNumberOfProcesses())
   {
-    vtkErrorMacro( << "Can't set method " << index <<
-      " with a processes count of " << this->GetNumberOfProcesses() );
+    vtkErrorMacro(<< "Can't set method " << index << " with a processes count of "
+                  << this->GetNumberOfProcesses());
   }
   else
   {
     this->Internal->MultipleMethod[index] = f;
-    this->Internal->MultipleData[index]   = data;
+    this->Internal->MultipleData[index] = data;
   }
 }
 
-//-----------------------------------------------------------------------------
-void vtkMultiProcessController::GetMultipleMethod(int index,
-                                                  vtkProcessFunctionType &func,
-                                                  void *&data)
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::GetMultipleMethod(
+  int index, vtkProcessFunctionType& func, void*& data)
 {
-  if (   this->Internal->MultipleMethod.find(index)
-      != this->Internal->MultipleMethod.end() )
+  if (this->Internal->MultipleMethod.find(index) != this->Internal->MultipleMethod.end())
   {
     func = this->Internal->MultipleMethod[index];
     data = this->Internal->MultipleData[index];
   }
   else
   {
-    func = NULL;
-    data = NULL;
+    func = nullptr;
+    data = nullptr;
   }
 }
 
-//-----------------------------------------------------------------------------
-vtkMultiProcessController *vtkMultiProcessController::CreateSubController(
-                                                         vtkProcessGroup *group)
+//------------------------------------------------------------------------------
+vtkMultiProcessController* vtkMultiProcessController::CreateSubController(vtkProcessGroup* group)
 {
   if (group->GetCommunicator() != this->Communicator)
   {
     vtkErrorMacro(<< "Invalid group for creating a sub controller.");
-    return NULL;
+    return nullptr;
   }
 
   if (group->FindProcessId(this->GetLocalProcessId()) < 0)
   {
-    // The group does not contain this process.  Just return NULL.
-    return NULL;
+    // The group does not contain this process.  Just return nullptr.
+    return nullptr;
   }
 
-  vtkSubCommunicator *subcomm = vtkSubCommunicator::New();
+  vtkSubCommunicator* subcomm = vtkSubCommunicator::New();
   subcomm->SetGroup(group);
 
   // We only need a basic implementation of vtkMultiProcessController for the
   // subgroup, so we just use vtkDummyController here.  It's a bit of a misnomer
   // and may lead to confusion, but I think it's better than creating yet
   // another class we have to maintain.
-  vtkDummyController *subcontroller = vtkDummyController::New();
+  vtkDummyController* subcontroller = vtkDummyController::New();
   subcontroller->SetCommunicator(subcomm);
   subcontroller->SetRMICommunicator(subcomm);
 
@@ -294,32 +284,33 @@ vtkMultiProcessController *vtkMultiProcessController::CreateSubController(
   return subcontroller;
 }
 
-//-----------------------------------------------------------------------------
-vtkMultiProcessController *vtkMultiProcessController::PartitionController(
-                                                                 int localColor,
-                                                                 int localKey)
+//------------------------------------------------------------------------------
+vtkMultiProcessController* vtkMultiProcessController::PartitionController(
+  int localColor, int localKey)
 {
-  vtkMultiProcessController *subController = NULL;
+  vtkMultiProcessController* subController = nullptr;
 
   int numProc = this->GetNumberOfProcesses();
 
   std::vector<int> allColors(numProc);
-  this->AllGather(&localColor, &allColors[0], 1);
+  this->AllGather(&localColor, allColors.data(), 1);
 
   std::vector<int> allKeys(numProc);
-  this->AllGather(&localKey, &allKeys[0], 1);
+  this->AllGather(&localKey, allKeys.data(), 1);
 
   std::vector<bool> inPartition;
   inPartition.assign(numProc, false);
 
   for (int i = 0; i < numProc; i++)
   {
-    if (inPartition[i]) continue;
+    if (inPartition[i])
+      continue;
     int targetColor = allColors[i];
-    std::list<int> partitionIds;     // Make sorted list, then put in group.
+    std::list<int> partitionIds; // Make sorted list, then put in group.
     for (int j = i; j < numProc; j++)
     {
-      if (allColors[j] != targetColor) continue;
+      if (allColors[j] != targetColor)
+        continue;
       inPartition[j] = true;
       std::list<int>::iterator iter = partitionIds.begin();
       while ((iter != partitionIds.end()) && (allKeys[*iter] <= allKeys[j]))
@@ -329,16 +320,15 @@ vtkMultiProcessController *vtkMultiProcessController::PartitionController(
       partitionIds.insert(iter, j);
     }
     // Copy list into process group.
-    VTK_CREATE(vtkProcessGroup, group);
+    vtkNew<vtkProcessGroup> group;
     group->Initialize(this);
     group->RemoveAllProcessIds();
-    for (std::list<int>::iterator iter = partitionIds.begin();
-         iter != partitionIds.end(); ++iter)
+    for (std::list<int>::iterator iter = partitionIds.begin(); iter != partitionIds.end(); ++iter)
     {
       group->AddProcessId(*iter);
     }
     // Use group to create controller.
-    vtkMultiProcessController *sc = this->CreateSubController(group);
+    vtkMultiProcessController* sc = this->CreateSubController(group);
     if (sc)
     {
       subController = sc;
@@ -348,7 +338,7 @@ vtkMultiProcessController *vtkMultiProcessController::PartitionController(
   return subController;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 unsigned long vtkMultiProcessController::AddRMICallback(
   vtkRMIFunctionType callback, void* localArg, int tag)
 {
@@ -360,27 +350,25 @@ unsigned long vtkMultiProcessController::AddRMICallback(
   return callbackInfo.Id;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMultiProcessController::RemoveAllRMICallbacks(int tag)
 {
-  vtkInternal::RMICallbackMap::iterator iter =
-    this->Internal->RMICallbacks.find(tag);
+  vtkInternal::RMICallbackMap::iterator iter = this->Internal->RMICallbacks.find(tag);
   if (iter != this->Internal->RMICallbacks.end())
   {
     this->Internal->RMICallbacks.erase(iter);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkMultiProcessController::RemoveRMICallback(unsigned long id)
 {
   vtkInternal::RMICallbackMap::iterator iterMap;
   for (iterMap = this->Internal->RMICallbacks.begin();
-    iterMap != this->Internal->RMICallbacks.end(); ++iterMap)
+       iterMap != this->Internal->RMICallbacks.end(); ++iterMap)
   {
     vtkInternal::RMICallbackVector::iterator iterVec;
-    for (iterVec = iterMap->second.begin();
-      iterVec != iterMap->second.end(); ++iterVec)
+    for (iterVec = iterMap->second.begin(); iterVec != iterMap->second.end(); ++iterVec)
     {
       if (iterVec->Id == id)
       {
@@ -392,11 +380,10 @@ bool vtkMultiProcessController::RemoveRMICallback(unsigned long id)
   return false;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkMultiProcessController::RemoveFirstRMI(int tag)
 {
-  vtkInternal::RMICallbackMap::iterator iter =
-    this->Internal->RMICallbacks.find(tag);
+  vtkInternal::RMICallbackMap::iterator iter = this->Internal->RMICallbacks.find(tag);
   if (iter != this->Internal->RMICallbacks.end())
   {
     if (iter->second.begin() != iter->second.end())
@@ -408,29 +395,27 @@ int vtkMultiProcessController::RemoveFirstRMI(int tag)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkMultiProcessController::RemoveRMI(unsigned long id)
 {
-  return this->RemoveRMICallback(id)? 1 : 0;
+  return this->RemoveRMICallback(id) ? 1 : 0;
 }
 
-//----------------------------------------------------------------------------
-unsigned long vtkMultiProcessController::AddRMI(vtkRMIFunctionType f,
-                                       void *localArg, int tag)
+//------------------------------------------------------------------------------
+unsigned long vtkMultiProcessController::AddRMI(vtkRMIFunctionType f, void* localArg, int tag)
 {
   // Remove any previously registered RMI handler for the tag.
   this->RemoveAllRMICallbacks(tag);
   return this->AddRMICallback(f, localArg, tag);
 }
 
-//----------------------------------------------------------------------------
-void vtkMultiProcessController::TriggerRMIOnAllChildren(
-  void *arg, int argLength, int rmiTag)
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::TriggerRMIOnAllChildren(void* arg, int argLength, int rmiTag)
 {
 
-  if( this->BroadcastTriggerRMI )
+  if (this->BroadcastTriggerRMI)
   {
-    this->BroadcastTriggerRMIOnAllChildren(arg,argLength,rmiTag);
+    this->BroadcastTriggerRMIOnAllChildren(arg, argLength, rmiTag);
   } // END if use broadcast method
   else
   {
@@ -449,15 +434,13 @@ void vtkMultiProcessController::TriggerRMIOnAllChildren(
   } // END else
 }
 
-//----------------------------------------------------------------------------
-void vtkMultiProcessController::TriggerRMI(int remoteProcessId,
-                                           void *arg, int argLength,
-                                           int rmiTag)
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::TriggerRMI(
+  int remoteProcessId, void* arg, int argLength, int rmiTag)
 {
-  if( this->BroadcastTriggerRMI  )
+  if (this->BroadcastTriggerRMI)
   {
-    vtkErrorMacro(
-        "TriggerRMI should not be called when BroadcastTriggerRMI is ON");
+    vtkErrorMacro("TriggerRMI should not be called when BroadcastTriggerRMI is ON");
   }
 
   // Deal with sending RMI to ourself here for now.
@@ -470,9 +453,9 @@ void vtkMultiProcessController::TriggerRMI(int remoteProcessId,
   this->TriggerRMIInternal(remoteProcessId, arg, argLength, rmiTag, false);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMultiProcessController::BroadcastTriggerRMIOnAllChildren(
-    void *arg, int argLength, int rmiTag)
+  void* arg, int argLength, int rmiTag)
 {
   // This is called by the root process, namely rank 0. The satellite ranks
   // call BroadcastProcessRMIs().
@@ -487,68 +470,66 @@ void vtkMultiProcessController::BroadcastTriggerRMIOnAllChildren(
   vtkByteSwap::SwapLERange(triggerMessage, 2);
 
   // If possible, send the data over a single broadcast
-  int buffer_size = sizeof(int)*(126 /*128-2*/);
-  if( (argLength >= 0) && (argLength < buffer_size) )
+  int buffer_size = sizeof(int) * (126 /*128-2*/);
+  if ((argLength >= 0) && (argLength < buffer_size))
   {
-    if( argLength > 0 )
+    if (argLength > 0)
     {
-      memcpy(&triggerMessage[2],arg,argLength);
+      memcpy(&triggerMessage[2], arg, argLength);
     }
-    this->RMICommunicator->Broadcast(triggerMessage,128,0);
+    this->RMICommunicator->Broadcast(triggerMessage, 128, 0);
   }
   else
   {
-    this->RMICommunicator->Broadcast(triggerMessage,128,0);
-    this->RMICommunicator->Broadcast(
-        reinterpret_cast<unsigned char*>(arg),argLength,0);
+    this->RMICommunicator->Broadcast(triggerMessage, 128, 0);
+    this->RMICommunicator->Broadcast(reinterpret_cast<unsigned char*>(arg), argLength, 0);
   }
 }
 
-//----------------------------------------------------------------------------
-int vtkMultiProcessController::BroadcastProcessRMIs(
-    int vtkNotUsed(reportErrors), int dont_loop )
+//------------------------------------------------------------------------------
+int vtkMultiProcessController::BroadcastProcessRMIs(int vtkNotUsed(reportErrors), int dont_loop)
 {
   int triggerMessage[128];
   int rmiTag;
   int argLength;
-  unsigned char *arg = NULL;
+  unsigned char* arg = nullptr;
   int error = RMI_NO_ERROR;
 
   this->InvokeEvent(vtkCommand::StartEvent);
 
   do
   {
-    this->RMICommunicator->Broadcast(triggerMessage,128,0);
+    this->RMICommunicator->Broadcast(triggerMessage, 128, 0);
 
 #ifdef VTK_WORDS_BIGENDIAN
-    // Header is sent in little-endian form. We need to convert it to  big
+    // Header is sent in little-endian form. We need to convert it to big
     // endian.
     vtkByteSwap::SwapLERange(triggerMessage, 2);
 #endif
 
-    rmiTag    = triggerMessage[0];
+    rmiTag = triggerMessage[0];
     argLength = triggerMessage[1];
 
-    if( argLength > 0 )
+    if (argLength > 0)
     {
-      arg = new unsigned char[ argLength ];
-      int buffer_size = sizeof(int)*(126 /*128-2*/);
+      arg = new unsigned char[argLength];
+      int buffer_size = sizeof(int) * (126 /*128-2*/);
 
-      if( argLength < buffer_size )
+      if (argLength < buffer_size)
       {
-        memcpy(arg,&triggerMessage[2],argLength);
+        memcpy(arg, &triggerMessage[2], argLength);
       } // END if message is inline
       else
       {
-        this->RMICommunicator->Broadcast(arg,argLength,0);
+        this->RMICommunicator->Broadcast(arg, argLength, 0);
       } // END else message was not inline
 
     } // END if non-null arguments
 
-    this->ProcessRMI(0 /*we broadcast from rank 0*/, arg, argLength,rmiTag);
+    this->ProcessRMI(0 /*we broadcast from rank 0*/, arg, argLength, rmiTag);
 
-    delete [] arg;
-    arg = NULL;
+    delete[] arg;
+    arg = nullptr;
 
     // check for break
     if (this->BreakFlag)
@@ -558,15 +539,15 @@ int vtkMultiProcessController::BroadcastProcessRMIs(
       return error;
     }
 
-  } while( !dont_loop );
+  } while (!dont_loop);
 
   this->InvokeEvent(vtkCommand::EndEvent);
   return error;
 }
 
-//----------------------------------------------------------------------------
-void vtkMultiProcessController::TriggerRMIInternal(int remoteProcessId,
-    void* arg, int argLength, int rmiTag, bool propagate)
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::TriggerRMIInternal(
+  int remoteProcessId, void* arg, int argLength, int rmiTag, bool propagate)
 {
   int triggerMessage[128];
   triggerMessage[0] = rmiTag;
@@ -578,7 +559,7 @@ void vtkMultiProcessController::TriggerRMIInternal(int remoteProcessId,
   triggerMessage[2] = this->GetLocalProcessId();
 
   // Pass the propagate flag.
-  triggerMessage[3] = propagate? 1 : 0;
+  triggerMessage[3] = propagate ? 1 : 0;
 
   // We send the header in Little Endian order.
   vtkByteSwap::SwapLERange(triggerMessage, 4);
@@ -587,37 +568,35 @@ void vtkMultiProcessController::TriggerRMIInternal(int remoteProcessId,
   // single Send(), rather than two. This helps speed up communication
   // significantly, since sending multiple small messages is generally slower
   // than sending a single large message.
-  if (argLength >= 0 && static_cast<unsigned int>(argLength) < sizeof(int)*(128-4))
+  if (argLength >= 0 && static_cast<unsigned int>(argLength) < sizeof(int) * (128 - 4))
   {
     if (argLength > 0)
     {
       memcpy(&triggerMessage[4], arg, argLength);
     }
-    int num_bytes = static_cast<int>(4*sizeof(int)) + argLength;
-    this->RMICommunicator->Send(reinterpret_cast<unsigned char*>(triggerMessage),
-      num_bytes, remoteProcessId, RMI_TAG);
+    int num_bytes = static_cast<int>(4 * sizeof(int)) + argLength;
+    this->RMICommunicator->Send(
+      reinterpret_cast<unsigned char*>(triggerMessage), num_bytes, remoteProcessId, RMI_TAG);
   }
   else
   {
-    this->RMICommunicator->Send(
-      reinterpret_cast<unsigned char*>(triggerMessage),
-      static_cast<int>(4*sizeof(int)), remoteProcessId, RMI_TAG);
+    this->RMICommunicator->Send(reinterpret_cast<unsigned char*>(triggerMessage),
+      static_cast<int>(4 * sizeof(int)), remoteProcessId, RMI_TAG);
     if (argLength > 0)
     {
-      this->RMICommunicator->Send((char*)arg, argLength, remoteProcessId,
-        RMI_ARG_TAG);
+      this->RMICommunicator->Send((char*)arg, argLength, remoteProcessId, RMI_ARG_TAG);
     }
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkMultiProcessController::TriggerBreakRMIs()
 {
   int idx, num;
 
-  if( this->BroadcastTriggerRMI == 1 )
+  if (this->BroadcastTriggerRMI == 1)
   {
-    this->BroadcastTriggerRMIOnAllChildren(NULL,0,BREAK_RMI_TAG);
+    this->BroadcastTriggerRMIOnAllChildren(nullptr, 0, BREAK_RMI_TAG);
     return;
   }
 
@@ -630,36 +609,34 @@ void vtkMultiProcessController::TriggerBreakRMIs()
   num = this->GetNumberOfProcesses();
   for (idx = 1; idx < num; ++idx)
   {
-    this->TriggerRMI(idx, NULL, 0, BREAK_RMI_TAG);
+    this->TriggerRMI(idx, nullptr, 0, BREAK_RMI_TAG);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkMultiProcessController::ProcessRMIs()
 {
   return this->ProcessRMIs(1, 0);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkMultiProcessController::ProcessRMIs(int reportErrors, int dont_loop)
 {
-  if( this->BroadcastTriggerRMI )
+  if (this->BroadcastTriggerRMI)
   {
-    return this->BroadcastProcessRMIs(reportErrors,dont_loop);
+    return this->BroadcastProcessRMIs(reportErrors, dont_loop);
   }
-
 
   this->InvokeEvent(vtkCommand::StartEvent);
   int triggerMessage[128];
-  unsigned char *arg = NULL;
+  unsigned char* arg = nullptr;
   int error = RMI_NO_ERROR;
 
   do
   {
-    if (!this->RMICommunicator->Receive(
-        reinterpret_cast<unsigned char*>(triggerMessage),
-        static_cast<vtkIdType>(128*sizeof(int)), ANY_SOURCE, RMI_TAG) ||
-      this->RMICommunicator->GetCount() < static_cast<int>(4*sizeof(int)))
+    if (!this->RMICommunicator->Receive(reinterpret_cast<unsigned char*>(triggerMessage),
+          static_cast<vtkIdType>(128 * sizeof(int)), ANY_SOURCE, RMI_TAG) ||
+      this->RMICommunicator->GetCount() < static_cast<int>(4 * sizeof(int)))
     {
       if (reportErrors)
       {
@@ -669,7 +646,7 @@ int vtkMultiProcessController::ProcessRMIs(int reportErrors, int dont_loop)
       break;
     }
 #ifdef VTK_WORDS_BIGENDIAN
-    // Header is sent in little-endian form. We need to convert it to  big
+    // Header is sent in little-endian form. We need to convert it to big
     // endian.
     vtkByteSwap::SwapLERange(triggerMessage, 4);
 #endif
@@ -680,24 +657,24 @@ int vtkMultiProcessController::ProcessRMIs(int reportErrors, int dont_loop)
       // If the message length is small enough, the TriggerRMIInternal() call
       // packs the message data inline. So depending on the message length we
       // use the inline data or make a second receive to fetch the data.
-      if (static_cast<unsigned int>(triggerMessage[1]) < sizeof(int)*(128-4))
+      if (static_cast<unsigned int>(triggerMessage[1]) < sizeof(int) * (128 - 4))
       {
-        int num_bytes = static_cast<int>(4 *sizeof(int)) + triggerMessage[1];
+        int num_bytes = static_cast<int>(4 * sizeof(int)) + triggerMessage[1];
         if (this->RMICommunicator->GetCount() != num_bytes)
         {
           if (reportErrors)
           {
             vtkErrorMacro("Could not receive the RMI argument in its entirety.");
           }
-          error= RMI_ARG_ERROR;
+          error = RMI_ARG_ERROR;
           break;
         }
         memcpy(arg, &triggerMessage[4], triggerMessage[1]);
       }
       else
       {
-        if (!this->RMICommunicator->Receive((char*)(arg), triggerMessage[1],
-            triggerMessage[2], RMI_ARG_TAG) ||
+        if (!this->RMICommunicator->Receive(
+              (char*)(arg), triggerMessage[1], triggerMessage[2], RMI_ARG_TAG) ||
           this->RMICommunicator->GetCount() != triggerMessage[1])
         {
           if (reportErrors)
@@ -709,14 +686,13 @@ int vtkMultiProcessController::ProcessRMIs(int reportErrors, int dont_loop)
         }
       }
     }
-    if (triggerMessage[3] == 1 && this->GetNumberOfProcesses() > 3)//propagate==true
+    if (triggerMessage[3] == 1 && this->GetNumberOfProcesses() > 3) // propagate==true
     {
       this->TriggerRMIOnAllChildren(arg, triggerMessage[1], triggerMessage[0]);
     }
-    this->ProcessRMI(triggerMessage[2], arg, triggerMessage[1],
-      triggerMessage[0]);
-    delete [] arg;
-    arg = NULL;
+    this->ProcessRMI(triggerMessage[2], arg, triggerMessage[1], triggerMessage[0]);
+    delete[] arg;
+    arg = nullptr;
 
     // check for break
     if (this->BreakFlag)
@@ -731,23 +707,19 @@ int vtkMultiProcessController::ProcessRMIs(int reportErrors, int dont_loop)
   return error;
 }
 
-
-//----------------------------------------------------------------------------
-void vtkMultiProcessController::ProcessRMI(int remoteProcessId,
-                                           void *arg, int argLength,
-                                           int rmiTag)
+//------------------------------------------------------------------------------
+void vtkMultiProcessController::ProcessRMI(
+  int remoteProcessId, void* arg, int argLength, int rmiTag)
 {
   // we build the list of callbacks to call and then invoke them to handle the
   // case where the callback removes the callback.
   std::vector<vtkInternal::vtkRMICallback> callbacks;
 
-  vtkInternal::RMICallbackMap::iterator iter =
-    this->Internal->RMICallbacks.find(rmiTag);
+  vtkInternal::RMICallbackMap::iterator iter = this->Internal->RMICallbacks.find(rmiTag);
   if (iter != this->Internal->RMICallbacks.end())
   {
     vtkInternal::RMICallbackVector::iterator iterVec;
-    for (iterVec = iter->second.begin();
-      iterVec != iter->second.end(); ++iterVec)
+    for (iterVec = iter->second.begin(); iterVec != iter->second.end(); ++iterVec)
     {
       if (iterVec->Function)
       {
@@ -756,10 +728,10 @@ void vtkMultiProcessController::ProcessRMI(int remoteProcessId,
     }
   }
 
-  if (callbacks.size()==0)
+  if (callbacks.empty())
   {
-    vtkErrorMacro("Process " << this->GetLocalProcessId() <<
-                  " Could not find RMI with tag " << rmiTag);
+    vtkErrorMacro(
+      "Process " << this->GetLocalProcessId() << " Could not find RMI with tag " << rmiTag);
   }
 
   std::vector<vtkInternal::vtkRMICallback>::iterator citer;
@@ -768,32 +740,194 @@ void vtkMultiProcessController::ProcessRMI(int remoteProcessId,
     (*citer->Function)(citer->LocalArgument, arg, argLength, remoteProcessId);
   }
 }
+//------------------------------------------------------------------------------
+int vtkMultiProcessController::Reduce(
+  const vtkBoundingBox& sendBuffer, vtkBoundingBox& recvBuffer, int destProcessId)
+{
+  if (this->GetNumberOfProcesses() <= 1)
+  {
+    recvBuffer = sendBuffer;
+    return 1;
+  }
+
+  double send_min[3] = { VTK_DOUBLE_MAX, VTK_DOUBLE_MAX, VTK_DOUBLE_MAX };
+  double send_max[3] = { VTK_DOUBLE_MIN, VTK_DOUBLE_MIN, VTK_DOUBLE_MIN };
+  if (sendBuffer.IsValid())
+  {
+    sendBuffer.GetMinPoint(send_min);
+    sendBuffer.GetMaxPoint(send_max);
+  }
+  double recv_min[3], recv_max[3];
+  if (this->Reduce(send_min, recv_min, 3, vtkCommunicator::MIN_OP, destProcessId) &&
+    this->Reduce(send_max, recv_max, 3, vtkCommunicator::MAX_OP, destProcessId))
+  {
+    if (this->GetLocalProcessId() == destProcessId)
+    {
+      const double bds[6] = { recv_min[0], recv_max[0], recv_min[1], recv_max[1], recv_min[2],
+        recv_max[2] };
+      recvBuffer.SetBounds(bds);
+    }
+    return 1;
+  }
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+int vtkMultiProcessController::AllReduce(
+  const vtkBoundingBox& sendBuffer, vtkBoundingBox& recvBuffer)
+{
+  if (this->GetNumberOfProcesses() <= 1)
+  {
+    recvBuffer = sendBuffer;
+    return 1;
+  }
+
+  double send_min[3] = { VTK_DOUBLE_MAX, VTK_DOUBLE_MAX, VTK_DOUBLE_MAX };
+  double send_max[3] = { VTK_DOUBLE_MIN, VTK_DOUBLE_MIN, VTK_DOUBLE_MIN };
+  if (sendBuffer.IsValid())
+  {
+    sendBuffer.GetMinPoint(send_min);
+    sendBuffer.GetMaxPoint(send_max);
+  }
+  double recv_min[3], recv_max[3];
+  if (this->AllReduce(send_min, recv_min, 3, vtkCommunicator::MIN_OP) &&
+    this->AllReduce(send_max, recv_max, 3, vtkCommunicator::MAX_OP))
+  {
+    const double bds[6] = { recv_min[0], recv_max[0], recv_min[1], recv_max[1], recv_min[2],
+      recv_max[2] };
+    recvBuffer.SetBounds(bds);
+    return 1;
+  }
+  return 0;
+}
+
+//----------------------------------------------------------------------------
+int vtkMultiProcessController::Reduce(
+  vtkDataArraySelection* sendBuffer, vtkDataArraySelection* recvBuffer, int destProcessId)
+{
+  if (!sendBuffer)
+  {
+    return 0;
+  }
+  if (this->GetNumberOfProcesses() <= 1)
+  {
+    if (recvBuffer != nullptr && recvBuffer != sendBuffer)
+    {
+      recvBuffer->RemoveAllArrays();
+      recvBuffer->CopySelections(sendBuffer);
+    }
+    return 1;
+  }
+
+  vtkMultiProcessStream stream;
+  stream << sendBuffer->GetNumberOfArrays();
+  for (int cc = 0, max = sendBuffer->GetNumberOfArrays(); cc < max; ++cc)
+  {
+    stream << std::string(sendBuffer->GetArrayName(cc)) << sendBuffer->GetArraySetting(cc);
+  }
+
+  std::vector<vtkMultiProcessStream> result;
+  if (!this->Gather(stream, result, destProcessId))
+  {
+    return 0;
+  }
+
+  if (this->GetLocalProcessId() != destProcessId)
+  {
+    return 1;
+  }
+
+  if (recvBuffer == nullptr)
+  {
+    return 0;
+  }
+
+  recvBuffer->RemoveAllArrays();
+
+  // there may be difference between array selections across ranks and we want
+  // to resolve conflict as follows:
+  // - lower rank number wins.
+  // - destProcessId rank number wins.
+  std::reverse(result.begin(), result.end());
+  std::swap(result[destProcessId], result.back());
+
+  for (auto& astream : result)
+  {
+    int count;
+    astream >> count;
+    for (int cc = 0; cc < count; ++cc)
+    {
+      std::string arrayname;
+      int setting;
+      astream >> arrayname >> setting;
+      recvBuffer->SetArraySetting(arrayname.c_str(), setting);
+    }
+  }
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+int vtkMultiProcessController::AllReduce(
+  vtkDataArraySelection* sendBuffer, vtkDataArraySelection* recvBuffer)
+{
+  if (recvBuffer == nullptr || sendBuffer == nullptr)
+  {
+    return 0;
+  }
+  if (!this->Reduce(sendBuffer, recvBuffer, 0))
+  {
+    return 0;
+  }
+
+  vtkMultiProcessStream stream;
+  if (this->GetLocalProcessId() == 0)
+  {
+    stream << recvBuffer->GetNumberOfArrays();
+    for (int cc = 0, max = recvBuffer->GetNumberOfArrays(); cc < max; ++cc)
+    {
+      stream << std::string(recvBuffer->GetArrayName(cc)) << recvBuffer->GetArraySetting(cc);
+    }
+    return this->Broadcast(stream, 0);
+  }
+  else if (this->Broadcast(stream, 0))
+  {
+    recvBuffer->RemoveAllArrays();
+    int count;
+    stream >> count;
+    for (int cc = 0; cc < count; ++cc)
+    {
+      std::string arrayname;
+      int setting;
+      stream >> arrayname >> setting;
+      recvBuffer->SetArraySetting(arrayname.c_str(), setting);
+    }
+    return 1;
+  }
+  return 0;
+}
 
 //============================================================================
 // The intent is to give access to a processes controller from a static method.
 static vtkWeakPointer<vtkMultiProcessController> VTK_GLOBAL_MULTI_PROCESS_CONTROLLER;
-//----------------------------------------------------------------------------
-vtkMultiProcessController *vtkMultiProcessController::GetGlobalController()
+//------------------------------------------------------------------------------
+vtkMultiProcessController* vtkMultiProcessController::GetGlobalController()
 {
-  if (VTK_GLOBAL_MULTI_PROCESS_CONTROLLER == NULL)
+  if (VTK_GLOBAL_MULTI_PROCESS_CONTROLLER == nullptr)
   {
-    return NULL;
+    return nullptr;
   }
 
   return VTK_GLOBAL_MULTI_PROCESS_CONTROLLER->GetLocalController();
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This can be overridden in the subclass to translate controllers.
-vtkMultiProcessController *vtkMultiProcessController::GetLocalController()
+vtkMultiProcessController* vtkMultiProcessController::GetLocalController()
 {
   return VTK_GLOBAL_MULTI_PROCESS_CONTROLLER;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This can be overridden in the subclass to translate controllers.
-void vtkMultiProcessController::SetGlobalController(
-                                   vtkMultiProcessController *controller)
+void vtkMultiProcessController::SetGlobalController(vtkMultiProcessController* controller)
 {
   VTK_GLOBAL_MULTI_PROCESS_CONTROLLER = controller;
 }
-
-

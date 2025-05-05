@@ -19,7 +19,7 @@
  * Serves as a base class for algorithms that trace a geodesic on a
  * polygonal dataset treating it as a graph. ie points connecting the
  * vertices of the graph
-*/
+ */
 
 #ifndef vtkGraphGeodesicPath_h
 #define vtkGraphGeodesicPath_h
@@ -32,42 +32,40 @@ class vtkIdList;
 class VTKFILTERSMODELING_EXPORT vtkGraphGeodesicPath : public vtkGeodesicPath
 {
 public:
-  //@{
+  ///@{
   /**
-   * Standard methids for printing and determining type information.
+   * Standard methods for printing and determining type information.
    */
-  vtkTypeMacro(vtkGraphGeodesicPath,vtkGeodesicPath);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkGraphGeodesicPath, vtkGeodesicPath);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The vertex at the start of the shortest path
    */
   vtkGetMacro(StartVertex, vtkIdType);
   vtkSetMacro(StartVertex, vtkIdType);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The vertex at the end of the shortest path
    */
   vtkGetMacro(EndVertex, vtkIdType);
   vtkSetMacro(EndVertex, vtkIdType);
-  //@}
+  ///@}
 
 protected:
   vtkGraphGeodesicPath();
-  ~vtkGraphGeodesicPath() VTK_OVERRIDE;
+  ~vtkGraphGeodesicPath() override;
 
   vtkIdType StartVertex;
   vtkIdType EndVertex;
 
 private:
-  vtkGraphGeodesicPath(const vtkGraphGeodesicPath&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGraphGeodesicPath&) VTK_DELETE_FUNCTION;
-
+  vtkGraphGeodesicPath(const vtkGraphGeodesicPath&) = delete;
+  void operator=(const vtkGraphGeodesicPath&) = delete;
 };
 
 #endif
-

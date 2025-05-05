@@ -18,7 +18,7 @@
   the U.S. Government retains certain rights in this software.
 -------------------------------------------------------------------------*/
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Templated definition of ToNumeric, isolated into its very own file to
 // allow it to be defined before its use with most compilers, but after its
 // use for (at least) Visual Studio 6.
@@ -32,7 +32,7 @@ T vtkVariant::ToNumeric(bool* valid, T* vtkNotUsed(ignored)) const
   }
   if (this->IsString())
   {
-    return vtkVariantStringToNumeric<T>(* this->Data.String, valid);
+    return vtkVariantStringToNumeric<T>(*this->Data.String, valid);
   }
   if (this->IsFloat())
   {
@@ -92,7 +92,7 @@ T vtkVariant::ToNumeric(bool* valid, T* vtkNotUsed(ignored)) const
     if (this->Data.VTKObject->IsA("vtkDataArray"))
     {
       // Note: This are not the best conversion.
-      //       We covert the first value to double, then
+      //       We convert the first value to double, then
       //       cast it back to the appropriate numeric type.
       vtkDataArray* da = vtkDataArray::SafeDownCast(this->Data.VTKObject);
       return static_cast<T>(da->GetTuple1(0));
@@ -100,7 +100,7 @@ T vtkVariant::ToNumeric(bool* valid, T* vtkNotUsed(ignored)) const
     if (this->Data.VTKObject->IsA("vtkVariantArray"))
     {
       // Note: This are not the best conversion.
-      //       We covert the first value to double, then
+      //       We convert the first value to double, then
       //       cast it back to the appropriate numeric type.
       vtkVariantArray* va = vtkVariantArray::SafeDownCast(this->Data.VTKObject);
       return static_cast<T>(va->GetValue(0).ToDouble());

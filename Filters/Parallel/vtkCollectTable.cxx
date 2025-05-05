@@ -22,88 +22,82 @@
 #include "vtkInformationVector.h"
 #include "vtkMultiProcessController.h"
 #include "vtkObjectFactory.h"
-#include "vtkTable.h"
 #include "vtkSocketController.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkTable.h"
 #include "vtkVariant.h"
 
 vtkStandardNewMacro(vtkCollectTable);
 
-vtkCxxSetObjectMacro(vtkCollectTable,Controller, vtkMultiProcessController);
-vtkCxxSetObjectMacro(vtkCollectTable,SocketController, vtkSocketController);
+vtkCxxSetObjectMacro(vtkCollectTable, Controller, vtkMultiProcessController);
+vtkCxxSetObjectMacro(vtkCollectTable, SocketController, vtkSocketController);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkCollectTable::vtkCollectTable()
 {
   this->PassThrough = 0;
-  this->SocketController = NULL;
+  this->SocketController = nullptr;
 
   // Controller keeps a reference to this object as well.
-  this->Controller = NULL;
+  this->Controller = nullptr;
   this->SetController(vtkMultiProcessController::GetGlobalController());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkCollectTable::~vtkCollectTable()
 {
-  this->SetController(0);
-  this->SetSocketController(0);
+  this->SetController(nullptr);
+  this->SetSocketController(nullptr);
 }
 
-//--------------------------------------------------------------------------
-int vtkCollectTable::RequestUpdateExtent(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkCollectTable::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
-              outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
+    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
-              outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
+    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
-              outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
+    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
 
   return 1;
 }
 
-//----------------------------------------------------------------------------
-int vtkCollectTable::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkCollectTable::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // get the input and output
-  vtkTable *input = vtkTable::SafeDownCast(
-    inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkTable *output = vtkTable::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkTable* input = vtkTable::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkTable* output = vtkTable::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   int numProcs, myId;
   int idx;
 
-  if (this->Controller == NULL && this->SocketController == NULL)
+  if (this->Controller == nullptr && this->SocketController == nullptr)
   { // Running as a single process.
     output->ShallowCopy(input);
     return 1;
   }
 
-  if (this->Controller == NULL && this->SocketController != NULL)
+  if (this->Controller == nullptr && this->SocketController != nullptr)
   { // This is a client.  We assume no data on client for input.
-    if ( ! this->PassThrough)
+    if (!this->PassThrough)
     {
       vtkTable* table = vtkTable::New();
       this->SocketController->Receive(table, 1, 121767);
       output->ShallowCopy(table);
       table->Delete();
-      table = NULL;
+      table = nullptr;
       return 1;
     }
     // If not collected, output will be empty from initialization.
@@ -161,10 +155,10 @@ int vtkCollectTable::RequestData(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkCollectTable::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "PassThough: " << this->PassThrough << endl;
   os << indent << "Controller: (" << this->Controller << ")\n";

@@ -17,7 +17,7 @@
  *
  * A vtkMoleculeMapper that uses imposters to do the rendering. It uses
  * vtkOpenGLSphereMapper and vtkOpenGLStickMapper to do the rendering.
-*/
+ */
 
 #ifndef vtkOpenGLMoleculeMapper_h
 #define vtkOpenGLMoleculeMapper_h
@@ -33,40 +33,52 @@ class VTKDOMAINSCHEMISTRYOPENGL2_EXPORT vtkOpenGLMoleculeMapper : public vtkMole
 {
 public:
   static vtkOpenGLMoleculeMapper* New();
-  vtkTypeMacro(vtkOpenGLMoleculeMapper, vtkMoleculeMapper)
+  vtkTypeMacro(vtkOpenGLMoleculeMapper, vtkMoleculeMapper);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Reimplemented from base class
    */
-  void Render(vtkRenderer *, vtkActor *) VTK_OVERRIDE;
-  void ReleaseGraphicsResources(vtkWindow *) VTK_OVERRIDE;
-  //@}
+  void Render(vtkRenderer*, vtkActor*) override;
+  void ReleaseGraphicsResources(vtkWindow*) override;
+  ///@}
 
   /**
    * provide access to the underlying mappers
    */
-  vtkOpenGLSphereMapper *GetFastAtomMapper() {
-      return this->FastAtomMapper.Get(); }
+  vtkOpenGLSphereMapper* GetFastAtomMapper() { return this->FastAtomMapper; }
+  /**
+   * allows a mapper to update a selections color buffers
+   * Called from a prop which in turn is called from the selector
+   */
+  void ProcessSelectorPixelBuffers(
+    vtkHardwareSelector* sel, std::vector<unsigned int>& pixeloffsets, vtkProp* prop) override;
+
+  /**
+   * Helper method to set ScalarMode on both FastAtomMapper and FastBondMapper.
+   * true means VTK_COLOR_MODE_MAP_SCALARS, false VTK_COLOR_MODE_DIRECT_SCALARS.
+   */
+  void SetMapScalars(bool map) override;
 
 protected:
   vtkOpenGLMoleculeMapper();
-  ~vtkOpenGLMoleculeMapper() VTK_OVERRIDE;
+  ~vtkOpenGLMoleculeMapper() override;
 
-  void UpdateAtomGlyphPolyData() VTK_OVERRIDE;
-  void UpdateBondGlyphPolyData() VTK_OVERRIDE;
+  void UpdateAtomGlyphPolyData() override;
+  void UpdateBondGlyphPolyData() override;
 
-  //@{
+  ///@{
   /**
    * Internal mappers
    */
   vtkNew<vtkOpenGLSphereMapper> FastAtomMapper;
   vtkNew<vtkOpenGLStickMapper> FastBondMapper;
-  //@}
+  ///@}
 
 private:
-  vtkOpenGLMoleculeMapper(const vtkOpenGLMoleculeMapper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkOpenGLMoleculeMapper&) VTK_DELETE_FUNCTION;
+  vtkOpenGLMoleculeMapper(const vtkOpenGLMoleculeMapper&) = delete;
+  void operator=(const vtkOpenGLMoleculeMapper&) = delete;
 };
 
 #endif

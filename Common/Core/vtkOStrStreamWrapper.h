@@ -22,16 +22,18 @@
  * up compilation.  Experimentation has revealed between 10% and 60%
  * less time for compilation depending on the platform.  This wrapper
  * is used by the macros in vtkSetGet.h.
-*/
+ */
 
 #ifndef vtkOStrStreamWrapper_h
 #define vtkOStrStreamWrapper_h
 
-#ifndef __VTK_SYSTEM_INCLUDES__INSIDE
-Do_not_include_vtkOStrStreamWrapper_directly__vtkSystemIncludes_includes_it;
+#include "vtkCommonCoreModule.h"
+
+#ifndef VTK_SYSTEM_INCLUDES_INSIDE
+Do_not_include_vtkOStrStreamWrapper_directly_vtkSystemIncludes_includes_it;
 #endif
 
-class VTKCOMMONCORE_EXPORT vtkOStrStreamWrapper: public vtkOStreamWrapper
+class VTKCOMMONCORE_EXPORT vtkOStrStreamWrapper : public vtkOStreamWrapper
 {
 public:
   /**
@@ -42,7 +44,7 @@ public:
   /**
    * Destructor frees all used memory.
    */
-  ~vtkOStrStreamWrapper() VTK_OVERRIDE;
+  ~vtkOStrStreamWrapper() override;
 
   /**
    * Get the string that has been written.  This call transfers
@@ -57,14 +59,14 @@ public:
    */
   vtkOStrStreamWrapper* rdbuf();
 
-  //@{
+  ///@{
   /**
    * Set whether the memory is frozen.  The vtkOStrStreamWrapper will free
    * the memory returned by str() only if it is not frozen.
    */
   void freeze();
   void freeze(int);
-  //@}
+  ///@}
 
 protected:
   // The pointer returned by str().
@@ -72,9 +74,10 @@ protected:
 
   // Whether the caller of str() owns the memory.
   int Frozen;
+
 private:
-  vtkOStrStreamWrapper(const vtkOStrStreamWrapper& r) VTK_DELETE_FUNCTION;
-  vtkOStrStreamWrapper& operator=(const vtkOStrStreamWrapper&) VTK_DELETE_FUNCTION;
+  vtkOStrStreamWrapper(const vtkOStrStreamWrapper& r) = delete;
+  vtkOStrStreamWrapper& operator=(const vtkOStrStreamWrapper&) = delete;
 };
 
 #endif

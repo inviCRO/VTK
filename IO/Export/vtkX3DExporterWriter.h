@@ -19,7 +19,7 @@
  * vtkX3DExporterWriter is the definition for
  * classes that implement a encoding for the
  * X3D exporter
-*/
+ */
 
 #ifndef vtkX3DExporterWriter_h
 #define vtkX3DExporterWriter_h
@@ -36,7 +36,7 @@ class VTKIOEXPORT_EXPORT vtkX3DExporterWriter : public vtkObject
 {
 public:
   vtkTypeMacro(vtkX3DExporterWriter, vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Opens the file specified with file
@@ -49,35 +49,35 @@ public:
    */
   virtual int OpenStream() = 0;
 
-  //@{
+  ///@{
   /**
    * Enable writing to an OutputString instead of the default, a file.
    */
-  vtkSetMacro(WriteToOutputString,int);
-  vtkGetMacro(WriteToOutputString,int);
-  vtkBooleanMacro(WriteToOutputString,int);
-  //@}
+  vtkSetMacro(WriteToOutputString, vtkTypeBool);
+  vtkGetMacro(WriteToOutputString, vtkTypeBool);
+  vtkBooleanMacro(WriteToOutputString, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When WriteToOutputString in on, then a string is allocated, written to,
    * and can be retrieved with these methods.  The string is deleted during
    * the next call to write ...
    */
-  vtkGetMacro(OutputStringLength, int);
+  vtkGetMacro(OutputStringLength, vtkIdType);
   vtkGetStringMacro(OutputString);
-  unsigned char *GetBinaryOutputString()
+  unsigned char* GetBinaryOutputString()
   {
-      return reinterpret_cast<unsigned char *>(this->OutputString);
+    return reinterpret_cast<unsigned char*>(this->OutputString);
   }
-  //@}
+  ///@}
 
   /**
-   * This convenience method returns the string, sets the IVAR to NULL,
+   * This convenience method returns the string, sets the IVAR to nullptr,
    * so that the user is responsible for deleting the string.
    * I am not sure what the name should be, so it may change in the future.
    */
-  char *RegisterAndGetOutputString();
+  char* RegisterAndGetOutputString();
 
   // Closes the file if open
   virtual void CloseFile() = 0;
@@ -87,18 +87,18 @@ public:
   virtual void Flush() {}
 
   /**
-   * Starts a document and sets all necessary informations,
+   * Starts a document and sets all necessary information,
    * i.e. the header of the implemented encoding
    */
   virtual void StartDocument() = 0;
 
   /**
-   * Ends a document and sets all necessary informations
+   * Ends a document and sets all necessary information
    * or necessary bytes to finish the encoding correctly
    */
   virtual void EndDocument() = 0;
 
-  //@{
+  ///@{
   /**
    * Starts/ends a new X3D node specified via nodeID. The list of
    * nodeIds can be found in vtkX3DExportWriterSymbols.h. The EndNode
@@ -107,7 +107,7 @@ public:
    */
   virtual void StartNode(int nodeID) = 0;
   virtual void EndNode() = 0;
-  //@}
+  ///@}
 
   /**
    * Sets the field specified with attributeID
@@ -174,7 +174,7 @@ public:
    * of the active node to the given value.
    * The type of the field is specified with type
    * It is possible to specify that the field is an
-   * image for optimized formating or compression
+   * image for optimized formatting or compression
    * Supported types: MFINT32, SFIMAGE
    */
   virtual void SetField(int attributeID, const int* values, size_t size, bool image = false) = 0;
@@ -189,15 +189,14 @@ public:
 
 protected:
   vtkX3DExporterWriter();
-  ~vtkX3DExporterWriter() VTK_OVERRIDE;
+  ~vtkX3DExporterWriter() override;
 
-  char *OutputString;
-  int OutputStringLength;
-  int WriteToOutputString;
+  char* OutputString;
+  vtkIdType OutputStringLength;
+  vtkTypeBool WriteToOutputString;
 
 private:
-  vtkX3DExporterWriter(const vtkX3DExporterWriter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkX3DExporterWriter&) VTK_DELETE_FUNCTION;
+  vtkX3DExporterWriter(const vtkX3DExporterWriter&) = delete;
+  void operator=(const vtkX3DExporterWriter&) = delete;
 };
 #endif
-

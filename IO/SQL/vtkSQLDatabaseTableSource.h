@@ -25,13 +25,13 @@
  * This class combines vtkSQLDatabase, vtkSQLQuery, and vtkQueryToTable to
  * provide a convenience class for generating tables from databases.
  * Also this class can be easily wrapped and used within ParaView / OverView.
-*/
+ */
 
 #ifndef vtkSQLDatabaseTableSource_h
 #define vtkSQLDatabaseTableSource_h
 
 #include "vtkIOSQLModule.h" // For export macro
-#include "vtkStdString.h"
+#include "vtkStdString.h"   // for vtkStdString
 #include "vtkTableAlgorithm.h"
 
 class vtkEventForwarderCommand;
@@ -41,7 +41,7 @@ class VTKIOSQL_EXPORT vtkSQLDatabaseTableSource : public vtkTableAlgorithm
 public:
   static vtkSQLDatabaseTableSource* New();
   vtkTypeMacro(vtkSQLDatabaseTableSource, vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkStdString GetURL();
   void SetURL(const vtkStdString& url);
@@ -51,16 +51,16 @@ public:
   vtkStdString GetQuery();
   void SetQuery(const vtkStdString& query);
 
-  //@{
+  ///@{
   /**
    * The name of the array for generating or assigning pedigree ids
    * (default "id").
    */
   vtkSetStringMacro(PedigreeIdArrayName);
   vtkGetStringMacro(PedigreeIdArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on (default), generates pedigree ids automatically.
    * If off, assign one of the arrays to be the pedigree id.
@@ -68,20 +68,17 @@ public:
   vtkSetMacro(GeneratePedigreeIds, bool);
   vtkGetMacro(GeneratePedigreeIds, bool);
   vtkBooleanMacro(GeneratePedigreeIds, bool);
-  //@}
+  ///@}
 
 protected:
   vtkSQLDatabaseTableSource();
-  ~vtkSQLDatabaseTableSource() VTK_OVERRIDE;
+  ~vtkSQLDatabaseTableSource() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkSQLDatabaseTableSource(const vtkSQLDatabaseTableSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSQLDatabaseTableSource&) VTK_DELETE_FUNCTION;
+  vtkSQLDatabaseTableSource(const vtkSQLDatabaseTableSource&) = delete;
+  void operator=(const vtkSQLDatabaseTableSource&) = delete;
 
   char* PedigreeIdArrayName;
   bool GeneratePedigreeIds;
@@ -90,13 +87,10 @@ private:
    * This intercepts events from the graph layout class
    * and re-emits them as if they came from this class.
    */
-  vtkEventForwarderCommand *EventForwarder;
+  vtkEventForwarderCommand* EventForwarder;
 
   class implementation;
   implementation* const Implementation;
-
 };
 
 #endif
-
-// VTK-HeaderTest-Exclude: vtkSQLDatabaseTableSource.h

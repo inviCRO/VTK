@@ -19,40 +19,40 @@
  * vtkDataSetWriter is an abstract class for mapper objects that write their
  * data to disk (or into a communications port). The input to this object is
  * a dataset of any type.
-*/
+ */
 
 #ifndef vtkDataSetWriter_h
 #define vtkDataSetWriter_h
 
-#include "vtkIOLegacyModule.h" // For export macro
 #include "vtkDataWriter.h"
+#include "vtkIOLegacyModule.h" // For export macro
 
 class VTKIOLEGACY_EXPORT vtkDataSetWriter : public vtkDataWriter
 {
 public:
-  static vtkDataSetWriter *New();
-  vtkTypeMacro(vtkDataSetWriter,vtkDataWriter);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkDataSetWriter* New();
+  vtkTypeMacro(vtkDataSetWriter, vtkDataWriter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Get the input to this writer.
    */
   vtkDataSet* GetInput();
   vtkDataSet* GetInput(int port);
-  //@}
+  ///@}
 
 protected:
-  vtkDataSetWriter() {}
-  ~vtkDataSetWriter() VTK_OVERRIDE {}
+  vtkDataSetWriter() = default;
+  ~vtkDataSetWriter() override = default;
 
-  void WriteData() VTK_OVERRIDE;
+  void WriteData() override;
 
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkDataSetWriter(const vtkDataSetWriter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDataSetWriter&) VTK_DELETE_FUNCTION;
+  vtkDataSetWriter(const vtkDataSetWriter&) = delete;
+  void operator=(const vtkDataSetWriter&) = delete;
 };
 
 #endif

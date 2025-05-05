@@ -33,7 +33,7 @@
  * fired, which must be handled to perform the actual animation.
  * @sa
  * vtkAnimationScene
-*/
+ */
 
 #ifndef vtkAnimationCue_h
 #define vtkAnimationCue_h
@@ -41,11 +41,11 @@
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkObject.h"
 
-class VTKCOMMONCORE_EXPORT vtkAnimationCue: public vtkObject
+class VTKCOMMONCORE_EXPORT vtkAnimationCue : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkAnimationCue,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkAnimationCue, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   static vtkAnimationCue* New();
 
@@ -60,12 +60,12 @@ public:
   public:
     double StartTime;
     double EndTime;
-    double AnimationTime;// valid only in AnimationCueTickEvent handler
-    double DeltaTime;   // valid only in AnimationCueTickEvent handler
-    double ClockTime;   // valid only in AnimationCueTickEvent handler
+    double AnimationTime; // valid only in AnimationCueTickEvent handler
+    double DeltaTime;     // valid only in AnimationCueTickEvent handler
+    double ClockTime;     // valid only in AnimationCueTickEvent handler
   };
 
-  //@{
+  ///@{
   /**
    * Get/Set the time mode. In Normalized mode, the start and end
    * times of the cue are normalized [0,1] with respect to the start and
@@ -75,13 +75,11 @@ public:
    */
   virtual void SetTimeMode(int mode);
   vtkGetMacro(TimeMode, int);
-  void SetTimeModeToRelative()
-    { this->SetTimeMode(TIMEMODE_RELATIVE); }
-  void SetTimeModeToNormalized()
-    { this->SetTimeMode(TIMEMODE_NORMALIZED); }
-  //@}
+  void SetTimeModeToRelative() { this->SetTimeMode(TIMEMODE_RELATIVE); }
+  void SetTimeModeToNormalized() { this->SetTimeMode(TIMEMODE_NORMALIZED); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the Start time for this cue.
    * When the current time is >= StartTime, the Cue is in
@@ -94,9 +92,9 @@ public:
    */
   vtkSetMacro(StartTime, double);
   vtkGetMacro(StartTime, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the End time for this cue.
    * When the current time is > EndTime, the Cue is in
@@ -108,14 +106,14 @@ public:
    */
   vtkSetMacro(EndTime, double);
   vtkGetMacro(EndTime, double);
-  //@}
+  ///@}
 
   /**
    * Indicates a tick or point in time in the animation.
    * Triggers a Tick event if currenttime >= StartTime and
    * currenttime <= EndTime.
    * Whenever the state of the cue changes,
-   * either StartEvent or EndEvent is triggerred depending upon
+   * either StartEvent or EndEvent is triggered depending upon
    * whether the cue entered Active state or quit active state respectively.
    * The current time is relative to the start of the container Scene
    * (when in Relative time mode) or is normalized
@@ -143,25 +141,25 @@ public:
    */
   virtual void Finalize();
 
-  //@{
+  ///@{
   /**
    * This is valid only in a AnimationCueTickEvent handler.
    * Before firing the event the animation cue sets the AnimationTime to
    * the time of the tick.
    */
   vtkGetMacro(AnimationTime, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * This is valid only in a AnimationCueTickEvent handler.
    * Before firing the event the animation cue sets the DeltaTime
    * to the difference in time between the current tick and the last tick.
    */
   vtkGetMacro(DeltaTime, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * This is valid only in a AnimationCueTickEvent handler.
    * Before firing the event the animation cue sets the ClockTime to
@@ -169,20 +167,35 @@ public:
    * scene neither normalized nor offsetted to the start of the scene.
    */
   vtkGetMacro(ClockTime, double);
-  //@}
+  ///@}
 
   enum TimeCodes
   {
-    TIMEMODE_NORMALIZED=0,
-    TIMEMODE_RELATIVE=1
+    TIMEMODE_NORMALIZED = 0,
+    TIMEMODE_RELATIVE = 1
   };
+
+  enum class PlayDirection
+  {
+    BACKWARD,
+    FORWARD,
+  };
+
+  ///@{
+  /**
+   * Set/get the direction of playback.
+   */
+  vtkSetEnumMacro(Direction, PlayDirection);
+  vtkGetEnumMacro(Direction, PlayDirection);
+  ///@}
 
 protected:
   vtkAnimationCue();
-  ~vtkAnimationCue() VTK_OVERRIDE;
+  ~vtkAnimationCue() override;
 
-  enum {
-    UNINITIALIZED=0,
+  enum
+  {
+    UNINITIALIZED = 0,
     INACTIVE,
     ACTIVE
   };
@@ -190,6 +203,7 @@ protected:
   double StartTime;
   double EndTime;
   int TimeMode;
+  PlayDirection Direction = PlayDirection::FORWARD;
 
   // These are set when the AnimationCueTickEvent event
   // is fired. Thus giving access to the information in
@@ -203,24 +217,29 @@ protected:
    */
   int CueState;
 
-  //@{
+  ///@{
   /**
    * These are the internal methods that actually trigger they
    * corresponding events. Subclasses can override these to
    * do extra processing at start/end or on tick.
    */
   virtual void StartCueInternal();
-  virtual void TickInternal(double currenttime, double deltatime,
-    double clocktime);
+  virtual void TickInternal(double currenttime, double deltatime, double clocktime);
   virtual void EndCueInternal();
-  //@}
+  ///@}
+
+  ///@{
+  /**
+   * These test the start, end time variables with current time to
+   * decide whether the animation can begin or end.
+   */
+  virtual bool CheckStartCue(double currenttime);
+  virtual bool CheckEndCue(double currenttime);
+  ///
 
 private:
-  vtkAnimationCue(const vtkAnimationCue&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkAnimationCue&) VTK_DELETE_FUNCTION;
+  vtkAnimationCue(const vtkAnimationCue&) = delete;
+  void operator=(const vtkAnimationCue&) = delete;
 };
 
 #endif
-
-
-

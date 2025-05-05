@@ -21,29 +21,28 @@
  * boundary of the two values.  The filter is restricted to the
  * X, Y, and Z axes for now.  It can degenerate to a 2 or 1 dimensional
  * filter by setting the kernel size to 1 for a specific axis.
-*/
+ */
 
 #ifndef vtkImageDilateErode3D_h
 #define vtkImageDilateErode3D_h
 
-
-#include "vtkImagingMorphologicalModule.h" // For export macro
 #include "vtkImageSpatialAlgorithm.h"
+#include "vtkImagingMorphologicalModule.h" // For export macro
 
 class vtkImageEllipsoidSource;
 
 class VTKIMAGINGMORPHOLOGICAL_EXPORT vtkImageDilateErode3D : public vtkImageSpatialAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Construct an instance of vtkImageDilateErode3D filter.
    * By default zero values are dilated.
    */
-  static vtkImageDilateErode3D *New();
-  vtkTypeMacro(vtkImageDilateErode3D,vtkImageSpatialAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkImageDilateErode3D* New();
+  vtkTypeMacro(vtkImageDilateErode3D, vtkImageSpatialAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * This method sets the size of the neighborhood.  It also sets the
@@ -51,8 +50,7 @@ public:
    */
   void SetKernelSize(int size0, int size1, int size2);
 
-
-  //@{
+  ///@{
   /**
    * Set/Get the Dilate and Erode values to be used by this filter.
    */
@@ -60,28 +58,25 @@ public:
   vtkGetMacro(DilateValue, double);
   vtkSetMacro(ErodeValue, double);
   vtkGetMacro(ErodeValue, double);
-  //@}
+  ///@}
 
 protected:
   vtkImageDilateErode3D();
-  ~vtkImageDilateErode3D() VTK_OVERRIDE;
+  ~vtkImageDilateErode3D() override;
 
-  vtkImageEllipsoidSource *Ellipse;
+  vtkImageEllipsoidSource* Ellipse;
   double DilateValue;
   double ErodeValue;
 
-  void ThreadedRequestData(vtkInformation *request,
-                           vtkInformationVector **inputVector,
-                           vtkInformationVector *outputVector,
-                           vtkImageData ***inData, vtkImageData **outData,
-                           int extent[6], int id) VTK_OVERRIDE;
-  int RequestData(vtkInformation *request,
-                          vtkInformationVector **inputVector,
-                          vtkInformationVector *outputVector) VTK_OVERRIDE;
+  void ThreadedRequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector, vtkImageData*** inData, vtkImageData** outData,
+    int outExt[6], int id) override;
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
 private:
-  vtkImageDilateErode3D(const vtkImageDilateErode3D&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageDilateErode3D&) VTK_DELETE_FUNCTION;
+  vtkImageDilateErode3D(const vtkImageDilateErode3D&) = delete;
+  void operator=(const vtkImageDilateErode3D&) = delete;
 };
 
 #endif

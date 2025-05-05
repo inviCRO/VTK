@@ -24,23 +24,23 @@
  * vtkImplicitFunctionToImageStencil vtkLassoStencilSource
  * @par Thanks:
  * Thanks to David Gobbi for contributing this class to VTK.
-*/
+ */
 
 #ifndef vtkROIStencilSource_h
 #define vtkROIStencilSource_h
 
-
-#include "vtkImagingStencilModule.h" // For export macro
 #include "vtkImageStencilSource.h"
+#include "vtkImagingStencilModule.h" // For export macro
 
 class VTKIMAGINGSTENCIL_EXPORT vtkROIStencilSource : public vtkImageStencilSource
 {
 public:
-  static vtkROIStencilSource *New();
+  static vtkROIStencilSource* New();
   vtkTypeMacro(vtkROIStencilSource, vtkImageStencilSource);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  enum {
+  enum
+  {
     BOX = 0,
     ELLIPSOID = 1,
     CYLINDERX = 2,
@@ -48,43 +48,42 @@ public:
     CYLINDERZ = 4
   };
 
-  //@{
+  ///@{
   /**
    * The shape of the region of interest.  Cylinders can be oriented
    * along the X, Y, or Z axes.  The default shape is "Box".
    */
   vtkGetMacro(Shape, int);
   vtkSetClampMacro(Shape, int, BOX, CYLINDERZ);
-  void SetShapeToBox() { this->SetShape(BOX); };
-  void SetShapeToEllipsoid() { this->SetShape(ELLIPSOID); };
-  void SetShapeToCylinderX() { this->SetShape(CYLINDERX); };
-  void SetShapeToCylinderY() { this->SetShape(CYLINDERY); };
-  void SetShapeToCylinderZ() { this->SetShape(CYLINDERZ); };
-  virtual const char *GetShapeAsString();
-  //@}
+  void SetShapeToBox() { this->SetShape(BOX); }
+  void SetShapeToEllipsoid() { this->SetShape(ELLIPSOID); }
+  void SetShapeToCylinderX() { this->SetShape(CYLINDERX); }
+  void SetShapeToCylinderY() { this->SetShape(CYLINDERY); }
+  void SetShapeToCylinderZ() { this->SetShape(CYLINDERZ); }
+  virtual const char* GetShapeAsString();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the bounds of the region of interest.  The bounds take
    * the spacing and origin into account.
    */
   vtkGetVector6Macro(Bounds, double);
   vtkSetVector6Macro(Bounds, double);
-  //@}
+  ///@}
 
 protected:
   vtkROIStencilSource();
-  ~vtkROIStencilSource() VTK_OVERRIDE;
+  ~vtkROIStencilSource() override;
 
-  int RequestData(vtkInformation *, vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int Shape;
   double Bounds[6];
 
 private:
-  vtkROIStencilSource(const vtkROIStencilSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkROIStencilSource&) VTK_DELETE_FUNCTION;
+  vtkROIStencilSource(const vtkROIStencilSource&) = delete;
+  void operator=(const vtkROIStencilSource&) = delete;
 };
 
 #endif

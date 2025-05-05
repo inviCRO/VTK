@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkPropItem.h
+  Module:    vtkPropItem.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -15,43 +15,43 @@
 
 #include "vtkPropItem.h"
 
-#include "vtkProp.h"
-#include "vtkProp3D.h"
 #include "vtkContextScene.h"
 #include "vtkObjectFactory.h"
+#include "vtkProp.h"
+#include "vtkProp3D.h"
 #include "vtkRenderer.h"
 
-vtkObjectFactoryNewMacro(vtkPropItem)
-vtkCxxSetObjectMacro(vtkPropItem, PropObject, vtkProp)
+vtkObjectFactoryNewMacro(vtkPropItem);
+vtkCxxSetObjectMacro(vtkPropItem, PropObject, vtkProp);
 
 //------------------------------------------------------------------------------
 vtkPropItem::vtkPropItem()
-  : PropObject(NULL)
+  : PropObject(nullptr)
 {
 }
 
 //------------------------------------------------------------------------------
 vtkPropItem::~vtkPropItem()
 {
-  this->SetPropObject(NULL);
+  this->SetPropObject(nullptr);
 }
 
 //------------------------------------------------------------------------------
 void vtkPropItem::UpdateTransforms()
 {
-  vtkErrorMacro(<<"Missing override in the rendering backend. Some items "
-                "may be rendered incorrectly.");
+  vtkErrorMacro(<< "Missing override in the rendering backend. Some items "
+                   "may be rendered incorrectly.");
 }
 
 //------------------------------------------------------------------------------
 void vtkPropItem::ResetTransforms()
 {
-  vtkErrorMacro(<<"Missing override in the rendering backend. Some items "
-                  "may be rendered incorrectly.");
+  vtkErrorMacro(<< "Missing override in the rendering backend. Some items "
+                   "may be rendered incorrectly.");
 }
 
 //------------------------------------------------------------------------------
-bool vtkPropItem::Paint(vtkContext2D *)
+bool vtkPropItem::Paint(vtkContext2D*)
 {
   if (!this->PropObject)
   {
@@ -63,8 +63,7 @@ bool vtkPropItem::Paint(vtkContext2D *)
   int result = this->PropObject->RenderOpaqueGeometry(this->Scene->GetRenderer());
   if (this->PropObject->HasTranslucentPolygonalGeometry())
   {
-    result += this->PropObject->RenderTranslucentPolygonalGeometry(
-          this->Scene->GetRenderer());
+    result += this->PropObject->RenderTranslucentPolygonalGeometry(this->Scene->GetRenderer());
   }
   result += this->PropObject->RenderOverlay(this->Scene->GetRenderer());
 
@@ -78,13 +77,12 @@ void vtkPropItem::ReleaseGraphicsResources()
 {
   if (this->PropObject && this->Scene && this->Scene->GetRenderer())
   {
-    this->PropObject->ReleaseGraphicsResources(
-          this->Scene->GetRenderer()->GetVTKWindow());
+    this->PropObject->ReleaseGraphicsResources(this->Scene->GetRenderer()->GetVTKWindow());
   }
 }
 
 //------------------------------------------------------------------------------
-void vtkPropItem::PrintSelf(std::ostream &os, vtkIndent indent)
+void vtkPropItem::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "Prop:";
@@ -95,6 +93,6 @@ void vtkPropItem::PrintSelf(std::ostream &os, vtkIndent indent)
   }
   else
   {
-    os << "(NULL)\n";
+    os << "(nullptr)\n";
   }
 }

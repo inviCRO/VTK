@@ -15,19 +15,21 @@
 
 #include <cassert>
 
+//------------------------------------------------------------------------------
+vtkRandomSequence::vtkRandomSequence() = default;
 
-// ----------------------------------------------------------------------------
-vtkRandomSequence::vtkRandomSequence()
-{
-}
+//------------------------------------------------------------------------------
+vtkRandomSequence::~vtkRandomSequence() = default;
 
-// ----------------------------------------------------------------------------
-vtkRandomSequence::~vtkRandomSequence()
-{
-}
-
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkRandomSequence::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+//------------------------------------------------------------------------------
+double vtkRandomSequence::GetNextValue()
+{
+  this->Next();
+  return this->GetValue();
 }

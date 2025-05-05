@@ -34,7 +34,7 @@
  * member.
  * @sa
  * vtkLandmarkTransform
-*/
+ */
 
 #ifndef vtkIterativeClosestPointTransform_h
 #define vtkIterativeClosestPointTransform_h
@@ -52,55 +52,55 @@ class vtkDataSet;
 class VTKCOMMONDATAMODEL_EXPORT vtkIterativeClosestPointTransform : public vtkLinearTransform
 {
 public:
-  static vtkIterativeClosestPointTransform *New();
-  vtkTypeMacro(vtkIterativeClosestPointTransform,vtkLinearTransform);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkIterativeClosestPointTransform* New();
+  vtkTypeMacro(vtkIterativeClosestPointTransform, vtkLinearTransform);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify the source and target data sets.
    */
-  void SetSource(vtkDataSet *source);
-  void SetTarget(vtkDataSet *target);
+  void SetSource(vtkDataSet* source);
+  void SetTarget(vtkDataSet* target);
   vtkGetObjectMacro(Source, vtkDataSet);
   vtkGetObjectMacro(Target, vtkDataSet);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get a spatial locator for speeding up the search process.
    * An instance of vtkCellLocator is used by default.
    */
-  void SetLocator(vtkCellLocator *locator);
-  vtkGetObjectMacro(Locator,vtkCellLocator);
-  //@}
+  void SetLocator(vtkCellLocator* locator);
+  vtkGetObjectMacro(Locator, vtkCellLocator);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set/Get the  maximum number of iterations. Default is 50.
+   * Set/Get the maximum number of iterations. Default is 50.
    */
   vtkSetMacro(MaximumNumberOfIterations, int);
   vtkGetMacro(MaximumNumberOfIterations, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the number of iterations since the last update
    */
   vtkGetMacro(NumberOfIterations, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Force the algorithm to check the mean distance between two iterations.
    * Default is Off.
    */
-  vtkSetMacro(CheckMeanDistance, int);
-  vtkGetMacro(CheckMeanDistance, int);
-  vtkBooleanMacro(CheckMeanDistance, int);
-  //@}
+  vtkSetMacro(CheckMeanDistance, vtkTypeBool);
+  vtkGetMacro(CheckMeanDistance, vtkTypeBool);
+  vtkBooleanMacro(CheckMeanDistance, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the mean distance mode. This mode expresses how the mean
    * distance is computed. The RMS mode is the square root of the average
@@ -108,17 +108,14 @@ public:
    * Value mode is the mean of the sum of absolute values of the closest
    * point distances. The default is VTK_ICP_MODE_RMS
    */
-  vtkSetClampMacro(MeanDistanceMode,int,
-                   VTK_ICP_MODE_RMS,VTK_ICP_MODE_AV);
-  vtkGetMacro(MeanDistanceMode,int);
-  void SetMeanDistanceModeToRMS()
-    {this->SetMeanDistanceMode(VTK_ICP_MODE_RMS);}
-  void SetMeanDistanceModeToAbsoluteValue()
-    {this->SetMeanDistanceMode(VTK_ICP_MODE_AV);}
-  const char *GetMeanDistanceModeAsString();
-  //@}
+  vtkSetClampMacro(MeanDistanceMode, int, VTK_ICP_MODE_RMS, VTK_ICP_MODE_AV);
+  vtkGetMacro(MeanDistanceMode, int);
+  void SetMeanDistanceModeToRMS() { this->SetMeanDistanceMode(VTK_ICP_MODE_RMS); }
+  void SetMeanDistanceModeToAbsoluteValue() { this->SetMeanDistanceMode(VTK_ICP_MODE_AV); }
+  const char* GetMeanDistanceModeAsString();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the maximum mean distance between two iteration. If the mean
    * distance is lower than this, the convergence stops. The default
@@ -126,16 +123,16 @@ public:
    */
   vtkSetMacro(MaximumMeanDistance, double);
   vtkGetMacro(MaximumMeanDistance, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the mean distance between the last two iterations.
    */
   vtkGetMacro(MeanDistance, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the maximum number of landmarks sampled in your dataset.
    * If your dataset is dense, then you will typically not need all the
@@ -143,88 +140,88 @@ public:
    */
   vtkSetMacro(MaximumNumberOfLandmarks, int);
   vtkGetMacro(MaximumNumberOfLandmarks, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Starts the process by translating source centroid to target centroid.
    * The default is Off.
    */
-  vtkSetMacro(StartByMatchingCentroids, int);
-  vtkGetMacro(StartByMatchingCentroids, int);
-  vtkBooleanMacro(StartByMatchingCentroids, int);
-  //@}
+  vtkSetMacro(StartByMatchingCentroids, vtkTypeBool);
+  vtkGetMacro(StartByMatchingCentroids, vtkTypeBool);
+  vtkBooleanMacro(StartByMatchingCentroids, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the internal landmark transform. Use it to constrain the number of
    * degrees of freedom of the solution (i.e. rigid body, similarity, etc.).
    */
-  vtkGetObjectMacro(LandmarkTransform,vtkLandmarkTransform);
-  //@}
+  vtkGetObjectMacro(LandmarkTransform, vtkLandmarkTransform);
+  ///@}
 
   /**
    * Invert the transformation.  This is done by switching the
    * source and target.
    */
-  void Inverse() VTK_OVERRIDE;
+  void Inverse() override;
 
   /**
    * Make another transform of the same type.
    */
-  vtkAbstractTransform *MakeTransform() VTK_OVERRIDE;
+  vtkAbstractTransform* MakeTransform() override;
 
 protected:
-
-  //@{
+  ///@{
   /**
    * Release source and target
    */
-  void ReleaseSource(void);
-  void ReleaseTarget(void);
-  //@}
+  void ReleaseSource();
+  void ReleaseTarget();
+  ///@}
 
   /**
    * Release locator
    */
-  void ReleaseLocator(void);
+  void ReleaseLocator();
 
   /**
    * Create default locator. Used to create one when none is specified.
    */
-  void CreateDefaultLocator(void);
+  void CreateDefaultLocator();
 
   /**
    * Get the MTime of this object also considering the locator.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
   vtkIterativeClosestPointTransform();
-  ~vtkIterativeClosestPointTransform() VTK_OVERRIDE;
+  ~vtkIterativeClosestPointTransform() override;
 
-  void InternalUpdate() VTK_OVERRIDE;
+  void InternalUpdate() override;
 
   /**
    * This method does no type checking, use DeepCopy instead.
    */
-  void InternalDeepCopy(vtkAbstractTransform *transform) VTK_OVERRIDE;
+  void InternalDeepCopy(vtkAbstractTransform* transform) override;
 
   vtkDataSet* Source;
   vtkDataSet* Target;
-  vtkCellLocator *Locator;
+  vtkCellLocator* Locator;
   int MaximumNumberOfIterations;
-  int CheckMeanDistance;
+  vtkTypeBool CheckMeanDistance;
   int MeanDistanceMode;
   double MaximumMeanDistance;
   int MaximumNumberOfLandmarks;
-  int StartByMatchingCentroids;
+  vtkTypeBool StartByMatchingCentroids;
 
   int NumberOfIterations;
   double MeanDistance;
-  vtkLandmarkTransform *LandmarkTransform;
+  vtkLandmarkTransform* LandmarkTransform;
+
 private:
-  vtkIterativeClosestPointTransform(const vtkIterativeClosestPointTransform&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkIterativeClosestPointTransform&) VTK_DELETE_FUNCTION;
+  vtkIterativeClosestPointTransform(const vtkIterativeClosestPointTransform&) = delete;
+  void operator=(const vtkIterativeClosestPointTransform&) = delete;
 };
 
 #endif

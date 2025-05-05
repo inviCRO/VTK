@@ -15,13 +15,18 @@
 #ifndef vtkVersionMacros_h
 #define vtkVersionMacros_h
 
-/* In development versions the minor component is odd and the build
-   component encodes a date in CCYYMMDD format.  In release versions
-   (or preparation of one) the minor component is even and the build
-   component is a small integer patch level.  */
+/* Note: this file is deliberately both valid C and valid C++. */
+
 #define VTK_MAJOR_VERSION @VTK_MAJOR_VERSION@
 #define VTK_MINOR_VERSION @VTK_MINOR_VERSION@
 #define VTK_BUILD_VERSION @VTK_BUILD_VERSION@
 #define VTK_VERSION "@VTK_VERSION@"
+
+#define VTK_SOURCE_VERSION "vtk version " VTK_VERSION
+
+#define VTK_VERSION_CHECK(major, minor, build)                                                     \
+  (10000000000ULL * major + 100000000ULL * minor + build)
+#define VTK_VERSION_NUMBER                                                                         \
+  VTK_VERSION_CHECK(VTK_MAJOR_VERSION, VTK_MINOR_VERSION, VTK_BUILD_VERSION)
 
 #endif

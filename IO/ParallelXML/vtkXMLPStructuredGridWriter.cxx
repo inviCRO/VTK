@@ -22,43 +22,38 @@
 
 vtkStandardNewMacro(vtkXMLPStructuredGridWriter);
 
-//----------------------------------------------------------------------------
-vtkXMLPStructuredGridWriter::vtkXMLPStructuredGridWriter()
-{
-}
+//------------------------------------------------------------------------------
+vtkXMLPStructuredGridWriter::vtkXMLPStructuredGridWriter() = default;
 
-//----------------------------------------------------------------------------
-vtkXMLPStructuredGridWriter::~vtkXMLPStructuredGridWriter()
-{
-}
+//------------------------------------------------------------------------------
+vtkXMLPStructuredGridWriter::~vtkXMLPStructuredGridWriter() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLPStructuredGridWriter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkStructuredGrid* vtkXMLPStructuredGridWriter::GetInput()
 {
   return static_cast<vtkStructuredGrid*>(this->Superclass::GetInput());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkXMLPStructuredGridWriter::GetDataSetName()
 {
   return "PStructuredGrid";
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkXMLPStructuredGridWriter::GetDefaultFileExtension()
 {
   return "pvts";
 }
 
-//----------------------------------------------------------------------------
-vtkXMLStructuredDataWriter*
-  vtkXMLPStructuredGridWriter::CreateStructuredPieceWriter()
+//------------------------------------------------------------------------------
+vtkXMLStructuredDataWriter* vtkXMLPStructuredGridWriter::CreateStructuredPieceWriter()
 {
   // Create the writer for the piece.
   vtkXMLStructuredGridWriter* pWriter = vtkXMLStructuredGridWriter::New();
@@ -66,7 +61,7 @@ vtkXMLStructuredDataWriter*
   return pWriter;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLPStructuredGridWriter::WritePData(vtkIndent indent)
 {
   this->Superclass::WritePData(indent);
@@ -78,9 +73,8 @@ void vtkXMLPStructuredGridWriter::WritePData(vtkIndent indent)
   this->WritePPoints(input->GetPoints(), indent);
 }
 
-//----------------------------------------------------------------------------
-int vtkXMLPStructuredGridWriter::FillInputPortInformation(
-  int, vtkInformation* info)
+//------------------------------------------------------------------------------
+int vtkXMLPStructuredGridWriter::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkStructuredGrid");
   return 1;

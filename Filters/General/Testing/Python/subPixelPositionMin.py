@@ -4,7 +4,7 @@ from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Test sub pixel positioning (A round about way of getting an iso surface.)
-# See cubed sphere for the surface before sub pixel poisitioning.
+# See cubed sphere for the surface before sub pixel positioning.
 sphere = vtk.vtkSphere()
 sphere.SetCenter(1,1,1)
 sphere.SetRadius(0.9)
@@ -16,7 +16,8 @@ sample.ComputeNormalsOff()
 sample.Update()
 threshold1 = vtk.vtkThreshold()
 threshold1.SetInputConnection(sample.GetOutputPort())
-threshold1.ThresholdByLower(0.001)
+threshold1.SetThresholdFunction(vtk.vtkThreshold.THRESHOLD_LOWER)
+threshold1.SetLowerThreshold(0.001)
 geometry = vtk.vtkGeometryFilter()
 geometry.SetInputConnection(threshold1.GetOutputPort())
 grad = vtk.vtkImageGradient()
