@@ -46,7 +46,6 @@
 #include <QPixmap>
 #include <QTextDocument>
 #include <QTextStream>
-#include <QPainterPath>
 
 vtkStandardNewMacro(vtkQtLabelRenderStrategy);
 

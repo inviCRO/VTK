@@ -39,6 +39,18 @@ class vtkWindow;
 class VTKRENDERINGVOLUME_EXPORT vtkRayCastImageDisplayHelper : public vtkObject
 {
 public:
+  // VQ ADDED
+  enum vqVolumeBlendFunction
+  {
+    Maximum = 0,
+    Alpha = 1,
+    DestColor = 2,
+    clearDest = 3,
+    clearSource = 4
+  };
+
+  void vqSetVolumeBlend(vqVolumeBlendFunction blend) { m_vqBlending = blend; }
+
   static vtkRayCastImageDisplayHelper* New();
   vtkTypeMacro(vtkRayCastImageDisplayHelper, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
@@ -85,7 +97,7 @@ protected:
 
   float PixelScale;
 
-  //VQ ADDED
+  // VQ ADDED
   vqVolumeBlendFunction m_vqBlending;
 
 private:

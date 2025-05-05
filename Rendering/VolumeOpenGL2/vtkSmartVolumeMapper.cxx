@@ -289,9 +289,7 @@ void vtkSmartVolumeMapper::Initialize(vtkRenderer* ren, vtkVolume* vol)
   }
 
   int const numComp = scalars->GetNumberOfComponents();
-
-  //VQ didn't have this extra check - surprised things actually work somewhat
-  this->RayCastSupported = (usingCellColors/* || numComp > 1*/) ? 0 : 1;
+  this->RayCastSupported = (usingCellColors || numComp > 1) ? 0 : 1;
 
   if (!this->RayCastSupported &&
     this->RequestedRenderMode == vtkSmartVolumeMapper::RayCastRenderMode)

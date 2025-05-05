@@ -66,6 +66,7 @@
 #include "vtkRenderingVolumeOpenGL2Module.h" // For export macro
 #include "vtkShader.h"                       // For methods
 #include "vtkSmartPointer.h"                 // For smartptr
+#include <vtkRayCastImageDisplayHelper.h>
 
 class vtkGenericOpenGLResourceFreeCallback;
 class vtkImplicitFunction;
@@ -96,6 +97,9 @@ public:
   vtkTypeMacro(vtkOpenGLGPUVolumeRayCastMapper, vtkGPUVolumeRayCastMapper);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  void setVolumeBlendWeight(float blendCoef) override;
+  void setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend) override;
+ 
   // Description:
   // Low level API to enable access to depth texture in
   // RenderToTexture mode. It will return either nullptr if
@@ -288,6 +292,8 @@ protected:
 
   double ReductionFactor;
   int CurrentPass;
+  float m_alpha;
+  vtkRayCastImageDisplayHelper::vqVolumeBlendFunction m_blending;
 
 public:
   using VolumeInput = vtkVolumeInputHelper;

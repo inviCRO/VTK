@@ -34,7 +34,6 @@
 #include <QString>
 #include <QTextDocument>
 #include <QTextStream>
-#include <QPainterPath>
 
 namespace
 {

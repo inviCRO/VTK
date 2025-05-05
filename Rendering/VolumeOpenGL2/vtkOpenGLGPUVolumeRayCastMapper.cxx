@@ -24,10 +24,6 @@
 #include <raycasterfs.h>
 #include <raycastervs.h>
 
-#include "vqraycastervs.h"
-#include "VQraycasterfs.h"
-#include "isosurface_multiscatter.h"
-#include "isosurface_rgb.h"
 // VTK includes
 #include "vtkInformation.h"
 #include "vtkOpenGLActor.h"
@@ -105,13 +101,6 @@
 #include <sstream>
 #include <string>
 
-
-#include <vtkOpenGLGPUVolumeRenderingHelper.h>
-#include <vqVolumeShaderComposer.h>
-
-vtkStandardNewMacro(vtkOpenGLVolumeOpacityTable);
-vtkStandardNewMacro(vtkOpenGLVolumeRGBTable);
-vtkStandardNewMacro(vtkOpenGLVolumeGradientOpacityTable);
 vtkStandardNewMacro(vtkOpenGLGPUVolumeRayCastMapper);
 
 //------------------------------------------------------------------------------
@@ -164,6 +153,7 @@ public:
     this->PreserveGLState = false;
 
     this->Partitions[0] = this->Partitions[1] = this->Partitions[2] = 1;
+    this->m_alpha = 1.0;
   }
 
   // Destructor
@@ -219,10 +209,6 @@ public:
       this->ImageSampleVAO = nullptr;
     }
     this->DeleteMaskTransfer();
-
-        this->DirectionEncoder->Delete();
-
-        this->DeleteGradientPointer();
 
     // Do not delete the shader programs - Let the cache clean them up.
     this->ImageSampleProg = nullptr;
@@ -324,7 +310,6 @@ public:
   // Dispose / free GL buffers
   void DeleteBufferObjects();
 
-    void DeleteGradientPointer();
   // Convert vtkTextureObject to vtkImageData
   void ConvertTextureToImageData(vtkTextureObject* texture, vtkImageData* output);
 
@@ -503,25 +488,8 @@ public:
   vtkShaderProgram* ShaderProgram;
   vtkOpenGLShaderCache* ShaderCache;
 
-#ifdef VOLUME_GRADIENT
-    void ComputeGradients(vtkVolume* vol, vtkImageData* imageData, vtkDataArray* scalars);
-    int UpdateGradients(vtkRenderer* ren, vtkVolume* vol, vtkImageData* imageData, vtkDataArray* scalars);
+  float m_alpha = 1.0f;
 
-    vtkTextureObject* GradientTextureObject;
-    vtkTimeStamp GradientUpdateTime;
-
-    vtkImageData* savedGradientInput;
-    vtkDirectionEncoder* DirectionEncoder;
-
-    unsigned short** GradientNormal;
-    unsigned char** GradientMagnitude;
-    unsigned short* ContiguousGradientNormal;
-    unsigned char* ContiguousGradientMagnitude;
-
-    int NumberOfGradientSlices;
-    int GradientOpacityRequired;
-    int GradientUpdateRequired;
-#endif
   vtkOpenGLFramebufferObject* FBO;
   vtkTextureObject* RTTDepthBufferTextureObject;
   vtkTextureObject* RTTDepthTextureObject;
@@ -632,17 +600,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::ToFloat(T (&in)[4][2], float 
   out[2][1] = static_cast<float>(in[2][1]);
   out[3][0] = static_cast<float>(in[3][0]);
   out[3][1] = static_cast<float>(in[3][1]);
-}
-void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::VtkToGlMatrix(
-    vtkMatrix4x4* in, float(&out)[16], int row, int col)
-{
-    for (int i = 0; i < row; ++i)
-    {
-        for (int j = 0; j < col; ++j)
-        {
-            out[j * row + i] = in->Element[i][j];
-        }
-    }
 }
 
 //------------------------------------------------------------------------------
@@ -2210,6 +2167,10 @@ vtkOpenGLGPUVolumeRayCastMapper::vtkOpenGLGPUVolumeRayCastMapper()
 
   this->ResourceCallback = new vtkOpenGLResourceFreeCallback<vtkOpenGLGPUVolumeRayCastMapper>(
     this, &vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources);
+
+  this->m_alpha = 1.0f;
+  this->Impl->m_alpha = 1.0f;
+  m_blending = vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum;
 }
 
 //------------------------------------------------------------------------------
@@ -2756,7 +2717,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
         {
           this->Impl->NumberPositionalLights++;
         }
-    }
+      }
 
       if (this->Impl->DefaultLighting &&
         (this->Impl->TotalNumberOfLights > 1 || light->GetIntensity() != 1.0 ||
@@ -2920,8 +2881,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(double allocatedTim
     }
     else
     {
-        this->ReductionFactor = 1.0 / this->ImageSampleDistance;
-        return;
+      timeToDraw = this->BigTimeToDraw;
     }
 
     // This should be the case when rendering the volume very first time
@@ -2942,13 +2902,18 @@ void vtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(double allocatedTim
     // visual artifacts when used to reduce the sample distance
     this->ReductionFactor = (this->ReductionFactor > 1.0) ? 1.0 : (this->ReductionFactor);
 
-        // This should be the case when rendering the volume very first time
-        // 10.0 is an arbitrary value chosen which happen to a large number
-        // in this context
-        if (timeToDraw == 0.0)
-        {
-            timeToDraw = 10.0;
-        }
+    if (this->ReductionFactor < 0.20)
+    {
+      this->ReductionFactor = 0.10;
+    }
+    else if (this->ReductionFactor < 0.50)
+    {
+      this->ReductionFactor = 0.20;
+    }
+    else if (this->ReductionFactor < 1.0)
+    {
+      this->ReductionFactor = 0.50;
+    }
 
     // Clamp it
     if (1.0 / this->ReductionFactor > this->MaximumImageSampleDistance)
@@ -2959,6 +2924,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(double allocatedTim
     {
       this->ReductionFactor = 1.0 / this->MinimumImageSampleDistance;
     }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -3156,9 +3122,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateTransfer2DYAxisArray(
   {
     arr = input->GetCellData()->GetArray(this->Parent->GetTransfer2DYAxisArray());
   }
-    if (this->BlendMode == vtkVolumeMapper::COMPOSITE_BLEND) { //VQ added diff from 6.3
-        this->Impl->UpdateGradients(ren, vol, input, scalars); //VQ added diff from 6.3
-    } //VQ added diff from 6.3
 
   if (input->GetMTime() > this->Transfer2DYAxisScalarsUpdateTime ||
     this->Transfer2DYAxisScalars->GetLoadedScalars() != arr ||
@@ -3278,7 +3241,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
     {
       this->Impl->BeginPicking(ren);
     }
-    vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState);
+    vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState, m_blending);
 
     if (this->Impl->ShaderRebuildNeeded(cam, vol, renderPassTime, ren))
     {
@@ -3804,7 +3767,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetAdvancedShaderParameters(v
     avgRange[0] = tmp;
   }
   vtkInternal::ToFloat(avgRange[0], avgRange[1], fvalue2);
-  //VQ not using yet
   prog->SetUniform2fv("in_averageIPRange", 1, &fvalue2);
 
   // Set contour values for isosurface blend mode
@@ -3966,6 +3928,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
     this->SetLightingShaderParameters(ren, prog, vol, numSamplers);
     this->SetCameraShaderParameters(prog, ren, cam);
     this->SetAdvancedShaderParameters(ren, prog, vol, block, numComp);
+
+    prog->SetUniformf("fuseCoef", this->m_alpha); // VQ added diff from 6.3
 
     this->RenderVolumeGeometry(ren, prog, vol, block->VolumeGeometry);
 
@@ -4145,265 +4109,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::SetShaderParametersRenderPass()
   }
 }
 
-
 void vtkOpenGLGPUVolumeRayCastMapper::setVolumeBlendWeight(float blendCoef)
 {
-    this->m_alpha = blendCoef;
+  this->m_alpha = blendCoef;
+  this->Impl->m_alpha = blendCoef;
 }
 
 void vtkOpenGLGPUVolumeRayCastMapper::setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend)
 {
-    m_blending = blend;
-    if (blend == vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::DestColor) m_lightOnly = 1;
-    else m_lightOnly = 0;
+  m_blending = blend;
 }
 
-unsigned char** vtkOpenGLGPUVolumeRayCastMapper::GetGradientMagnitude()
-{
-    return  this->Impl->GradientMagnitude;
-}
-
-void vtkOpenGLGPUVolumeRayCastMapper::setVolumeFlip(bool flip[3])
-{
-    for (int i = 0; i < 3; i++) {
-        m_flip[i] = flip[i];
-    }
-}
-
-#ifdef VOLUME_GRADIENT
-int vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateGradients(vtkRenderer* ren, vtkVolume* vol, vtkImageData* imageData, vtkDataArray* scalars)
-{
-    int needToUpdate = 0;
-    if (vol->GetProperty()->GetShade() || !this->GradientTextureObject) {
-        needToUpdate = 1;
-    }
-
-    for (int c = 0; c < vol->GetProperty()->GetIndependentComponents(); c++)
-    {
-        vtkPiecewiseFunction* f = vol->GetProperty()->GetGradientOpacity(c);
-        if (strcmp(f->GetType(), "Constant") || f->GetValue(0.0) != 1.0)
-        {
-            needToUpdate = 1;
-            this->GradientUpdateRequired = 1;
-        }
-    }
-
-    if (!needToUpdate) return 0;
-
-    if (!GradientUpdateRequired) return 0;
-
-    if (imageData->GetMTime() > this->GradientUpdateTime.GetMTime())
-    {
-        this->ComputeGradients(vol, imageData, scalars);
-        this->GradientUpdateTime.Modified();
-    }
-
-    if (!this->GradientTextureObject) {
-        this->GradientTextureObject = vtkTextureObject::New();
-    }
-
-    this->GradientTextureObject->SetContext(vtkOpenGLRenderWindow::SafeDownCast(ren->GetRenderWindow()));
-    this->GradientTextureObject->SetDataType(GL_UNSIGNED_BYTE);
-    GLenum format = 0;
-
-    int dim[3];
-    imageData->GetDimensions(dim);
-    int components = scalars->GetNumberOfComponents();
-    switch (components) {
-    case 1:
-        format = GL_RED;
-        break;
-    case 2:
-        format = GL_RG;
-        break;
-    case 3:
-        format = GL_RGB;
-        break;
-    case 4:
-        format = GL_RGBA;
-        break;
-    }
-    this->GradientTextureObject->SetFormat(format);
-    this->GradientTextureObject->SetInternalFormat(format);
-
-    if (GradientMagnitude) {
-        if (ContiguousGradientMagnitude) {
-            this->GradientTextureObject->SetWrapS(vtkTextureObject::ClampToEdge);
-            this->GradientTextureObject->SetWrapT(vtkTextureObject::ClampToEdge);
-            this->GradientTextureObject->SetWrapR(vtkTextureObject::ClampToEdge);
-            this->GradientTextureObject->SetMagnificationFilter(vol->GetProperty()->GetInterpolationType());
-            this->GradientTextureObject->SetMinificationFilter(vol->GetProperty()->GetInterpolationType());
-            this->GradientTextureObject->SetBorderColor(0.0f, 0.0f, 0.0f, 0.0f);
-            bool test = this->GradientTextureObject->Create3DFromRaw(dim[0], dim[1], dim[2], components, VTK_UNSIGNED_CHAR, (void*)(ContiguousGradientMagnitude));
-            this->GradientTextureObject->Activate();
-        }
-        else {
-            this->GradientTextureObject->Create3DFromRaw(dim[0], dim[1], dim[2], components, VTK_UNSIGNED_CHAR, 0);
-            this->GradientTextureObject->Activate();
-            this->GradientTextureObject->SetWrapS(vtkTextureObject::ClampToEdge);
-            this->GradientTextureObject->SetWrapT(vtkTextureObject::ClampToEdge);
-            this->GradientTextureObject->SetWrapR(vtkTextureObject::ClampToEdge);
-            this->GradientTextureObject->SetMagnificationFilter(vol->GetProperty()->GetInterpolationType());
-            this->GradientTextureObject->SetMinificationFilter(vol->GetProperty()->GetInterpolationType());
-            this->GradientTextureObject->SetBorderColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-            for (int s = 0; s < dim[2]; s++) {
-                glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, s, dim[0], dim[1], 1, format, GL_UNSIGNED_BYTE, (void*)(GradientMagnitude[s]));
-            }
-        }
-        this->GradientTextureObject->Deactivate();
-    }
-    GradientUpdateRequired = 0;
-    return 1;
-}
-
-void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::ComputeGradients(vtkVolume* vol, vtkImageData* imageData, vtkDataArray* scalars)
-{
-    void* dataPtr = scalars->GetVoidPointer(0);
-
-    int scalarType = scalars->GetDataType();
-    int components = scalars->GetNumberOfComponents();
-    int independent = vol->GetProperty()->GetIndependentComponents();
-
-    int dim[3];
-    double spacing[3];
-    imageData->GetDimensions(dim);
-    imageData->GetSpacing(spacing);
-
-    // Find the scalar range
-    double scalarRange[4][2];
-    int c;
-    for (c = 0; c < components; c++)
-    {
-        scalars->GetRange(scalarRange[c], c);
-    }
-
-    vtkIdType sliceSize = (static_cast<vtkIdType>(dim[0]) * static_cast<vtkIdType>(dim[1]) *
-        ((independent) ? (components) : (1)));
-    vtkIdType numSlices = dim[2];
-
-    int i;
-
-    this->DeleteGradientPointer();
-
-    this->NumberOfGradientSlices = numSlices;
-    this->GradientNormal = new unsigned short* [numSlices];
-    this->GradientMagnitude = new unsigned char* [numSlices];
-
-    // first, attempt contiguous memory. If this fails, then go
-    // for non-contiguous
-    // NOTE: Standard behavior is to catch std::bad_alloc, but it's
-    // CMemoryException if hosted by MFC.
-    try
-    {
-        this->ContiguousGradientNormal = new unsigned short[numSlices * sliceSize];
-    }
-    catch (...)
-    {
-        this->ContiguousGradientNormal = NULL;
-    }
-    try
-    {
-        this->ContiguousGradientMagnitude = new unsigned char[numSlices * sliceSize];
-    }
-    catch (...)
-    {
-        this->ContiguousGradientMagnitude = NULL;
-    }
-
-    if (this->ContiguousGradientNormal)
-    {
-        // We were able to allocate contiguous space - we just need to set the
-        // slice pointers here
-        for (i = 0; i < numSlices; i++)
-        {
-            this->GradientNormal[i] = this->ContiguousGradientNormal + i * sliceSize;
-        }
-    }
-    else
-    {
-        // We were not able to allocate contigous space - allocate it slice by slice
-        for (i = 0; i < numSlices; i++)
-        {
-            this->GradientNormal[i] = new unsigned short[sliceSize];
-        }
-    }
-
-    if (this->ContiguousGradientMagnitude)
-    {
-        // We were able to allocate contiguous space - we just need to set the
-        // slice pointers here
-        for (i = 0; i < numSlices; i++)
-        {
-            this->GradientMagnitude[i] = this->ContiguousGradientMagnitude + i * sliceSize;
-        }
-    }
-    else
-    {
-        // We were not able to allocate contigous space - allocate it slice by slice
-        for (i = 0; i < numSlices; i++)
-        {
-            this->GradientMagnitude[i] = new unsigned char[sliceSize];
-        }
-    }
-
-    vtkTimerLog* timer = vtkTimerLog::New();
-    timer->StartTimer();
-
-    switch (scalarType)
-    {
-        vtkTemplateMacro(vtkFixedPointVolumeRayCastMapperComputeGradients(
-            (VTK_TT*)(dataPtr), dim, spacing, components, independent, scalarRange
-            , this->GradientNormal, this->GradientMagnitude, this->DirectionEncoder));
-    }
-
-    timer->StopTimer();
-    timer->Delete();
-
-}
-
-void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::DeleteGradientPointer()
-{
-    // Delete the prior gradient normal information
-    if (this->GradientNormal)
-    {
-        // Contiguous? Delete in one chunk otherwise delete slice by slice
-        if (this->ContiguousGradientNormal)
-        {
-            delete[] this->ContiguousGradientNormal;
-            this->ContiguousGradientNormal = NULL;
-        }
-        else
-        {
-            for (int i = 0; i < this->NumberOfGradientSlices; i++)
-            {
-                delete[] this->GradientNormal[i];
-            }
-        }
-        delete[] this->GradientNormal;
-        this->GradientNormal = NULL;
-    }
-
-    // Delete the prior gradient magnitude information
-    if (this->GradientMagnitude)
-    {
-        // Contiguous? Delete in one chunk otherwise delete slice by slice
-        if (this->ContiguousGradientMagnitude)
-        {
-            delete[] this->ContiguousGradientMagnitude;
-            this->ContiguousGradientMagnitude = NULL;
-        }
-        else
-        {
-            for (int i = 0; i < this->NumberOfGradientSlices; i++)
-            {
-                delete[] this->GradientMagnitude[i];
-            }
-        }
-        delete[] this->GradientMagnitude;
-        this->GradientMagnitude = NULL;
-    }
-
-}
-
-#endif

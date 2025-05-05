@@ -215,28 +215,29 @@ void vtkOpenGLRayCastImageDisplayHelper::RenderTextureInternal(vtkVolume* vol, v
     ostate->vtkglBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   }
 
-  switch (m_vqBlending) {
-  case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum:
-      glBlendEquation(GL_MAX);
+  switch (m_vqBlending)
+  {
+    case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Maximum:
+      ostate->vtkglBlendEquation(GL_MAX);
       break;
-  case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Alpha:
+    case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::Alpha:
       glBlendEquation(GL_FUNC_ADD);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      ostate->vtkglBlendFunc(GL_SRC_ALPHA, GL_ONE);
       break;
-  case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::DestColor:
-      glBlendEquation(GL_FUNC_ADD);
-      glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE);
+    case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::DestColor:
+      ostate->vtkglBlendEquation(GL_FUNC_ADD);
+      ostate->vtkglBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE);
       break;
-  case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearDest:
-      glBlendEquation(GL_FUNC_ADD);
-      glBlendFunc(GL_ONE, GL_ZERO);
+    case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearDest:
+      ostate->vtkglBlendEquation(GL_FUNC_ADD);
+      ostate->vtkglBlendFunc(GL_ONE, GL_ZERO);
       break;
-  case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearSource:
-      glBlendEquation(GL_FUNC_ADD);
-      glBlendFunc(GL_ZERO, GL_ONE);
+    case vtkRayCastImageDisplayHelper::vqVolumeBlendFunction::clearSource:
+      ostate->vtkglBlendEquation(GL_FUNC_ADD);
+      ostate->vtkglBlendFunc(GL_ZERO, GL_ONE);
       break;
-  default:
-      glBlendEquation(GL_MAX);
+    default:
+      ostate->vtkglBlendEquation(GL_MAX);
       break;
   }
 
@@ -249,6 +250,8 @@ void vtkOpenGLRayCastImageDisplayHelper::RenderTextureInternal(vtkVolume* vol, v
     verts, tcoords, this->ShaderProgram->Program, this->ShaderProgram->VAO);
   this->TextureObject->Deactivate();
 
+  // VQ had this - is it really needed?
+  ostate->vtkglBlendEquation(GL_FUNC_ADD);
   vtkOpenGLCheckErrorMacro("failed after RenderTextureInternal");
 }
 

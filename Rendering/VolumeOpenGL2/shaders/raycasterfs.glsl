@@ -46,7 +46,7 @@ bool g_exit;
 bool g_skip;
 float g_currentT;
 float g_terminatePointMax;
-
+uniform float fuseCoef;
 // These describe the entire ray for this scene, not just the current depth
 // peeling segment. These are texture coordinates.
 vec3 g_rayOrigin; // Entry point of volume or clip point
@@ -339,6 +339,7 @@ void finalizeRayCast()
   g_fragColor.r = g_fragColor.r * in_scale + in_bias * g_fragColor.a;
   g_fragColor.g = g_fragColor.g * in_scale + in_bias * g_fragColor.a;
   g_fragColor.b = g_fragColor.b * in_scale + in_bias * g_fragColor.a;
+  g_fragColor.a *= fuseCoef;
   gl_FragData[0] = g_fragColor;
 
   //VTK::RenderToImage::Exit
