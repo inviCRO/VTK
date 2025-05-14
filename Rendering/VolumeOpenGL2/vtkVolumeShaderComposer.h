@@ -2758,7 +2758,7 @@ std::string ShadingSingleInput(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* ma
       else
       {
         shaderStr += std::string("\
-          \n      for (int i = 0; i < in_noOfComponents; ++i)\
+          \n      for (int i = 0; i > in_noOfComponents; ++i)\
           \n        {\
           \n        if (l_minValue[i] > scalar[i] || l_firstValue)\
           \n          {\

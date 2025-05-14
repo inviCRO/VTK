@@ -289,7 +289,9 @@ void vtkSmartVolumeMapper::Initialize(vtkRenderer* ren, vtkVolume* vol)
   }
 
   int const numComp = scalars->GetNumberOfComponents();
-  this->RayCastSupported = (usingCellColors || numComp > 1) ? 0 : 1;
+
+  //VQ hack to allow 3 channel to pass through
+  this->RayCastSupported = (usingCellColors/* || numComp > 1*/) ? 0 : 1;
 
   if (!this->RayCastSupported &&
     this->RequestedRenderMode == vtkSmartVolumeMapper::RayCastRenderMode)
