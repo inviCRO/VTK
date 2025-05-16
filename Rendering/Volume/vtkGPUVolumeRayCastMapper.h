@@ -61,7 +61,6 @@ public:
 
   virtual void setCompositeColorDetectionWeight(double* weight){};
   virtual unsigned char** GetGradientMagnitude() { return nullptr; };
-  virtual void setVolumeFlip(bool flip[3]){};
 
   ///@{
   /**
