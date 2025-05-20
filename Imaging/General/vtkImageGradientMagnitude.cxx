@@ -34,6 +34,7 @@ vtkImageGradientMagnitude::vtkImageGradientMagnitude()
   this->SetNumberOfOutputPorts(1);
   this->Dimensionality = 2;
   this->HandleBoundaries = 1;
+  this->AspectGradient = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -42,6 +43,7 @@ void vtkImageGradientMagnitude::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   os << indent << "HandleBoundaries: " << this->HandleBoundaries << "\n";
   os << indent << "Dimensionality: " << this->Dimensionality << "\n";
+  os << indent << "AspectGradient: " << this->AspectGradient << "\n";
 }
 
 //------------------------------------------------------------------------------
@@ -154,9 +156,23 @@ void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude* self, vtkImageD
 
   // The data spacing is important for computing the gradient.
   inData->GetSpacing(r);
-  r[0] = 0.5 / r[0];
-  r[1] = 0.5 / r[1];
-  r[2] = 0.5 / r[2];
+ 
+
+  bool useAspect = self->GetAspectGradient();
+
+  double avgSpacing = (r[0] + r[1] + r[2]) / 3.0;
+  
+  if (useAspect) {
+      // adjust the aspect
+      r[0] = avgSpacing / (r[0] * 2.0);
+      r[1] = avgSpacing / (r[1] * 2.0);
+      r[2] = avgSpacing / (r[2] * 2.0);
+  }
+  else {
+      r[0] = 0.5 / r[0];
+      r[1] = 0.5 / r[1];
+      r[2] = 0.5 / r[2];
+  }
 
   // get some other info we need
   inData->GetIncrements(inIncs);

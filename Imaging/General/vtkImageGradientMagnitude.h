@@ -46,6 +46,10 @@ public:
   vtkSetMacro(HandleBoundaries, vtkTypeBool);
   vtkGetMacro(HandleBoundaries, vtkTypeBool);
   vtkBooleanMacro(HandleBoundaries, vtkTypeBool);
+  
+  vtkSetMacro(AspectGradient, vtkTypeBool);
+  vtkGetMacro(AspectGradient, vtkTypeBool);
+  vtkBooleanMacro(AspectGradient, vtkTypeBool);
   ///@}
 
   ///@{
@@ -61,6 +65,7 @@ protected:
   ~vtkImageGradientMagnitude() override = default;
 
   vtkTypeBool HandleBoundaries;
+  vtkTypeBool AspectGradient;
   int Dimensionality;
 
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
