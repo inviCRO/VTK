@@ -19,3 +19,5 @@ project.xcworkspace
 # Exclude Visual Studio stuff
 .vs*
 CMakeSettings.json
+
+BUILD
