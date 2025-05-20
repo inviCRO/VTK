@@ -47,7 +47,7 @@ public:
   // will increment the reference count on the shaders if it
   // needs to keep them around
   virtual vtkShaderProgram* ReadyShaderProgram(
-    std::map<vtkShader::Type, vtkShader*> shaders, vtkTransformFeedback* cap = nullptr);
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkTransformFeedback* cap = nullptr, int blendmode = 0);
 
   // make sure the specified shaders are compiled, linked, and bound
   virtual vtkShaderProgram* ReadyShaderProgram(

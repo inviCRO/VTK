@@ -210,8 +210,43 @@ unsigned int vtkOpenGLShaderCache::ReplaceShaderValues(
   return count;
 }
 
+#undef VQ_TEST_SHADER
+#ifdef VQ_TEST_SHADER   
+/*
+* Debugging shaders is not he easiest thing in the world. Some GPU tooling will allow edits,
+* but having this poor mans real time glsl loader going a long way for quick trouble shooting
+*/
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+bool loadFileToString(const std::string& filePath, std::string& outContents) {
+    std::ifstream file(filePath); // Open the file
+    if (!file) {
+        return false; // Return false if the file couldn't be opened
+    }
+
+    std::ostringstream buffer;
+    buffer << file.rdbuf();      // Read file contents into buffer
+    outContents = buffer.str();  // Assign buffer to output parameter
+    return true;                 // Return true if successful
+}
+#endif
+
+enum TestBlendModes
+{
+    COMPOSITE_BLEND,
+    MAXIMUM_INTENSITY_BLEND,
+    MINIMUM_INTENSITY_BLEND,
+    AVERAGE_INTENSITY_BLEND,
+    ADDITIVE_BLEND,
+    ISOSURFACE_BLEND,
+    SLICE_BLEND
+};
+
 vtkShaderProgram* vtkOpenGLShaderCache::ReadyShaderProgram(
-  std::map<vtkShader::Type, vtkShader*> shaders, vtkTransformFeedback* cap)
+  std::map<vtkShader::Type, vtkShader*> shaders, vtkTransformFeedback* cap, int blendmode)
 {
   std::string VSSource = shaders[vtkShader::Vertex]->GetSource();
   std::string FSSource = shaders[vtkShader::Fragment]->GetSource();
@@ -219,6 +254,60 @@ vtkShaderProgram* vtkOpenGLShaderCache::ReadyShaderProgram(
 
   unsigned int count = this->ReplaceShaderValues(VSSource, FSSource, GSSource);
   shaders[vtkShader::Vertex]->SetSource(VSSource);
+
+#ifdef VQ_TEST_SHADER    
+  //std::string vextex_contents;
+  //const char* use_vertex = vertexShader.c_str();
+
+  //std::string fragment_contents;
+  //const char* use_fragment = fragmentShader.c_str();
+
+  if (blendmode ==  static_cast<int>(TestBlendModes::MAXIMUM_INTENSITY_BLEND))
+  {
+      //std::string fileVertPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_vertex.glsl"; // Replace with your file path
+
+      //if (loadFileToString(fileVertPath, vextex_contents)) {
+      //    use_vertex = vextex_contents.c_str();
+      //    //std::cout << "File contents:\n" << vextex_contents << std::endl;
+      //}
+      //else {
+      //    std::cerr << "Failed to load file: " << fileVertPath << std::endl;
+      //}
+
+      std::string fileFragPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_fragment.glsl"; // Replace with your file path
+
+      if (loadFileToString(fileFragPath, FSSource)) {
+          //use_fragment = fragment_contents.c_str();
+          //std::cout << "File contents:\n" << vextex_contents << std::endl;
+      }
+      else {
+          std::cerr << "Failed to load file: " << FSSource << std::endl;
+      }
+  }
+  else if (blendmode == static_cast<int>(TestBlendModes::AVERAGE_INTENSITY_BLEND))
+  {
+      //std::string fileVertPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_vertex.glsl"; // Replace with your file path
+
+      //if (loadFileToString(fileVertPath, vextex_contents)) {
+      //    use_vertex = vextex_contents.c_str();
+      //    //std::cout << "File contents:\n" << vextex_contents << std::endl;
+      //}
+      //else {
+      //    std::cerr << "Failed to load file: " << fileVertPath << std::endl;
+      //}
+
+      std::string fileFragPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\AVG_fragment.glsl"; // Replace with your file path
+
+      if (loadFileToString(fileFragPath, FSSource)) {
+          //use_fragment = fragment_contents.c_str();
+          //std::cout << "File contents:\n" << vextex_contents << std::endl;
+      }
+      else {
+          std::cerr << "Failed to load file: " << FSSource << std::endl;
+      }
+  }
+#endif 
+
   shaders[vtkShader::Fragment]->SetSource(FSSource);
   shaders[vtkShader::Geometry]->SetSource(GSSource);
 
