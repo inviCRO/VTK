@@ -2450,7 +2450,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderCompute(
   int independentComponents = volumeProperty->GetIndependentComponents();
 
   vtkShaderProgram::Substitute(fragmentShader, "//VTK::ComputeGradient::Dec",
-    vtkvolume::ComputeGradientDeclaration(this, this->AssembledInputs));
+    vtkvolume::ComputeGradientDeclaration(this, this->AssembledInputs, vol, numComps,
+        independentComponents));
 
   if (this->ComputeNormalFromOpacity)
   {

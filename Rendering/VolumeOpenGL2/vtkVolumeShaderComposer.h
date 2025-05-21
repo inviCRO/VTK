@@ -704,14 +704,25 @@ std::string ComputeGradientOpacity1DDecl(vtkVolume* vol, int noOfComponents,
 
 //--------------------------------------------------------------------------
 std::string ComputeGradientDeclaration(
-  vtkOpenGLGPUVolumeRayCastMapper* mapper, vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+  vtkOpenGLGPUVolumeRayCastMapper* mapper, vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs, vtkVolume* vol, int noOfComponents,
+    int independentComponents)
 {
   const bool hasLighting = HasLighting(inputs);
   const bool hasGradientOp = HasGradientOpacity(inputs);
 
+  vtkVolumeProperty* volProperty = vol->GetProperty();
+
+  //JKP - gradient has to be off for 1 channel but on for 3 channel to get our prevous
+  //      behavoir of coloring RGB data
+  int const VQHackForRGB = (noOfComponents > 1 && independentComponents) &&
+      (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND
+          || mapper->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND
+          || mapper->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND);
+
+
   std::string shaderStr;
   //VQ change - 3 channel seems to need this change, not 100% on all possible consequences
-  if (true)//hasLighting || hasGradientOp)
+  if (VQHackForRGB || hasLighting || hasGradientOp)
   {
     shaderStr += std::string(
       "// c is short for component\n"
@@ -782,7 +793,7 @@ std::string ComputeGradientDeclaration(
                              "  g1 = g1 * in_volume_scale[index][c] + in_volume_bias[index][c];\n"
                              "  g2 = g2 * in_volume_scale[index][c] + in_volume_bias[index][c];\n"
                              "\n");
-    if (!hasGradientOp)
+    if (VQHackForRGB || !hasGradientOp)
     {
       shaderStr +=
         std::string("  // Central differences: (F_front - F_back) / 2h\n"
