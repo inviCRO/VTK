@@ -710,7 +710,8 @@ std::string ComputeGradientDeclaration(
   const bool hasGradientOp = HasGradientOpacity(inputs);
 
   std::string shaderStr;
-  if (hasLighting || hasGradientOp)
+  //VQ change - 3 channel seems to need this change, not 100% on all possible consequences
+  if (true)//hasLighting || hasGradientOp)
   {
     shaderStr += std::string(
       "// c is short for component\n"
@@ -1838,6 +1839,15 @@ std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
           \n  }");
     return shaderStr;
   }
+  else if (noOfComponents == 4 && !independentComponents)
+  {
+    shaderStr += std::string("\
+          \nvec4 computeColor(vec4 scalar, float opacity)\
+          \n  {\
+          \n  return clamp(computeLighting(vec4(scalar.xyz, opacity), 3, 0.0), 0.0, 1.0);\
+          \n  }");
+    return shaderStr;
+  }
   else
   {
     shaderStr += std::string("\
@@ -2416,7 +2426,8 @@ std::string ShadingInit(
     return std::string("\
         \n  //We get data between 0.0 - 1.0 range\
         \n  l_firstValue = true;\
-        \n  l_minValue = vec4(1.0);");
+\n //VQ change from 1.0 to 0.0\
+\n  l_minValue = vec4(0.0);");
   }
   else if (mapper->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
   {
@@ -2758,7 +2769,8 @@ std::string ShadingSingleInput(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* ma
       else
       {
         shaderStr += std::string("\
-          \n      for (int i = 0; i > in_noOfComponents; ++i)\
+\n //VQ BUG FIX - THIS HAS BEEN IN VTK FOR WAY TOO LONG\
+          \n      for (int i = 0; i < in_noOfComponents; ++i)\
           \n        {\
           \n        if (l_minValue[i] > scalar[i] || l_firstValue)\
           \n          {\
@@ -3088,6 +3100,8 @@ std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
     {
       return std::string("\
           \n   g_srcColor = vec4(0);\
+\n // VQ setting this alpha to 1.0;\
+\n   g_srcColor.a = 1.0;\
           \n   for (int i = 0; i < in_noOfComponents; ++i)\
           \n     {\
           \n     vec4 tmp = computeColor(l_maxValue, computeOpacity(l_maxValue, i), i);\
@@ -3113,13 +3127,16 @@ std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
     {
       return std::string("\
           \n  g_srcColor = vec4(0);\
+\n // VQ setting this alpha to 1.0, we get a unwanted white edge around the data without\
+\n   g_srcColor.a = 1.0;\
           \n  for (int i = 0; i < in_noOfComponents; ++i)\
           \n    {\
           \n    vec4 tmp = computeColor(l_minValue, computeOpacity(l_minValue, i), i);\
           \n    g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
           \n    g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
           \n    g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
-          \n    g_srcColor[2] += tmp[3] * tmp[3] * in_componentWeight[i];\
+          \n//VQ fix for VTK bug\
+          \n    g_srcColor[3] += tmp[3] * in_componentWeight[i];\
           \n    }\
           \n  g_fragColor = g_srcColor;");
     }
@@ -3135,6 +3152,28 @@ std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   else if (mapper->GetBlendMode() == vtkVolumeMapper::AVERAGE_INTENSITY_BLEND)
   {
     if (noOfComponents > 1 && independentComponents)
+        {
+            return std::string("\
+        \n  for (int i = 0; i < in_noOfComponents; ++i)\
+        \n    {\
+\n //VQ added color compute for average, probably because average is formed from an accumulation of scalars, \
+\n //VTK devs think it doesn't make sense to do specific lookups on a formulated value \
+\n      l_avgValue[i] = l_avgValue[i] / l_numSamples[0]; \
+\n  }\
+\n   g_srcColor = vec4(0);\
+\n   g_srcColor.a = 1.0;\
+\n  for (int i = 0; i < in_noOfComponents; ++i)\
+\n    {\
+\n    vec4 tmp = computeColor(l_avgValue, computeOpacity(l_avgValue, i), i);\
+\n    g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
+\n    g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
+\n    g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
+\n    g_srcColor[3] += tmp[3] * in_componentWeight[i];\
+\n    }\
+\n  g_fragColor = g_srcColor;"
+        );
+        }
+      /*if (noOfComponents > 1 && independentComponents)
     {
       return std::string("\
           \n  for (int i = 0; i < in_noOfComponents; ++i)\
@@ -3152,7 +3191,7 @@ std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
           \n    }\
           \n  l_avgValue[0] = clamp(l_avgValue[0], 0.0, 1.0);\
           \n  g_fragColor = vec4(vec3(l_avgValue[0]), 1.0);");
-    }
+    }*/
     else
     {
       return std::string("\
@@ -3164,7 +3203,12 @@ std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
          \n    {\
          \n    l_avgValue.x /= l_numSamples.x;\
          \n    l_avgValue.x = clamp(l_avgValue.x, 0.0, 1.0);\
-         \n    g_fragColor = vec4(vec3(l_avgValue.x), 1.0);\
+\n //VQ added color compute for average, probably because average is formed from an accumulation of scalars, \
+\n //VTK devs think it doesn't make sense to do specific lookups on a formulated value \
+\n  vec4 g_srcColor = computeColor(vec4(l_avgValue.x), computeOpacity(vec4(l_avgValue.x)));\
+\n  g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a;\
+\n  g_fragColor.a = g_srcColor.a;\
+         \n    //g_fragColor = vec4(vec3(l_avgValue.x), 1.0);\
          \n    }");
     }
   }

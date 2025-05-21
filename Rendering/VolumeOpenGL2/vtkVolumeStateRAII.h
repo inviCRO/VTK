@@ -52,7 +52,7 @@ public:
     // Set the over blending function
     // NOTE: It is important to choose GL_ONE vs GL_SRC_ALPHA as our colors
     // will be premultiplied by the alpha value (doing front to back blending)
-    //ostate->vtkglBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    ostate->vtkglBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     
 
     switch (state)
