@@ -256,53 +256,32 @@ vtkShaderProgram* vtkOpenGLShaderCache::ReadyShaderProgram(
   shaders[vtkShader::Vertex]->SetSource(VSSource);
 
 #ifdef VQ_TEST_SHADER    
-  //std::string vextex_contents;
-  //const char* use_vertex = vertexShader.c_str();
 
-  //std::string fragment_contents;
-  //const char* use_fragment = fragmentShader.c_str();
+  bool swapMax = false;
+  bool swapMin = false;
+  bool swapSurf = false;
 
-  if (blendmode ==  static_cast<int>(TestBlendModes::MAXIMUM_INTENSITY_BLEND))
+  if (swapMax && blendmode ==  static_cast<int>(TestBlendModes::MAXIMUM_INTENSITY_BLEND))
   {
-      //std::string fileVertPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_vertex.glsl"; // Replace with your file path
-
-      //if (loadFileToString(fileVertPath, vextex_contents)) {
-      //    use_vertex = vextex_contents.c_str();
-      //    //std::cout << "File contents:\n" << vextex_contents << std::endl;
-      //}
-      //else {
-      //    std::cerr << "Failed to load file: " << fileVertPath << std::endl;
-      //}
-
       std::string fileFragPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_fragment.glsl"; // Replace with your file path
 
-      if (loadFileToString(fileFragPath, FSSource)) {
-          //use_fragment = fragment_contents.c_str();
-          //std::cout << "File contents:\n" << vextex_contents << std::endl;
-      }
-      else {
+      if (!loadFileToString(fileFragPath, FSSource)) {
           std::cerr << "Failed to load file: " << FSSource << std::endl;
       }
   }
-  else if (blendmode == static_cast<int>(TestBlendModes::AVERAGE_INTENSITY_BLEND))
+  else if (swapMin && blendmode == static_cast<int>(TestBlendModes::AVERAGE_INTENSITY_BLEND))
   {
-      //std::string fileVertPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\MAX_vertex.glsl"; // Replace with your file path
-
-      //if (loadFileToString(fileVertPath, vextex_contents)) {
-      //    use_vertex = vextex_contents.c_str();
-      //    //std::cout << "File contents:\n" << vextex_contents << std::endl;
-      //}
-      //else {
-      //    std::cerr << "Failed to load file: " << fileVertPath << std::endl;
-      //}
-
       std::string fileFragPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\AVG_fragment.glsl"; // Replace with your file path
 
-      if (loadFileToString(fileFragPath, FSSource)) {
-          //use_fragment = fragment_contents.c_str();
-          //std::cout << "File contents:\n" << vextex_contents << std::endl;
+      if (!loadFileToString(fileFragPath, FSSource)) {
+          std::cerr << "Failed to load file: " << FSSource << std::endl;
       }
-      else {
+  }
+  else if (swapMin && blendmode == static_cast<int>(TestBlendModes::ISOSURFACE_BLEND))
+  {
+      std::string fileFragPath = "C:\\Users\\jpieszala\\Desktop\\testShaders\\isosurface_multiscatter.glsl"; // Replace with your file path
+
+      if (!loadFileToString(fileFragPath, FSSource)) {
           std::cerr << "Failed to load file: " << FSSource << std::endl;
       }
   }
