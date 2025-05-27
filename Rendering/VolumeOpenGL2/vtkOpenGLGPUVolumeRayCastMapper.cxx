@@ -3199,7 +3199,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
   this->Impl->NeedToInitializeResources =
     (this->Impl->ReleaseResourcesTime.GetMTime() > this->Impl->InitializationTime.GetMTime());
 
-  this->ComputeReductionFactor(vol->GetAllocatedRenderTime());
+  float AllocatedTime = m_lowResAutoRendering ? 0.0333f / m_numData : vol->GetAllocatedRenderTime(); //VQ added diff from 6.3
+  this->ComputeReductionFactor(AllocatedTime);
+
   if (!this->Impl->SharedDepthTextureObject)
   {
     this->Impl->CaptureDepthTexture(ren);
@@ -4121,3 +4123,19 @@ void vtkOpenGLGPUVolumeRayCastMapper::setVolumeBlend(vtkRayCastImageDisplayHelpe
   m_blending = blend;
 }
 
+void vtkOpenGLGPUVolumeRayCastMapper::lowResAutoRender(bool toEnable)
+{ 
+    m_lowResAutoRendering = toEnable; 
+}
+
+void vtkOpenGLGPUVolumeRayCastMapper::setNumberOfData(int num)
+{
+    if (num <= 0) {
+        num = 1;
+    }
+    if (num > 3) {
+        num = 3;
+    }
+
+    m_numData = num;
+}

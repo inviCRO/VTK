@@ -639,7 +639,7 @@ std::string ComputeGradientOpacity1DDecl(vtkVolume* vol, int noOfComponents,
 {
   auto volProperty = vol->GetProperty();
   std::ostringstream ss;
-  if (volProperty->HasGradientOpacity())
+  if (volProperty->HasGradientOpacity() && !volProperty->GetDisableGradientOpacity())
   {
     ss << "uniform sampler2D " << ArrayBaseName(gradientTableMap[0]) << "[" << noOfComponents
        << "];\n";
@@ -653,7 +653,7 @@ std::string ComputeGradientOpacity1DDecl(vtkVolume* vol, int noOfComponents,
 
   std::string shaderStr = ss.str();
 
-  if (volProperty->HasGradientOpacity() && noOfComponents > 0)
+  if (volProperty->HasGradientOpacity() && noOfComponents > 0 && !volProperty->GetDisableGradientOpacity())
   {
     if (noOfComponents == 1 || !independentComponents)
     {
@@ -1297,7 +1297,7 @@ std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMa
   }
 
   // If we need the scalar gradient (typically to sample a transfer function)
-  if (volProperty->HasGradientOpacity() || volProperty->HasLabelGradientOpacity())
+  if ((volProperty->HasGradientOpacity() || volProperty->HasLabelGradientOpacity()) && !volProperty->GetDisableGradientOpacity())
   {
     // If we didn't compute it before, we compute it
     if (!shadeReqd || glMapper->GetComputeNormalFromOpacity())
@@ -1549,7 +1549,7 @@ std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMa
   {
     if (noOfComponents == 1 || !independentComponents)
     {
-      if (volProperty->HasGradientOpacity())
+      if (volProperty->HasGradientOpacity() && !volProperty->GetDisableGradientOpacity())
       {
         shaderStr += std::string("\
             \n  if (gradient.w >= 0.0 && label == 0.0)\
@@ -1566,15 +1566,28 @@ std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMa
             \n    }");
       }
     }
-    else if (noOfComponents > 1 && independentComponents && volProperty->HasGradientOpacity())
+    else if (noOfComponents > 1 && independentComponents && volProperty->HasGradientOpacity() && !volProperty->GetDisableGradientOpacity())
     {
       shaderStr += std::string("\
         \n  if (gradient.w >= 0.0)\
         \n    {\
-        \n    for (int i = 0; i < in_noOfComponents; ++i)\
+        \n         //JKP - Seems like a VTK bug. Why would you want other components destroying you per channel gradient opacity result.\
+        \n         //  If you look a the full shader for RGB gradient this whole code path up to here is on an individual channel.  \
+        \n         //for (int i = 0; i < in_noOfComponents; ++i)\
+        \n         //{\
+        \n         //color.a = color.a *\
+        \n         //computeGradientOpacity(gradient, i) * in_componentWeight[i];\
+        \n         //}\
+        \n \
+        \n      //JKP - Zero gradients and on empty channels are useless so why force me to update by transfer function.\
+        \n      //  Why not instead we just remove there contribution here.\
+        \n      if( gradient.w == 0.0 )\
         \n      {\
-        \n      color.a = color.a *\
-        \n      computeGradientOpacity(gradient, i) * in_componentWeight[i];\
+        \n         color.a = 0.0;\
+        \n      }\
+        \n      else\
+        \n      {\
+        \n         color.a *= computeGradientOpacity(gradient, component) * in_componentWeight[component];\
         \n      }\
         \n    }");
     }
@@ -1598,7 +1611,7 @@ std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVol
   std::string shaderStr = std::string();
 
   // if no gradient TF is needed, don't add it into the function signature
-  if (volProperty->HasGradientOpacity())
+  if (volProperty->HasGradientOpacity() && !volProperty->GetDisableGradientOpacity())
   {
     shaderStr += std::string("\
       \nvec4 computeLighting(vec3 texPos, vec4 color, const in sampler2D gradientTF, const in sampler3D volume, const in sampler2D opacityTF, const int volIdx, int component)\
@@ -1630,7 +1643,7 @@ std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVol
     */
     if (glMapper->GetComputeNormalFromOpacity())
     {
-      if (volProperty->HasGradientOpacity())
+      if (volProperty->HasGradientOpacity() && !volProperty->GetDisableGradientOpacity())
       {
         shaderStr += "  vec4 shading_gradient = computeDensityGradient(texPos, component, volume, "
                      "opacityTF, gradientTF, volIdx, 0.0);\n";
@@ -1649,7 +1662,7 @@ std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVol
   }
 
   // If we need the scalar gradient (typically to sample a transfer function)
-  if (volProperty->HasGradientOpacity())
+  if (volProperty->HasGradientOpacity() && !volProperty->GetDisableGradientOpacity())
   {
     if (!shadeReqd || glMapper->GetComputeNormalFromOpacity())
     {
@@ -1708,7 +1721,7 @@ std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVol
   // gradient-magnitude opacities combined in the same table).
   if (transferMode == vtkVolumeProperty::TF_1D)
   {
-    if (volProperty->HasGradientOpacity() && (noOfComponents == 1 || !independentComponents))
+    if (volProperty->HasGradientOpacity() && (noOfComponents == 1 || !independentComponents) && !volProperty->GetDisableGradientOpacity())
     {
       shaderStr += std::string("\
           \n  if (gradient.w >= 0.0)\
@@ -1960,7 +1973,7 @@ std::string ComputeGradientOpacityMulti1DDecl(
   for (auto& item : inputs)
   {
     auto prop = item.second.Volume->GetProperty();
-    if (prop->GetTransferFunctionMode() != vtkVolumeProperty::TF_1D || !prop->HasGradientOpacity())
+    if (prop->GetTransferFunctionMode() != vtkVolumeProperty::TF_1D || !prop->HasGradientOpacity() && !prop->GetDisableGradientOpacity())
       continue;
 
     auto& map = item.second.GradientOpacityTablesMap;
@@ -2571,7 +2584,7 @@ std::string ShadingMultipleInputs(
 
         if (property->GetTransferFunctionMode() == vtkVolumeProperty::TF_1D)
         {
-          std::string gradientopacity_param = (property->HasGradientOpacity())
+          std::string gradientopacity_param = (property->HasGradientOpacity() && !property->GetDisableGradientOpacity())
             ? input.GradientOpacityTablesMap[0] + std::string(", ")
             : std::string();
 
@@ -2584,7 +2597,7 @@ std::string ShadingMultipleInputs(
                       << input.RGBTablesMap[0] << ", " << gradientopacity_param << "in_volume[" << i
                       << "], " << input.OpacityTablesMap[0] << ", " << i << ");\n";
 
-          if (property->HasGradientOpacity())
+          if (property->HasGradientOpacity() && !property->GetDisableGradientOpacity())
           {
             const auto& grad = input.GradientCacheName;
             toShaderStr << "          " << grad << "[0] = computeGradient(texPos, 0, "

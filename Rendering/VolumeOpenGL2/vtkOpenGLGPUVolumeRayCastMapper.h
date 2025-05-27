@@ -99,6 +99,9 @@ public:
 
   void setVolumeBlendWeight(float blendCoef) override;
   void setVolumeBlend(vtkRayCastImageDisplayHelper::vqVolumeBlendFunction blend) override;
+  void lowResAutoRender(bool toEnable) override;
+  void setNumberOfData(int num) override;
+
  
   // Description:
   // Low level API to enable access to depth texture in
@@ -293,6 +296,8 @@ protected:
   double ReductionFactor;
   int CurrentPass;
   float m_alpha;
+  int m_numData;
+  bool m_lowResAutoRendering;
   vtkRayCastImageDisplayHelper::vqVolumeBlendFunction m_blending;
 
 public:
