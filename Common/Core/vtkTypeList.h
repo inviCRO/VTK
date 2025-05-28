@@ -41,12 +41,11 @@
  * implementation is heavily influenced by the example code in the book.
  *
  * Note that creating a typelist in C++ is simplified greatly by using the
- * vtkTypeList_Create_N macros defined in the CMake-generated
- * vtkTypeListMacros.h header.
+ * vtkTypeList::Create<T1, T2, ...> functions.
  *
  * @sa
  * vtkArrayDispatch vtkTypeListMacros
-*/
+ */
 
 #ifndef vtkTypeList_h
 #define vtkTypeList_h
@@ -60,10 +59,12 @@ namespace vtkTypeList
 /**
  * Used to terminate a TypeList.
  */
-struct NullType {};
+struct NullType
+{
+};
 
 //------------------------------------------------------------------------------
-//@{
+///@{
 /**
  * Generic implementation of TypeList.
  */
@@ -73,7 +74,7 @@ struct TypeList
   typedef T Head;
   typedef U Tail;
 };
-//@}
+///@}
 
 //------------------------------------------------------------------------------
 /**
@@ -165,6 +166,14 @@ struct Append;
 } // end namespace vtkTypeList
 
 #include "vtkTypeList.txx"
+
+namespace vtkTypeList
+{
+
+template <typename... Ts>
+using Create = typename vtkTypeList::detail::CreateImpl<Ts...>::type;
+
+} // end namespace vtkTypeList
 
 #endif // vtkTypeList_h
 // VTK-HeaderTest-Exclude: vtkTypeList.h

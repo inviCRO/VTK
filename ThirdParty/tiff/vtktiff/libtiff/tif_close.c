@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 1988-1997 Sam Leffler
  * Copyright (c) 1991-1997 Silicon Graphics, Inc.
@@ -36,7 +34,7 @@
 
 /**
  * Auxiliary function to free the TIFF structure. Given structure will be
- * completetly freed, so you should save opened file handle and pointer
+ * completely freed, so you should save opened file handle and pointer
  * to the close procedure in external variables before calling
  * _TIFFCleanup(), if you will need these ones to close the file.
  * 
@@ -62,11 +60,11 @@ TIFFCleanup(TIFF* tif)
          */
 	while( tif->tif_clientinfo )
 	{
-		TIFFClientInfoLink *link = tif->tif_clientinfo;
+		TIFFClientInfoLink *psLink = tif->tif_clientinfo;
 
-		tif->tif_clientinfo = link->next;
-		_TIFFfree( link->name );
-		_TIFFfree( link );
+		tif->tif_clientinfo = psLink->next;
+		_TIFFfree( psLink->name );
+		_TIFFfree( psLink );
 	}
 
 	if (tif->tif_rawdata && (tif->tif_flags&TIFF_MYBUFFER))
@@ -78,7 +76,7 @@ TIFFCleanup(TIFF* tif)
          * Clean up custom fields.
          */
 	if (tif->tif_fields && tif->tif_nfields > 0) {
-		uint32 i;
+		uint32_t i;
 
 		for (i = 0; i < tif->tif_nfields; i++) {
 			TIFFField *fld = tif->tif_fields[i];
@@ -93,7 +91,7 @@ TIFFCleanup(TIFF* tif)
 	}
 
         if (tif->tif_nfieldscompat > 0) {
-                uint32 i;
+                uint32_t i;
 
                 for (i = 0; i < tif->tif_nfieldscompat; i++) {
                         if (tif->tif_fieldscompat[i].allocated_size)

@@ -3,13 +3,15 @@ set(TestFreeTypeTextMapperNoMath_ARGS DATA{../Data/Fonts/DejaVuSans.ttf})
 set(TestMathTextFreeTypeTextRendererNoMath_ARGS
   DATA{../Data/Fonts/DejaVuSans.ttf}
 )
-vtk_add_test_cxx(${vtk-module}CxxTests tests
+vtk_add_test_cxx(vtkRenderingFreeTypeCxxTests tests
   TestBillboardTextActor3D.cxx
   TestFTStringToPath.cxx
+  TestFlagpoleLabel.cxx
   TestFreeTypeTextMapperNoMath.cxx
   TestFreeTypeTools.cxx,NO_VALID
   TestMathTextFreeTypeTextRendererNoMath.cxx
   TestTextActor.cxx
+  TestTextActorTileScaling.cxx
   TestTextActor3D.cxx
   TestTextActorAlphaBlending.cxx
   TestTextActorDepthPeeling.cxx
@@ -20,7 +22,7 @@ vtk_add_test_cxx(${vtk-module}CxxTests tests
   TestTextOpaquePass.cxx
   )
 
-vtk_add_test_cxx(${vtk-module}CxxTests no_data_tests
+vtk_add_test_cxx(vtkRenderingFreeTypeCxxTests no_data_tests
   NO_DATA NO_VALID NO_OUTPUT
   TestTextBoundingBox.cxx
   )
@@ -29,24 +31,34 @@ list(APPEND tests
 
 # Check for vtkErrorMacro calls in these tests (mainly for empty inputs):
 set_tests_properties(
-  ${vtk-module}Cxx-TestTextActor
-  ${vtk-module}Cxx-TestTextActor3D
+  VTK::RenderingFreeTypeCxx-TestTextActor
+  VTK::RenderingFreeTypeCxx-TestTextActor3D
   PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR:"
 )
 
-if(${Module_vtkRenderingMatplotlib})
+# Check that matplotlib is available
+include(../../../../CMake/FindPythonModules.cmake)
+find_python_module(matplotlib MATPLOTLIB_FOUND)
+
+if(MATPLOTLIB_FOUND AND TARGET VTK::RenderingMatplotlib)
+  set(TestMathTextFonts_ARGS DATA{../Data/Fonts/DejaVuSans.ttf})
   set(TestMathTextFreeTypeTextRenderer_ARGS DATA{../Data/Fonts/DejaVuSans.ttf})
   set(TestFreeTypeTextMapper_ARGS DATA{../Data/Fonts/DejaVuSans.ttf})
+  set(TestFreeTypeTextMapperWithColumns_ARGS DATA{../Data/Fonts/DejaVuSans.ttf})
   set(TestFontDPIScaling_ARGS DATA{../Data/Fonts/DejaVuSans.ttf})
 
-  vtk_add_test_cxx(${vtk-module}CxxTests matplotlib_tests
+  vtk_add_test_cxx(vtkRenderingFreeTypeCxxTests matplotlib_tests
+    TestMathTextFonts.cxx
     TestMathTextFreeTypeTextRenderer.cxx
     TestFreeTypeTextMapper.cxx
+    TestFreeTypeTextMapperWithColumns.cxx
     TestFontDPIScaling.cxx
     )
   list(APPEND tests
     ${matplotlib_tests})
 endif()
 
-vtk_test_cxx_executable(${vtk-module}CxxTests tests
-  RENDERING_FACTORY)
+vtk_test_cxx_executable(vtkRenderingFreeTypeCxxTests tests
+  DISABLE_FLOATING_POINT_EXCEPTIONS
+  RENDERING_FACTORY
+  )

@@ -14,122 +14,81 @@
 =========================================================================*/
 /**
  * @class   vtkOpenVRRenderWindowInteractor
- * @brief   implements OpenVR specific functions
- * required by vtkRenderWindowInteractor.
- *
- *
-*/
+ * @brief   Implements OpenVR specific functions required by vtkVRRenderWindowInteractor.
+ */
 
 #ifndef vtkOpenVRRenderWindowInteractor_h
 #define vtkOpenVRRenderWindowInteractor_h
 
+#include "vtkEventData.h"             // for ivar
 #include "vtkRenderingOpenVRModule.h" // For export macro
-#include "vtkRenderWindowInteractor3D.h"
+#include "vtkVRRenderWindowInteractor.h"
 
-#include "vtkOpenVRRenderWindow.h" // ivars
-#include "vtkNew.h" // ivars
-#include "vtkTransform.h" // ivars
+#include <functional> // for ivar
+#include <map>        // for ivar
+#include <openvr.h>   // for ivar
+#include <string>     // for ivar
 
-class VTKRENDERINGOPENVR_EXPORT vtkOpenVRRenderWindowInteractor : public vtkRenderWindowInteractor3D
+class VTKRENDERINGOPENVR_EXPORT vtkOpenVRRenderWindowInteractor : public vtkVRRenderWindowInteractor
 {
 public:
-  /**
-   * Construct object so that light follows camera motion.
-   */
-  static vtkOpenVRRenderWindowInteractor *New();
-
-  vtkTypeMacro(vtkOpenVRRenderWindowInteractor,vtkRenderWindowInteractor3D);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  static vtkOpenVRRenderWindowInteractor* New();
+  vtkTypeMacro(vtkOpenVRRenderWindowInteractor, vtkVRRenderWindowInteractor);
 
   /**
-   * Initialize the event handler
+   * Initialize the event handler.
    */
-  virtual void Initialize();
+  void Initialize() override;
 
   /**
-   * OpenVR specific application terminate, calls ClassExitMethod then
-   * calls PostQuitMessage(0) to terminate the application. An application can Specify
-   * ExitMethod for alternative behavior (i.e. suppression of keyboard exit)
+   * Implements the event loop.
    */
-  void TerminateApp(void);
+  void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren) override;
 
-  //@{
+  ///@{
   /**
-   * Methods to set the default exit method for the class. This method is
-   * only used if no instance level ExitMethod has been defined.  It is
-   * provided as a means to control how an interactor is exited given
-   * the various language bindings (tcl, Win32, etc.).
+   * Assign an event or std::function to an event path.
    */
-  static void SetClassExitMethod(void (*f)(void *), void *arg);
-  static void SetClassExitMethodArgDelete(void (*f)(void *));
-  //@}
-
-  /**
-   * These methods correspond to the the Exit, User and Pick
-   * callbacks. They allow for the Style to invoke them.
-   */
-  virtual void ExitCallback();
-
-  //@{
-  /**
-   * Set/Get the optional translation to map world coordinates into the
-   * 3D physical space (meters, 0,0,0).
-   */
-  virtual void SetPhysicalTranslation(vtkCamera *, double, double, double);
-  virtual double *GetPhysicalTranslation(vtkCamera *);
-  //@}
-
-  virtual void DoOneEvent(vtkOpenVRRenderWindow *renWin, vtkRenderer *ren);
+  void AddAction(std::string path, vtkCommand::EventIds, bool isAnalog);
+  void AddAction(std::string path, bool isAnalog, std::function<void(vtkEventData*)>);
+  ///@}
 
 protected:
   vtkOpenVRRenderWindowInteractor();
-  ~vtkOpenVRRenderWindowInteractor();
+  ~vtkOpenVRRenderWindowInteractor() override = default;
 
-  void UpdateTouchPadPosition(vr::IVRSystem *pHMD,
-     vr::TrackedDeviceIndex_t tdi);
+  class ActionData
+  {
+  public:
+    vr::VRActionHandle_t ActionHandle;
+    vtkCommand::EventIds EventId;
+    std::function<void(vtkEventData*)> Function;
+    bool UseFunction = false;
+    bool IsAnalog = false;
+  };
 
-  //@{
-  /**
-   * Class variables so an exit method can be defined for this class
-   * (used to set different exit methods for various language bindings,
-   * i.e. tcl, java, Win32)
-   */
-  static void (*ClassExitMethod)(void *);
-  static void (*ClassExitMethodArgDelete)(void *);
-  static void *ClassExitMethodArg;
-  //@}
+  std::map<std::string, ActionData> ActionMap;
+  vr::VRActionSetHandle_t ActionsetVTK = vr::k_ulInvalidActionSetHandle;
 
-  //@{
-  /**
-   * Win32-specific internal timer methods. See the superclass for detailed
-   * documentation.
-   */
-  virtual int InternalCreateTimer(int timerId, int timerType, unsigned long duration);
-  virtual int InternalDestroyTimer(int platformTimerId);
-  //@}
+  enum TrackerEnum
+  {
+    LEFT_HAND = 0,
+    RIGHT_HAND,
+    HEAD,
+    NUMBER_OF_TRACKERS
+  };
 
-  /**
-   * This will start up the event loop and never return. If you
-   * call this method it will loop processing events until the
-   * application is exited.
-   */
-  virtual void StartEventLoop();
+  struct TrackerActions
+  {
+    vr::VRInputValueHandle_t Source = vr::k_ulInvalidInputValueHandle;
+    vr::TrackedDevicePose_t LastPose;
+  };
 
-
-  vtkNew<vtkTransform> PoseTransform;
-
-  // converts a device pose to a world coordinate
-  // position and orientation
-  void ConvertPoseToWorldCoordinates(
-    vtkRenderer *ren,
-    vr::TrackedDevicePose_t &tdPose,
-    double pos[3],
-    double wxyz[4],
-    double ppos[3]);
+  TrackerActions Trackers[NUMBER_OF_TRACKERS];
 
 private:
-  vtkOpenVRRenderWindowInteractor(const vtkOpenVRRenderWindowInteractor&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkOpenVRRenderWindowInteractor&) VTK_DELETE_FUNCTION;
+  vtkOpenVRRenderWindowInteractor(const vtkOpenVRRenderWindowInteractor&) = delete;
+  void operator=(const vtkOpenVRRenderWindowInteractor&) = delete;
 };
 
 #endif

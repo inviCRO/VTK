@@ -22,43 +22,59 @@
  * adds a scalar array called vtkOriginalCellIds that says what input cell
  * produced each output cell. This is an example of a Pedigree ID which helps
  * to trace back results.
+ *
  * @sa
  * vtkSelection vtkExtractSelection
-*/
+ *
+ * @deprecated vtkExtractSelectedLocations is deprecated in VTK 9.2 and will be removed.
+ * Use `vtkExtractSelection` instead of `vtkExtractSelectedLocations`.
+ *
+ * Example using vtkExtractSelectedLocations:
+ *
+ * vtkNew<vtkExtractSelectedLocations> selFilter;
+ * selFilter->SetInputConnection(0, sphereSource->GetOutputPort());
+ * selFilter->SetInputConnection(1, selectionSource->GetOutputPort());
+ *
+ * Example using vtkExtractSelection:
+ *
+ * vtkNew<vtkExtractSelection> selFilter;
+ * selFilter->SetInputConnection(0, sphereSource->GetOutputPort());
+ * selFilter->SetInputConnection(1, selectionSource->GetOutputPort());
+ */
 
 #ifndef vtkExtractSelectedLocations_h
 #define vtkExtractSelectedLocations_h
 
-#include "vtkFiltersExtractionModule.h" // For export macro
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkExtractSelectionBase.h"
+#include "vtkFiltersExtractionModule.h" // For export macro
 
 class vtkSelection;
 class vtkSelectionNode;
 
-class VTKFILTERSEXTRACTION_EXPORT vtkExtractSelectedLocations : public vtkExtractSelectionBase
+class VTK_DEPRECATED_IN_9_2_0("Use vtkExtractSelection instead of vtkExtractSelectedLocations.")
+  VTKFILTERSEXTRACTION_EXPORT vtkExtractSelectedLocations : public vtkExtractSelectionBase
 {
 public:
-  static vtkExtractSelectedLocations *New();
+  static vtkExtractSelectedLocations* New();
   vtkTypeMacro(vtkExtractSelectedLocations, vtkExtractSelectionBase);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
   vtkExtractSelectedLocations();
-  ~vtkExtractSelectedLocations() VTK_OVERRIDE;
+  ~vtkExtractSelectedLocations() override;
 
   // Usual data generation method
-  int RequestData(vtkInformation *,
-                  vtkInformationVector **,
-                  vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int ExtractCells(vtkSelectionNode *sel, vtkDataSet *input,
-                   vtkDataSet *output);
-  int ExtractPoints(vtkSelectionNode *sel, vtkDataSet *input,
-                    vtkDataSet *output);
+  int ExtractCells(vtkSelectionNode* sel, vtkDataSet* input, vtkDataSet* output);
+  int ExtractPoints(vtkSelectionNode* sel, vtkDataSet* input, vtkDataSet* output);
 
 private:
-  vtkExtractSelectedLocations(const vtkExtractSelectedLocations&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkExtractSelectedLocations&) VTK_DELETE_FUNCTION;
+  vtkExtractSelectedLocations(const vtkExtractSelectedLocations&) = delete;
+  void operator=(const vtkExtractSelectedLocations&) = delete;
 };
 
 #endif
+
+// VTK-HeaderTest-Exclude: vtkExtractSelectedLocations.h

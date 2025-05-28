@@ -20,25 +20,26 @@
 =========================================================================*/
 
 #include <vtkArrayPrint.h>
-#include <vtkSparseArray.h>
 #include <vtkSmartPointer.h>
+#include <vtkSparseArray.h>
 #include <vtkTestErrorObserver.h>
 
 #include <iostream>
 #include <stdexcept>
 
-#define test_expression(expression) \
-{ \
-  if(!(expression)) \
-    throw std::runtime_error("Expression failed: " #expression); \
-}
+#define test_expression(expression)                                                                \
+  do                                                                                               \
+  {                                                                                                \
+    if (!(expression))                                                                             \
+      throw std::runtime_error("Expression failed: " #expression);                                 \
+  } while (false)
 
-int TestSparseArrayValidation(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
+int TestSparseArrayValidation(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   try
   {
     // Create an array ...
-    vtkSmartPointer<vtkSparseArray<double> > array = vtkSmartPointer<vtkSparseArray<double> >::New();
+    vtkSmartPointer<vtkSparseArray<double>> array = vtkSmartPointer<vtkSparseArray<double>>::New();
     test_expression(array->Validate());
 
     array->Resize(vtkArrayExtents::Uniform(2, 3));
@@ -58,8 +59,8 @@ int TestSparseArrayValidation(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
     array->AddValue(1, 2, 2);
     array->AddValue(0, 0, 4);
     test_expression(!array->Validate());
-    int status = 0;
-    status += errorObserver->CheckErrorMessage("Array contains 1 duplicate coordinates");
+    int status = errorObserver->CheckErrorMessage("Array contains 1 duplicate coordinates");
+    test_expression(status == 0);
 
     array->Clear();
     array->AddValue(0, 0, 1);
@@ -68,7 +69,7 @@ int TestSparseArrayValidation(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
 
     return 0;
   }
-  catch(std::exception& e)
+  catch (std::exception& e)
   {
     cerr << e.what() << endl;
     return 1;

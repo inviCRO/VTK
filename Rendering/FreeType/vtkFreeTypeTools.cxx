@@ -15,60 +15,57 @@
 
 #include "vtkFreeTypeTools.h"
 
-#include "vtkTextProperty.h"
-#include "vtkObjectFactory.h"
+#include "vtkImageData.h"
 #include "vtkMath.h"
 #include "vtkNew.h"
+#include "vtkObjectFactory.h"
 #include "vtkPath.h"
-#include "vtkImageData.h"
 #include "vtkSmartPointer.h"
+#include "vtkTextProperty.h"
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
 #include "vtkStdString.h"
-#include "vtkUnicodeString.h"
+#include <vtk_utf8.h>
 
 // The embedded fonts
 #include "fonts/vtkEmbeddedFonts.h"
 
-#ifndef _MSC_VER
-# include <stdint.h>
-#endif
-
-#include <limits>
-#include <cassert>
 #include <algorithm>
-#include <map>
-#include <vector>
-#include <sstream>
+#include <cassert>
+#include <cstdint>
 #include <limits>
+#include <map>
+#include <sstream>
+#include <vector>
 
 // Print debug info
 #define VTK_FTFC_DEBUG 0
 #define VTK_FTFC_DEBUG_CD 0
 
-namespace {
-// Some helper functions:
-void rotateVector2i(vtkVector2i &vec, float sinTheta, float cosTheta)
+namespace
 {
-  vec = vtkVector2i(vtkMath::Round(cosTheta * vec[0] - sinTheta * vec[1]),
-                    vtkMath::Round(sinTheta * vec[0] + cosTheta * vec[1]));
+// Some helper functions:
+void rotateVector2i(vtkVector2i& vec, float sinTheta, float cosTheta)
+{
+  int x = static_cast<int>(std::round(cosTheta * vec[0] - sinTheta * vec[1]));
+  int y = static_cast<int>(std::round(sinTheta * vec[0] + cosTheta * vec[1]));
+  vec = vtkVector2i(x, y);
 }
 
 } // end anon namespace
 
-class vtkTextPropertyLookup
-    : public std::map<size_t, vtkSmartPointer<vtkTextProperty> >
+class vtkTextPropertyLookup : public std::map<size_t, vtkSmartPointer<vtkTextProperty>>
 {
 public:
-  bool contains(const size_t id) {return this->find(id) != this->end();}
+  bool contains(const size_t id) { return this->find(id) != this->end(); }
 };
 
 class vtkFreeTypeTools::MetaData
 {
 public:
   // Set by PrepareMetaData
-  vtkTextProperty *textProperty;
+  vtkTextProperty* textProperty;
   size_t textPropertyCacheId;
   size_t unrotatedTextPropertyCacheId;
   FTC_ScalerRec scaler;
@@ -83,7 +80,8 @@ public:
   vtkVector2i ascent;  // Vector from baseline to top of characters
   vtkVector2i descent; // Vector from baseline to bottom of characters
   int height;
-  struct LineMetrics {
+  struct LineMetrics
+  {
     vtkVector2i origin;
     int width;
     // bbox relative to origin[XY]:
@@ -112,19 +110,19 @@ public:
   unsigned char rgba[4];
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // The singleton, and the singleton cleanup counter
 vtkFreeTypeTools* vtkFreeTypeTools::Instance;
 static unsigned int vtkFreeTypeToolsCleanupCounter;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // The embedded fonts
 // Create a lookup table between the text mapper attributes
 // and the font buffers.
 struct EmbeddedFontStruct
 {
   size_t length;
-  unsigned char *ptr;
+  unsigned char* ptr;
 };
 
 //------------------------------------------------------------------------------
@@ -139,17 +137,17 @@ vtkFreeTypeToolsCleanup::~vtkFreeTypeToolsCleanup()
 {
   if (--vtkFreeTypeToolsCleanupCounter == 0)
   {
-    vtkFreeTypeTools::SetInstance(NULL);
+    vtkFreeTypeTools::SetInstance(nullptr);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkFreeTypeTools* vtkFreeTypeTools::GetInstance()
 {
   if (!vtkFreeTypeTools::Instance)
   {
-    vtkFreeTypeTools::Instance = static_cast<vtkFreeTypeTools *>(
-      vtkObjectFactory::CreateInstance("vtkFreeTypeTools"));
+    vtkFreeTypeTools::Instance =
+      static_cast<vtkFreeTypeTools*>(vtkObjectFactory::CreateInstance("vtkFreeTypeTools"));
     if (!vtkFreeTypeTools::Instance)
     {
       vtkFreeTypeTools::Instance = new vtkFreeTypeTools;
@@ -159,7 +157,7 @@ vtkFreeTypeTools* vtkFreeTypeTools::GetInstance()
   return vtkFreeTypeTools::Instance;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkFreeTypeTools::SetInstance(vtkFreeTypeTools* instance)
 {
   if (vtkFreeTypeTools::Instance == instance)
@@ -178,11 +176,11 @@ void vtkFreeTypeTools::SetInstance(vtkFreeTypeTools* instance)
 
   if (instance)
   {
-    instance->Register(NULL);
+    instance->Register(nullptr);
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkFreeTypeTools::vtkFreeTypeTools()
 {
 #if VTK_FTFC_DEBUG_CD
@@ -194,10 +192,10 @@ vtkFreeTypeTools::vtkFreeTypeTools()
   this->MaximumNumberOfFaces = 30; // combinations of family+bold+italic
   this->MaximumNumberOfSizes = this->MaximumNumberOfFaces * 20; // sizes
   this->MaximumNumberOfBytes = 300000UL * this->MaximumNumberOfSizes;
-  this->TextPropertyLookup = new vtkTextPropertyLookup ();
-  this->CacheManager = NULL;
-  this->ImageCache   = NULL;
-  this->CMapCache    = NULL;
+  this->TextPropertyLookup = new vtkTextPropertyLookup();
+  this->CacheManager = nullptr;
+  this->ImageCache = nullptr;
+  this->CMapCache = nullptr;
   this->ScaleToPowerTwo = true;
 
   // Ideally this should be thread-local to support SMP:
@@ -206,14 +204,13 @@ vtkFreeTypeTools::vtkFreeTypeTools()
   err = FT_Init_FreeType(this->Library);
   if (err)
   {
-    vtkErrorMacro("FreeType library initialization failed with error code: "
-                  << err << ".");
+    vtkErrorMacro("FreeType library initialization failed with error code: " << err << ".");
     delete this->Library;
-    this->Library = NULL;
+    this->Library = nullptr;
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkFreeTypeTools::~vtkFreeTypeTools()
 {
 #if VTK_FTFC_DEBUG_CD
@@ -224,10 +221,10 @@ vtkFreeTypeTools::~vtkFreeTypeTools()
 
   FT_Done_FreeType(*this->Library);
   delete this->Library;
-  this->Library = NULL;
+  this->Library = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 FT_Library* vtkFreeTypeTools::GetLibrary()
 {
 #if VTK_FTFC_DEBUG_CD
@@ -237,7 +234,117 @@ FT_Library* vtkFreeTypeTools::GetLibrary()
   return this->Library;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+vtkFreeTypeTools::FaceMetrics vtkFreeTypeTools::GetFaceMetrics(vtkTextProperty* tprop)
+{
+  FT_Face face;
+  this->GetFace(tprop, &face);
+
+  FaceMetrics metrics;
+  metrics.UnitsPerEM = face->units_per_EM;
+  metrics.Ascender = face->ascender;
+  metrics.Descender = face->descender;
+  metrics.HorizAdvance = face->max_advance_width;
+  metrics.BoundingBox = { { static_cast<int>(face->bbox.xMin), static_cast<int>(face->bbox.xMax),
+    static_cast<int>(face->bbox.yMin), static_cast<int>(face->bbox.yMax) } };
+  metrics.FamilyName = face->family_name;
+  metrics.Scalable = (face->face_flags & FT_FACE_FLAG_SCALABLE) != 0;
+  metrics.Bold = (face->style_flags & FT_STYLE_FLAG_BOLD) != 0;
+  metrics.Italic = (face->style_flags & FT_STYLE_FLAG_ITALIC) != 0;
+
+  return metrics;
+}
+
+//------------------------------------------------------------------------------
+vtkFreeTypeTools::GlyphOutline vtkFreeTypeTools::GetUnscaledGlyphOutline(
+  vtkTextProperty* tprop, vtkTypeUInt32 charId)
+{
+  size_t tpropCacheId;
+  this->MapTextPropertyToId(tprop, &tpropCacheId);
+  FTC_FaceID faceId = reinterpret_cast<FTC_FaceID>(tpropCacheId);
+  GlyphOutline result;
+  result.HorizAdvance = 0;
+
+  FTC_CMapCache* cmapCache = this->GetCMapCache();
+  if (!cmapCache)
+  {
+    vtkErrorMacro("CMapCache not found!");
+    return result;
+  }
+
+  FT_UInt glyphId = FTC_CMapCache_Lookup(*cmapCache, faceId, 0, charId);
+
+  FTC_ImageCache* imgCache = this->GetImageCache();
+  if (!imgCache)
+  {
+    vtkErrorMacro("ImageCache not found!");
+    return result;
+  }
+
+  FTC_ImageTypeRec type;
+  type.face_id = faceId;
+  type.width = 0;
+  type.height = 0;
+  type.flags = FT_LOAD_NO_SCALE | FT_LOAD_IGNORE_TRANSFORM;
+
+  FT_Glyph glyph;
+  FT_Error error = FTC_ImageCache_Lookup(*imgCache, &type, glyphId, &glyph, nullptr);
+  if (!error && glyph && glyph->format == ft_glyph_format_outline)
+  {
+    FT_OutlineGlyph outlineGlyph = reinterpret_cast<FT_OutlineGlyph>(glyph);
+    result.HorizAdvance = (glyph->advance.x + 0x8000) >> 16;
+    result.Path = vtkSmartPointer<vtkPath>::New();
+    this->OutlineToPath(0, 0, &outlineGlyph->outline, result.Path);
+  }
+
+  return result;
+}
+
+//------------------------------------------------------------------------------
+std::array<int, 2> vtkFreeTypeTools::GetUnscaledKerning(
+  vtkTextProperty* tprop, vtkTypeUInt32 leftChar, vtkTypeUInt32 rightChar)
+{
+  std::array<int, 2> result{ { 0, 0 } };
+  if (leftChar == 0 || rightChar == 0)
+  {
+    return result;
+  }
+
+  size_t tpropCacheId;
+  this->MapTextPropertyToId(tprop, &tpropCacheId);
+  FT_Face face = nullptr;
+
+  if (!this->GetFace(tpropCacheId, &face) || !face)
+  {
+    vtkErrorMacro("Error loading font face.");
+    return result;
+  }
+
+  if (FT_HAS_KERNING(face) != 0)
+  {
+    FTC_FaceID faceId = reinterpret_cast<FTC_FaceID>(tpropCacheId);
+    FTC_CMapCache* cmapCache = this->GetCMapCache();
+    if (!cmapCache)
+    {
+      vtkErrorMacro("CMapCache not found!");
+      return result;
+    }
+
+    FT_UInt leftGIdx = FTC_CMapCache_Lookup(*cmapCache, faceId, 0, leftChar);
+    FT_UInt rightGIdx = FTC_CMapCache_Lookup(*cmapCache, faceId, 0, rightChar);
+    FT_Vector kerning;
+    FT_Error error = FT_Get_Kerning(face, leftGIdx, rightGIdx, FT_KERNING_UNSCALED, &kerning);
+    if (!error)
+    {
+      result[0] = kerning.x >> 6;
+      result[1] = kerning.y >> 6;
+    }
+  }
+
+  return result;
+}
+
+//------------------------------------------------------------------------------
 FTC_Manager* vtkFreeTypeTools::GetCacheManager()
 {
   if (!this->CacheManager)
@@ -248,7 +355,7 @@ FTC_Manager* vtkFreeTypeTools::GetCacheManager()
   return this->CacheManager;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 FTC_ImageCache* vtkFreeTypeTools::GetImageCache()
 {
   if (!this->ImageCache)
@@ -259,7 +366,7 @@ FTC_ImageCache* vtkFreeTypeTools::GetImageCache()
   return this->ImageCache;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 FTC_CMapCache* vtkFreeTypeTools::GetCMapCache()
 {
   if (!this->CMapCache)
@@ -270,51 +377,46 @@ FTC_CMapCache* vtkFreeTypeTools::GetCMapCache()
   return this->CMapCache;
 }
 
-//----------------------------------------------------------------------------
-FT_CALLBACK_DEF(FT_Error)
-vtkFreeTypeToolsFaceRequester(FTC_FaceID face_id,
-                              FT_Library lib,
-                              FT_Pointer request_data,
-                              FT_Face* face)
+//------------------------------------------------------------------------------
+static FT_Error vtkFreeTypeToolsFaceRequester(
+  FTC_FaceID face_id, FT_Library lib, FT_Pointer request_data, FT_Face* face)
 {
 #if VTK_FTFC_DEBUG_CD
   printf("vtkFreeTypeToolsFaceRequester()\n");
 #endif
 
   // Get a pointer to the current vtkFreeTypeTools object
-  vtkFreeTypeTools *self =
-    reinterpret_cast<vtkFreeTypeTools*>(request_data);
+  vtkFreeTypeTools* self = reinterpret_cast<vtkFreeTypeTools*>(request_data);
 
   // Map the ID to a text property
-  vtkSmartPointer<vtkTextProperty> tprop =
-      vtkSmartPointer<vtkTextProperty>::New();
+  vtkSmartPointer<vtkTextProperty> tprop = vtkSmartPointer<vtkTextProperty>::New();
   self->MapIdToTextProperty(reinterpret_cast<intptr_t>(face_id), tprop);
 
-  bool faceIsSet = self->LookupFace(tprop, lib, face);
+  bool faceIsSet = vtkFreeTypeTools::LookupFace(tprop, lib, face);
 
   if (!faceIsSet)
   {
     return static_cast<FT_Error>(1);
   }
 
-  if ( tprop->GetOrientation() != 0.0 )
+  if (tprop->GetOrientation() != 0.0)
   {
     // FreeType documentation says that the transform should not be set
     // but we cache faces also by transform, so that there is a unique
     // (face, orientation) cache entry
     FT_Matrix matrix;
-    float angle = vtkMath::RadiansFromDegrees( tprop->GetOrientation() );
-    matrix.xx = (FT_Fixed)( cos(angle) * 0x10000L);
+    float angle = vtkMath::RadiansFromDegrees(tprop->GetOrientation());
+    matrix.xx = (FT_Fixed)(cos(angle) * 0x10000L);
     matrix.xy = (FT_Fixed)(-sin(angle) * 0x10000L);
-    matrix.yx = (FT_Fixed)( sin(angle) * 0x10000L);
-    matrix.yy = (FT_Fixed)( cos(angle) * 0x10000L);
-    FT_Set_Transform(*face, &matrix, NULL);
+    matrix.yx = (FT_Fixed)(sin(angle) * 0x10000L);
+    matrix.yy = (FT_Fixed)(cos(angle) * 0x10000L);
+    FT_Set_Transform(*face, &matrix, nullptr);
   }
 
   return static_cast<FT_Error>(0);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkFreeTypeTools::InitializeCacheManager()
 {
 #if VTK_FTFC_DEBUG_CD
@@ -354,7 +456,7 @@ void vtkFreeTypeTools::InitializeCacheManager()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkFreeTypeTools::ReleaseCacheManager()
 {
 #if VTK_FTFC_DEBUG_CD
@@ -366,25 +468,24 @@ void vtkFreeTypeTools::ReleaseCacheManager()
     FTC_Manager_Done(*this->CacheManager);
 
     delete this->CacheManager;
-    this->CacheManager = NULL;
+    this->CacheManager = nullptr;
   }
 
   delete this->ImageCache;
-  this->ImageCache = NULL;
+  this->ImageCache = nullptr;
 
   delete this->CMapCache;
-  this->CMapCache = NULL;
+  this->CMapCache = nullptr;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetBoundingBox(vtkTextProperty *tprop,
-                                      const vtkStdString& str, int dpi,
-                                      int bbox[4])
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetBoundingBox(
+  vtkTextProperty* tprop, const vtkStdString& str, int dpi, int bbox[4])
 {
   // We need the tprop and bbox
   if (!tprop || !bbox)
   {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL or zero");
+    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr or zero");
     return false;
   }
 
@@ -407,45 +508,13 @@ bool vtkFreeTypeTools::GetBoundingBox(vtkTextProperty *tprop,
   return result;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetBoundingBox(vtkTextProperty *tprop,
-                                      const vtkUnicodeString& str, int dpi,
-                                      int bbox[4])
-{
-  // We need the tprop and bbox
-  if (!tprop || !bbox)
-  {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL or zero");
-    return false;
-  }
-
-  if (str.empty())
-  {
-    std::fill(bbox, bbox + 4, 0);
-    return true;
-  }
-
-  MetaData metaData;
-  bool result = this->PrepareMetaData(tprop, dpi, metaData);
-  if (result)
-  {
-    result = this->CalculateBoundingBox(str, metaData);
-    if (result)
-    {
-      memcpy(bbox, metaData.bbox.GetData(), sizeof(int) * 4);
-    }
-  }
-  return result;
-}
-
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetMetrics(vtkTextProperty *tprop,
-                                  const vtkStdString &str, int dpi,
-                                  vtkTextRenderer::Metrics &metrics)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetMetrics(
+  vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkTextRenderer::Metrics& metrics)
 {
   if (!tprop)
   {
-    vtkErrorMacro(<< "NULL text property.");
+    vtkErrorMacro(<< "nullptr text property.");
     return false;
   }
 
@@ -463,135 +532,66 @@ bool vtkFreeTypeTools::GetMetrics(vtkTextProperty *tprop,
     if (result)
     {
       metrics.BoundingBox = metaData.bbox;
-      metrics.TopLeft     = metaData.TL;
-      metrics.TopRight    = metaData.TR;
-      metrics.BottomLeft  = metaData.BL;
+      metrics.TopLeft = metaData.TL;
+      metrics.TopRight = metaData.TR;
+      metrics.BottomLeft = metaData.BL;
       metrics.BottomRight = metaData.BR;
-      metrics.Ascent      = metaData.ascent;
-      metrics.Descent     = metaData.descent;
+      metrics.Ascent = metaData.ascent;
+      metrics.Descent = metaData.descent;
     }
   }
   return result;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetMetrics(vtkTextProperty *tprop,
-                                  const vtkUnicodeString &str, int dpi,
-                                  vtkTextRenderer::Metrics &metrics)
-{
-  if (!tprop)
-  {
-    vtkErrorMacro(<< "NULL text property.");
-    return false;
-  }
-
-  if (str.empty())
-  {
-    metrics = vtkTextRenderer::Metrics();
-    return true;
-  }
-
-  MetaData metaData;
-  bool result = this->PrepareMetaData(tprop, dpi, metaData);
-  if (result)
-  {
-    result = this->CalculateBoundingBox(str, metaData);
-    if (result)
-    {
-      metrics.BoundingBox = metaData.bbox;
-      metrics.TopLeft     = metaData.TL;
-      metrics.TopRight    = metaData.TR;
-      metrics.BottomLeft  = metaData.BL;
-      metrics.BottomRight = metaData.BR;
-      metrics.Ascent      = metaData.ascent;
-      metrics.Descent     = metaData.descent;
-    }
-  }
-  return result;
-}
-
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::RenderString(vtkTextProperty *tprop,
-                                    const vtkStdString& str, int dpi,
-                                    vtkImageData *data, int textDims[2])
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::RenderString(
+  vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkImageData* data, int textDims[2])
 {
   return this->RenderStringInternal(tprop, str, dpi, data, textDims);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::RenderString(vtkTextProperty *tprop,
-                                    const vtkUnicodeString& str, int dpi,
-                                    vtkImageData *data, int textDims[2])
-{
-  return this->RenderStringInternal(tprop, str, dpi, data, textDims);
-}
-
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::StringToPath(vtkTextProperty *tprop,
-                                    const vtkStdString &str, int dpi,
-                                    vtkPath *path)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::StringToPath(
+  vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkPath* path)
 {
   return this->StringToPathInternal(tprop, str, dpi, path);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::StringToPath(vtkTextProperty *tprop,
-                                    const vtkUnicodeString &str, int dpi,
-                                    vtkPath *path)
-{
-  return this->StringToPathInternal(tprop, str, dpi, path);
-}
-
-//----------------------------------------------------------------------------
-int vtkFreeTypeTools::GetConstrainedFontSize(const vtkStdString &str,
-                                             vtkTextProperty *tprop, int dpi,
-                                             int targetWidth, int targetHeight)
+//------------------------------------------------------------------------------
+int vtkFreeTypeTools::GetConstrainedFontSize(
+  const vtkStdString& str, vtkTextProperty* tprop, int dpi, int targetWidth, int targetHeight)
 {
   MetaData metaData;
   if (!this->PrepareMetaData(tprop, dpi, metaData))
   {
-    vtkErrorMacro(<<"Could not prepare metadata.");
+    vtkErrorMacro(<< "Could not prepare metadata.");
     return false;
   }
   return this->FitStringToBBox(str, metaData, targetWidth, targetHeight);
 }
 
-//----------------------------------------------------------------------------
-int vtkFreeTypeTools::GetConstrainedFontSize(const vtkUnicodeString &str,
-                                             vtkTextProperty *tprop, int dpi,
-                                             int targetWidth, int targetHeight)
+//------------------------------------------------------------------------------
+vtkTypeUInt16 vtkFreeTypeTools::HashString(const char* str)
 {
-  MetaData metaData;
-  if (!this->PrepareMetaData(tprop, dpi, metaData))
-  {
-    vtkErrorMacro(<<"Could not prepare metadata.");
-    return false;
-  }
-  return this->FitStringToBBox(str, metaData, targetWidth, targetHeight);
-}
-
-//----------------------------------------------------------------------------
-vtkTypeUInt16 vtkFreeTypeTools::HashString(const char *str)
-{
-  if (str == NULL)
+  if (str == nullptr)
     return 0;
 
   vtkTypeUInt16 hash = 0;
   while (*str != 0)
   {
-    vtkTypeUInt8 high = ((hash<<8)^hash) >> 8;
-    vtkTypeUInt8 low = tolower(*str)^(hash<<2);
-    hash = (high<<8) ^ low;
+    vtkTypeUInt8 high = ((hash << 8) ^ hash) >> 8;
+    vtkTypeUInt8 low = tolower(*str) ^ (hash << 2);
+    hash = (high << 8) ^ low;
     ++str;
   }
 
   return hash;
 }
 
-//----------------------------------------------------------------------------
-vtkTypeUInt32 vtkFreeTypeTools::HashBuffer(const void *buffer, size_t n, vtkTypeUInt32 hash)
+//------------------------------------------------------------------------------
+vtkTypeUInt32 vtkFreeTypeTools::HashBuffer(const void* buffer, size_t n, vtkTypeUInt32 hash)
 {
-  if (buffer == NULL)
+  if (buffer == nullptr)
   {
     return 0;
   }
@@ -609,27 +609,24 @@ vtkTypeUInt32 vtkFreeTypeTools::HashBuffer(const void *buffer, size_t n, vtkType
   return hash;
 }
 
-//----------------------------------------------------------------------------
-void vtkFreeTypeTools::MapTextPropertyToId(vtkTextProperty *tprop,
-                                           size_t *id)
+//------------------------------------------------------------------------------
+void vtkFreeTypeTools::MapTextPropertyToId(vtkTextProperty* tprop, size_t* id)
 {
   if (!tprop || !id)
   {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL");
+    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr");
     return;
   }
 
   // The font family is hashed into 16 bits (= 17 bits so far)
-  const char* fontFamily = tprop->GetFontFamily() != VTK_FONT_FILE
-    ? tprop->GetFontFamilyAsString()
-    : tprop->GetFontFile();
+  const char* fontFamily =
+    tprop->GetFontFamily() != VTK_FONT_FILE ? tprop->GetFontFamilyAsString() : tprop->GetFontFile();
   size_t fontFamilyLength = 0;
   if (fontFamily)
   {
     fontFamilyLength = strlen(fontFamily);
   }
-  vtkTypeUInt32 hash =
-    vtkFreeTypeTools::HashBuffer(fontFamily, fontFamilyLength);
+  vtkTypeUInt32 hash = vtkFreeTypeTools::HashBuffer(fontFamily, fontFamilyLength);
 
   // Create a "string" of text properties
   unsigned char ucValue = tprop->GetBold();
@@ -638,24 +635,20 @@ void vtkFreeTypeTools::MapTextPropertyToId(vtkTextProperty *tprop,
   hash = vtkFreeTypeTools::HashBuffer(&ucValue, sizeof(unsigned char), hash);
   ucValue = tprop->GetShadow();
   hash = vtkFreeTypeTools::HashBuffer(&ucValue, sizeof(unsigned char), hash);
-  hash = vtkFreeTypeTools::HashBuffer(
-    tprop->GetColor(), 3*sizeof(double), hash);
+  hash = vtkFreeTypeTools::HashBuffer(tprop->GetColor(), 3 * sizeof(double), hash);
   double dValue = tprop->GetOpacity();
   hash = vtkFreeTypeTools::HashBuffer(&dValue, sizeof(double), hash);
-  hash = vtkFreeTypeTools::HashBuffer(
-    tprop->GetBackgroundColor(), 3*sizeof(double), hash);
+  hash = vtkFreeTypeTools::HashBuffer(tprop->GetBackgroundColor(), 3 * sizeof(double), hash);
   dValue = tprop->GetBackgroundOpacity();
   hash = vtkFreeTypeTools::HashBuffer(&dValue, sizeof(double), hash);
-  hash = vtkFreeTypeTools::HashBuffer(
-    tprop->GetFrameColor(), 3*sizeof(double), hash);
+  hash = vtkFreeTypeTools::HashBuffer(tprop->GetFrameColor(), 3 * sizeof(double), hash);
   ucValue = tprop->GetFrame();
   hash = vtkFreeTypeTools::HashBuffer(&ucValue, sizeof(unsigned char), hash);
   int iValue = tprop->GetFrameWidth();
   hash = vtkFreeTypeTools::HashBuffer(&iValue, sizeof(int), hash);
   iValue = tprop->GetFontSize();
   hash = vtkFreeTypeTools::HashBuffer(&iValue, sizeof(int), hash);
-  hash = vtkFreeTypeTools::HashBuffer(
-    tprop->GetShadowOffset(), 2*sizeof(int), hash);
+  hash = vtkFreeTypeTools::HashBuffer(tprop->GetShadowOffset(), 2 * sizeof(int), hash);
   dValue = tprop->GetOrientation();
   hash = vtkFreeTypeTools::HashBuffer(&dValue, sizeof(double), hash);
   hash = vtkFreeTypeTools::HashBuffer(&dValue, sizeof(double), hash);
@@ -667,49 +660,49 @@ void vtkFreeTypeTools::MapTextPropertyToId(vtkTextProperty *tprop,
   hash = vtkFreeTypeTools::HashBuffer(&iValue, sizeof(int), hash);
 
   // Set the first bit to avoid id = 0
-  // (the id will be mapped to a pointer, FTC_FaceID, so let's avoid NULL)
+  // (the id will be mapped to a pointer, FTC_FaceID, so let's avoid nullptr)
   *id = 1;
 
   // Add in the hash.
   // We're dropping a bit here, but that should be okay.
   *id |= hash << 1;
 
-  // Insert the TextProperty into the lookup table
+  // Insert a copy of the TextProperty into the lookup table
   if (!this->TextPropertyLookup->contains(*id))
-    (*this->TextPropertyLookup)[*id] = tprop;
+  {
+    vtkNew<vtkTextProperty> cprop;
+    cprop->ShallowCopy(tprop);
+    (*this->TextPropertyLookup)[*id] = cprop;
+  }
 }
 
-//----------------------------------------------------------------------------
-void vtkFreeTypeTools::MapIdToTextProperty(size_t id,
-                                           vtkTextProperty *tprop)
+//------------------------------------------------------------------------------
+void vtkFreeTypeTools::MapIdToTextProperty(size_t id, vtkTextProperty* tprop)
 {
   if (!tprop)
   {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL");
+    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr");
     return;
   }
 
-  vtkTextPropertyLookup::const_iterator tpropIt =
-      this->TextPropertyLookup->find(id);
+  vtkTextPropertyLookup::const_iterator tpropIt = this->TextPropertyLookup->find(id);
 
   if (tpropIt == this->TextPropertyLookup->end())
   {
-    vtkErrorMacro(<<"Unknown id; call MapTextPropertyToId first!");
+    vtkErrorMacro(<< "Unknown id; call MapTextPropertyToId first!");
     return;
   }
 
   tprop->ShallowCopy(tpropIt->second);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetSize(size_t tprop_cache_id,
-                               int font_size,
-                               FT_Size *size)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetSize(size_t tprop_cache_id, int font_size, FT_Size* size)
 {
   if (!size || font_size <= 0)
   {
-    vtkErrorMacro(<< "Wrong parameters, size is NULL or invalid font size");
-    return 0;
+    vtkErrorMacro(<< "Wrong parameters, size is nullptr or invalid font size");
+    return false;
   }
 
   // Map the id of a text property in the cache to a FTC_FaceID
@@ -724,8 +717,8 @@ bool vtkFreeTypeTools::GetSize(size_t tprop_cache_id,
   return this->GetSize(&scaler_rec, size);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetSize(FTC_Scaler scaler, FT_Size *size)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetSize(FTC_Scaler scaler, FT_Size* size)
 {
 #if VTK_FTFC_DEBUG_CD
   printf("vtkFreeTypeTools::GetSize()\n");
@@ -733,15 +726,15 @@ bool vtkFreeTypeTools::GetSize(FTC_Scaler scaler, FT_Size *size)
 
   if (!size)
   {
-    vtkErrorMacro(<< "Size is NULL.");
-    return 0;
+    vtkErrorMacro(<< "Size is nullptr.");
+    return false;
   }
 
-  FTC_Manager *manager = this->GetCacheManager();
+  FTC_Manager* manager = this->GetCacheManager();
   if (!manager)
   {
     vtkErrorMacro(<< "Failed querying the cache manager !");
-    return 0;
+    return false;
   }
 
   FT_Error error = FTC_Manager_LookupSize(*manager, scaler, size);
@@ -750,17 +743,16 @@ bool vtkFreeTypeTools::GetSize(FTC_Scaler scaler, FT_Size *size)
     vtkErrorMacro(<< "Failed looking up a FreeType Size");
   }
 
-  return error ? false : true;
+  return !error;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetSize(vtkTextProperty *tprop,
-                               FT_Size *size)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetSize(vtkTextProperty* tprop, FT_Size* size)
 {
   if (!tprop)
   {
-    vtkErrorMacro(<< "Wrong parameters, text property is NULL");
-    return 0;
+    vtkErrorMacro(<< "Wrong parameters, text property is nullptr");
+    return false;
   }
 
   // Map the text property to a unique id that will be used as face id
@@ -770,9 +762,8 @@ bool vtkFreeTypeTools::GetSize(vtkTextProperty *tprop,
   return this->GetSize(tprop_cache_id, tprop->GetFontSize(), size);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetFace(size_t tprop_cache_id,
-                               FT_Face *face)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetFace(size_t tprop_cache_id, FT_Face* face)
 {
 #if VTK_FTFC_DEBUG_CD
   printf("vtkFreeTypeTools::GetFace()\n");
@@ -780,11 +771,11 @@ bool vtkFreeTypeTools::GetFace(size_t tprop_cache_id,
 
   if (!face)
   {
-    vtkErrorMacro(<< "Wrong parameters, face is NULL");
+    vtkErrorMacro(<< "Wrong parameters, face is nullptr");
     return false;
   }
 
-  FTC_Manager *manager = this->GetCacheManager();
+  FTC_Manager* manager = this->GetCacheManager();
   if (!manager)
   {
     vtkErrorMacro(<< "Failed querying the cache manager !");
@@ -800,17 +791,16 @@ bool vtkFreeTypeTools::GetFace(size_t tprop_cache_id,
     vtkErrorMacro(<< "Failed looking up a FreeType Face");
   }
 
-  return error ? false : true;
+  return !error;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetFace(vtkTextProperty *tprop,
-                               FT_Face *face)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetFace(vtkTextProperty* tprop, FT_Face* face)
 {
   if (!tprop)
   {
-    vtkErrorMacro(<< "Wrong parameters, face is NULL");
-    return 0;
+    vtkErrorMacro(<< "Wrong parameters, face is nullptr");
+    return false;
   }
 
   // Map the text property to a unique id that will be used as face id
@@ -820,10 +810,8 @@ bool vtkFreeTypeTools::GetFace(vtkTextProperty *tprop,
   return this->GetFace(tprop_cache_id, face);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetGlyphIndex(size_t tprop_cache_id,
-                                     FT_UInt32 c,
-                                     FT_UInt *gindex)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetGlyphIndex(size_t tprop_cache_id, FT_UInt32 c, FT_UInt* gindex)
 {
 #if VTK_FTFC_DEBUG_CD
   printf("vtkFreeTypeTools::GetGlyphIndex()\n");
@@ -831,15 +819,15 @@ bool vtkFreeTypeTools::GetGlyphIndex(size_t tprop_cache_id,
 
   if (!gindex)
   {
-    vtkErrorMacro(<< "Wrong parameters, gindex is NULL");
-    return 0;
+    vtkErrorMacro(<< "Wrong parameters, gindex is nullptr");
+    return false;
   }
 
-  FTC_CMapCache *cmap_cache = this->GetCMapCache();
+  FTC_CMapCache* cmap_cache = this->GetCMapCache();
   if (!cmap_cache)
   {
     vtkErrorMacro(<< "Failed querying the charmap cache manager !");
-    return 0;
+    return false;
   }
 
   // Map the id of a text property in the cache to a FTC_FaceID
@@ -848,18 +836,16 @@ bool vtkFreeTypeTools::GetGlyphIndex(size_t tprop_cache_id,
   // Lookup the glyph index
   *gindex = FTC_CMapCache_Lookup(*cmap_cache, face_id, 0, c);
 
-  return *gindex ? true : false;
+  return *gindex != 0;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetGlyphIndex(vtkTextProperty *tprop,
-                                     FT_UInt32 c,
-                                     FT_UInt *gindex)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetGlyphIndex(vtkTextProperty* tprop, FT_UInt32 c, FT_UInt* gindex)
 {
   if (!tprop)
   {
-    vtkErrorMacro(<< "Wrong parameters, text property is NULL");
-    return 0;
+    vtkErrorMacro(<< "Wrong parameters, text property is nullptr");
+    return false;
   }
 
   // Map the text property to a unique id that will be used as face id
@@ -869,12 +855,9 @@ bool vtkFreeTypeTools::GetGlyphIndex(vtkTextProperty *tprop,
   return this->GetGlyphIndex(tprop_cache_id, c, gindex);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetGlyph(size_t tprop_cache_id,
-                                int font_size,
-                                FT_UInt gindex,
-                                FT_Glyph *glyph,
-                                int request)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetGlyph(
+  size_t tprop_cache_id, int font_size, FT_UInt gindex, FT_Glyph* glyph, int request)
 {
 #if VTK_FTFC_DEBUG_CD
   printf("vtkFreeTypeTools::GetGlyph()\n");
@@ -882,11 +865,11 @@ bool vtkFreeTypeTools::GetGlyph(size_t tprop_cache_id,
 
   if (!glyph)
   {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL");
+    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr");
     return false;
   }
 
-  FTC_ImageCache *image_cache = this->GetImageCache();
+  FTC_ImageCache* image_cache = this->GetImageCache();
   if (!image_cache)
   {
     vtkErrorMacro(<< "Failed querying the image cache manager !");
@@ -912,15 +895,13 @@ bool vtkFreeTypeTools::GetGlyph(size_t tprop_cache_id,
   }
 
   // Lookup the glyph
-  FT_Error error = FTC_ImageCache_Lookup(
-    *image_cache, &image_type_rec, gindex, glyph, NULL);
+  FT_Error error = FTC_ImageCache_Lookup(*image_cache, &image_type_rec, gindex, glyph, nullptr);
 
-  return error ? false : true;
+  return !error;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetGlyph(FTC_Scaler scaler, FT_UInt gindex,
-                                FT_Glyph *glyph, int request)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetGlyph(FTC_Scaler scaler, FT_UInt gindex, FT_Glyph* glyph, int request)
 {
 #if VTK_FTFC_DEBUG_CD
   printf("vtkFreeTypeTools::GetGlyph()\n");
@@ -928,11 +909,11 @@ bool vtkFreeTypeTools::GetGlyph(FTC_Scaler scaler, FT_UInt gindex,
 
   if (!glyph)
   {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL");
+    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr");
     return false;
   }
 
-  FTC_ImageCache *image_cache = this->GetImageCache();
+  FTC_ImageCache* image_cache = this->GetImageCache();
   if (!image_cache)
   {
     vtkErrorMacro(<< "Failed querying the image cache manager !");
@@ -950,128 +931,87 @@ bool vtkFreeTypeTools::GetGlyph(FTC_Scaler scaler, FT_UInt gindex,
   }
 
   // Lookup the glyph
-  FT_Error error = FTC_ImageCache_LookupScaler(
-        *image_cache, scaler, loadFlags, gindex, glyph, NULL);
+  FT_Error error =
+    FTC_ImageCache_LookupScaler(*image_cache, scaler, loadFlags, gindex, glyph, nullptr);
 
-  return error ? false : true;
+  return !error;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::LookupFace(vtkTextProperty *tprop, FT_Library lib,
-                                  FT_Face *face)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::LookupFace(vtkTextProperty* tprop, FT_Library lib, FT_Face* face)
 {
   // Fonts, organized by [Family][Bold][Italic]
-  static EmbeddedFontStruct EmbeddedFonts[3][2][2] =
-    {
-    {
-      {
-        { // VTK_ARIAL: Bold [ ] Italic [ ]
-            face_arial_buffer_length, face_arial_buffer
-        },
+  static EmbeddedFontStruct EmbeddedFonts[3][2][2] = {
+    { { { // VTK_ARIAL: Bold [ ] Italic [ ]
+          face_arial_buffer_length, face_arial_buffer },
         { // VTK_ARIAL: Bold [ ] Italic [x]
-            face_arial_italic_buffer_length, face_arial_italic_buffer
-        }
-      },
-      {
-        { // VTK_ARIAL: Bold [x] Italic [ ]
-            face_arial_bold_buffer_length, face_arial_bold_buffer
-        },
+          face_arial_italic_buffer_length, face_arial_italic_buffer } },
+      { { // VTK_ARIAL: Bold [x] Italic [ ]
+          face_arial_bold_buffer_length, face_arial_bold_buffer },
         { // VTK_ARIAL: Bold [x] Italic [x]
-            face_arial_bold_italic_buffer_length, face_arial_bold_italic_buffer
-        }
-      }
-    },
-    {
-      {
-        { // VTK_COURIER: Bold [ ] Italic [ ]
-            face_courier_buffer_length, face_courier_buffer
-        },
+          face_arial_bold_italic_buffer_length, face_arial_bold_italic_buffer } } },
+    { { { // VTK_COURIER: Bold [ ] Italic [ ]
+          face_courier_buffer_length, face_courier_buffer },
         { // VTK_COURIER: Bold [ ] Italic [x]
-            face_courier_italic_buffer_length, face_courier_italic_buffer
-        }
-      },
-      {
-        { // VTK_COURIER: Bold [x] Italic [ ]
-            face_courier_bold_buffer_length, face_courier_bold_buffer
-        },
+          face_courier_italic_buffer_length, face_courier_italic_buffer } },
+      { { // VTK_COURIER: Bold [x] Italic [ ]
+          face_courier_bold_buffer_length, face_courier_bold_buffer },
         { // VTK_COURIER: Bold [x] Italic [x]
-            face_courier_bold_italic_buffer_length,
-            face_courier_bold_italic_buffer
-        }
-      }
-    },
-    {
-      {
-        { // VTK_TIMES: Bold [ ] Italic [ ]
-            face_times_buffer_length, face_times_buffer
-        },
+          face_courier_bold_italic_buffer_length, face_courier_bold_italic_buffer } } },
+    { { { // VTK_TIMES: Bold [ ] Italic [ ]
+          face_times_buffer_length, face_times_buffer },
         { // VTK_TIMES: Bold [ ] Italic [x]
-            face_times_italic_buffer_length, face_times_italic_buffer
-        }
-      },
-      {
-        { // VTK_TIMES: Bold [x] Italic [ ]
-            face_times_bold_buffer_length, face_times_bold_buffer
-        },
+          face_times_italic_buffer_length, face_times_italic_buffer } },
+      { { // VTK_TIMES: Bold [x] Italic [ ]
+          face_times_bold_buffer_length, face_times_bold_buffer },
         { // VTK_TIMES: Bold [x] Italic [x]
-            face_times_bold_italic_buffer_length, face_times_bold_italic_buffer
-        }
-      }
-    }
-    };
+          face_times_bold_italic_buffer_length, face_times_bold_italic_buffer } } }
+  };
 
   int family = tprop->GetFontFamily();
   // If font family is unknown, fall back to Arial.
   if (family == VTK_UNKNOWN_FONT)
   {
-    vtkDebugWithObjectMacro(
-          tprop,
-          << "Requested font '" << tprop->GetFontFamilyAsString() << "'"
-          " unavailable. Substituting Arial.");
+    vtkDebugWithObjectMacro(tprop, << "Requested font '" << tprop->GetFontFamilyAsString()
+                                   << "'"
+                                      " unavailable. Substituting Arial.");
     family = VTK_ARIAL;
   }
   else if (family == VTK_FONT_FILE)
   {
-    vtkDebugWithObjectMacro(tprop,
-                            << "Attempting to load font from file: "
-                            << tprop->GetFontFile());
+    vtkDebugWithObjectMacro(
+      tprop, << "Attempting to load font from file: " << tprop->GetFontFile());
 
     if (FT_New_Face(lib, tprop->GetFontFile(), 0, face) == 0)
     {
       return true;
     }
 
-    vtkDebugWithObjectMacro(
-          tprop,
-          << "Error loading font from file '" << tprop->GetFontFile()
-          << "'. Falling back to arial.");
+    vtkDebugWithObjectMacro(tprop,
+      << "Error loading font from file '" << tprop->GetFontFile() << "'. Falling back to arial.");
     family = VTK_ARIAL;
   }
 
-  FT_Long length = EmbeddedFonts
-    [family][tprop->GetBold()][tprop->GetItalic()].length;
-  FT_Byte *ptr = EmbeddedFonts
-    [family][tprop->GetBold()][tprop->GetItalic()].ptr;
+  FT_Long length =
+    static_cast<FT_Long>(EmbeddedFonts[family][tprop->GetBold()][tprop->GetItalic()].length);
+  FT_Byte* ptr = EmbeddedFonts[family][tprop->GetBold()][tprop->GetItalic()].ptr;
 
   // Create a new face from the embedded fonts if possible
   FT_Error error = FT_New_Memory_Face(lib, ptr, length, 0, face);
 
   if (error)
   {
-    vtkErrorWithObjectMacro(
-          tprop,
-          << "Unable to create font !" << " (family: " << family
-          << ", bold: " << tprop->GetBold() << ", italic: " << tprop->GetItalic()
-          << ", length: " << length << ")");
+    vtkErrorWithObjectMacro(tprop, << "Unable to create font !"
+                                   << " (family: " << family << ", bold: " << tprop->GetBold()
+                                   << ", italic: " << tprop->GetItalic() << ", length: " << length
+                                   << ")");
     return false;
   }
   else
   {
 #if VTK_FTFC_DEBUG
-    cout << "Requested: " << *face
-         << " (F: " << tprop->GetFontFamily()
-         << ", B: " << tprop->GetBold()
-         << ", I: " << tprop->GetItalic()
+    cout << "Requested: " << *face << " (F: " << tprop->GetFontFamily()
+         << ", B: " << tprop->GetBold() << ", I: " << tprop->GetItalic()
          << ", O: " << tprop->GetOrientation() << ")" << endl;
 #endif
   }
@@ -1079,16 +1019,13 @@ bool vtkFreeTypeTools::LookupFace(vtkTextProperty *tprop, FT_Library lib,
   return true;
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetGlyph(vtkTextProperty *tprop,
-                                FT_UInt32 c,
-                                FT_Glyph *glyph,
-                                int request)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::GetGlyph(vtkTextProperty* tprop, FT_UInt32 c, FT_Glyph* glyph, int request)
 {
   if (!tprop)
   {
-    vtkErrorMacro(<< "Wrong parameters, text property is NULL");
-    return 0;
+    vtkErrorMacro(<< "Wrong parameters, text property is nullptr");
+    return false;
   }
 
   // Map the text property to a unique id that will be used as face id
@@ -1104,44 +1041,34 @@ bool vtkFreeTypeTools::GetGlyph(vtkTextProperty *tprop,
   }
 
   // Get the glyph
-  return this->GetGlyph(
-    tprop_cache_id, tprop->GetFontSize(), gindex, glyph, request);
+  return this->GetGlyph(tprop_cache_id, tprop->GetFontSize(), gindex, glyph, request);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkFreeTypeTools::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "MaximumNumberOfFaces: "
-     << this->MaximumNumberOfFaces << endl;
+  os << indent << "MaximumNumberOfFaces: " << this->MaximumNumberOfFaces << endl;
 
-  os << indent << "MaximumNumberOfSizes: "
-     << this->MaximumNumberOfSizes << endl;
+  os << indent << "MaximumNumberOfSizes: " << this->MaximumNumberOfSizes << endl;
 
-  os << indent << "MaximumNumberOfBytes: "
-     << this->MaximumNumberOfBytes << endl;
+  os << indent << "MaximumNumberOfBytes: " << this->MaximumNumberOfBytes << endl;
 
-  os << indent << "Scale to nearest power of 2 for image sizes: "
-     << this->ScaleToPowerTwo << endl;
+  os << indent << "Scale to nearest power of 2 for image sizes: " << this->ScaleToPowerTwo << endl;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 FT_Error vtkFreeTypeTools::CreateFTCManager()
 {
-  return FTC_Manager_New(*this->GetLibrary(),
-                         this->MaximumNumberOfFaces,
-                         this->MaximumNumberOfSizes,
-                         this->MaximumNumberOfBytes,
-                         vtkFreeTypeToolsFaceRequester,
-                         static_cast<FT_Pointer>(this),
-                         this->CacheManager);
+  return FTC_Manager_New(*this->GetLibrary(), this->MaximumNumberOfFaces,
+    this->MaximumNumberOfSizes, this->MaximumNumberOfBytes, vtkFreeTypeToolsFaceRequester,
+    static_cast<FT_Pointer>(this), this->CacheManager);
 }
 
-//----------------------------------------------------------------------------
-inline bool vtkFreeTypeTools::PrepareImageMetaData(vtkTextProperty *tprop,
-                                                   vtkImageData *image,
-                                                   ImageMetaData &metaData)
+//------------------------------------------------------------------------------
+inline bool vtkFreeTypeTools::PrepareImageMetaData(
+  vtkTextProperty* tprop, vtkImageData* image, ImageMetaData& metaData)
 {
   // Image properties
   image->GetIncrements(metaData.imageIncrements);
@@ -1157,16 +1084,14 @@ inline bool vtkFreeTypeTools::PrepareImageMetaData(vtkTextProperty *tprop,
   return true;
 }
 
-//----------------------------------------------------------------------------
-inline bool vtkFreeTypeTools::PrepareMetaData(vtkTextProperty *tprop, int dpi,
-                                              MetaData &metaData)
+//------------------------------------------------------------------------------
+inline bool vtkFreeTypeTools::PrepareMetaData(vtkTextProperty* tprop, int dpi, MetaData& metaData)
 {
   // Text properties
   metaData.textProperty = tprop;
   this->MapTextPropertyToId(tprop, &metaData.textPropertyCacheId);
 
-  metaData.scaler.face_id =
-      reinterpret_cast<FTC_FaceID>(metaData.textPropertyCacheId);
+  metaData.scaler.face_id = reinterpret_cast<FTC_FaceID>(metaData.textPropertyCacheId);
   metaData.scaler.width = tprop->GetFontSize() * 64; // 26.6 format point size
   metaData.scaler.height = tprop->GetFontSize() * 64;
   metaData.scaler.pixel = 0;
@@ -1189,11 +1114,10 @@ inline bool vtkFreeTypeTools::PrepareMetaData(vtkTextProperty *tprop, int dpi,
     vtkNew<vtkTextProperty> unrotatedTProp;
     unrotatedTProp->ShallowCopy(tprop);
     unrotatedTProp->SetOrientation(0);
-    this->MapTextPropertyToId(unrotatedTProp.GetPointer(),
-                              &metaData.unrotatedTextPropertyCacheId);
+    this->MapTextPropertyToId(unrotatedTProp, &metaData.unrotatedTextPropertyCacheId);
 
     metaData.unrotatedScaler.face_id =
-        reinterpret_cast<FTC_FaceID>(metaData.unrotatedTextPropertyCacheId);
+      reinterpret_cast<FTC_FaceID>(metaData.unrotatedTextPropertyCacheId);
     metaData.unrotatedScaler.width = tprop->GetFontSize() * 64; // 26.6 format point size
     metaData.unrotatedScaler.height = tprop->GetFontSize() * 64;
     metaData.unrotatedScaler.pixel = 0;
@@ -1207,44 +1131,39 @@ inline bool vtkFreeTypeTools::PrepareMetaData(vtkTextProperty *tprop, int dpi,
   }
 
   // Rotation matrices:
-  metaData.faceIsRotated =
-      (fabs(metaData.textProperty->GetOrientation()) > 1e-5);
+  metaData.faceIsRotated = (fabs(metaData.textProperty->GetOrientation()) > 1e-5);
   if (metaData.faceIsRotated)
   {
-    float angle = vtkMath::RadiansFromDegrees(
-          static_cast<float>(metaData.textProperty->GetOrientation()));
+    float angle =
+      vtkMath::RadiansFromDegrees(static_cast<float>(metaData.textProperty->GetOrientation()));
     // 0 -> orientation (used to adjust kerning, PR#15301)
     float c = cos(angle);
     float s = sin(angle);
-    metaData.rotation.xx = (FT_Fixed)( c * 0x10000L);
+    metaData.rotation.xx = (FT_Fixed)(c * 0x10000L);
     metaData.rotation.xy = (FT_Fixed)(-s * 0x10000L);
-    metaData.rotation.yx = (FT_Fixed)( s * 0x10000L);
-    metaData.rotation.yy = (FT_Fixed)( c * 0x10000L);
+    metaData.rotation.yx = (FT_Fixed)(s * 0x10000L);
+    metaData.rotation.yy = (FT_Fixed)(c * 0x10000L);
 
     // orientation -> 0 (used for width calculations)
     c = cos(-angle);
     s = sin(-angle);
-    metaData.inverseRotation.xx = (FT_Fixed)( c * 0x10000L);
+    metaData.inverseRotation.xx = (FT_Fixed)(c * 0x10000L);
     metaData.inverseRotation.xy = (FT_Fixed)(-s * 0x10000L);
-    metaData.inverseRotation.yx = (FT_Fixed)( s * 0x10000L);
-    metaData.inverseRotation.yy = (FT_Fixed)( c * 0x10000L);
+    metaData.inverseRotation.yx = (FT_Fixed)(s * 0x10000L);
+    metaData.inverseRotation.yy = (FT_Fixed)(c * 0x10000L);
   }
 
   return true;
 }
 
-//----------------------------------------------------------------------------
-template <typename StringType>
-bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
-                                            const StringType &str,
-                                            int dpi,
-                                            vtkImageData *data,
-                                            int textDims[2])
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::RenderStringInternal(
+  vtkTextProperty* tprop, const std::string& str, int dpi, vtkImageData* data, int textDims[2])
 {
   // Check parameters
   if (!tprop || !data)
   {
-    vtkErrorMacro(<< "Wrong parameters, one of them is NULL or zero");
+    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr or zero");
     return false;
   }
 
@@ -1270,14 +1189,14 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
   // Setup the metadata cache
   if (!this->PrepareMetaData(tprop, dpi, metaData))
   {
-    vtkErrorMacro(<<"Error prepare text metadata.");
+    vtkErrorMacro(<< "Error prepare text metadata.");
     return false;
   }
 
   // Calculate the bounding box.
   if (!this->CalculateBoundingBox(str, metaData))
   {
-    vtkErrorMacro(<<"Could not get a valid bounding box.");
+    vtkErrorMacro(<< "Could not get a valid bounding box.");
     return false;
   }
 
@@ -1294,7 +1213,7 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
   // Setup the image metadata
   if (!this->PrepareImageMetaData(tprop, data, metaData))
   {
-    vtkErrorMacro(<<"Error prepare image metadata.");
+    vtkErrorMacro(<< "Error prepare image metadata.");
     return false;
   }
 
@@ -1309,8 +1228,9 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
     metaData.textProperty->GetShadowOffset(shadowOffset.GetData());
     std::vector<MetaData::LineMetrics> origMetrics = metaData.lineMetrics;
     metaData.lineMetrics.clear();
-    for (std::vector<MetaData::LineMetrics>::const_iterator
-         it = origMetrics.begin(), itEnd = origMetrics.end(); it < itEnd; ++it)
+    for (std::vector<MetaData::LineMetrics>::const_iterator it = origMetrics.begin(),
+                                                            itEnd = origMetrics.end();
+         it < itEnd; ++it)
     {
       MetaData::LineMetrics line = *it;
       line.origin = line.origin + shadowOffset;
@@ -1318,8 +1238,7 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
     }
 
     // Set the color
-    unsigned char origColor[3] = {metaData.rgba[0], metaData.rgba[1],
-                                  metaData.rgba[2]};
+    unsigned char origColor[3] = { metaData.rgba[0], metaData.rgba[1], metaData.rgba[2] };
     double shadowColor[3];
     metaData.textProperty->GetShadowColor(shadowColor);
     metaData.rgba[0] = static_cast<unsigned char>(shadowColor[0] * 255);
@@ -1328,7 +1247,7 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
 
     if (!this->PopulateData(str, data, metaData))
     {
-      vtkErrorMacro(<<"Error rendering shadow");
+      vtkErrorMacro(<< "Error rendering shadow");
       return false;
     }
 
@@ -1345,15 +1264,14 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
   // Render image
   if (!this->PopulateData(str, data, metaData))
   {
-    vtkErrorMacro(<<"Error rendering text.");
+    vtkErrorMacro(<< "Error rendering text.");
     return false;
   }
 
   // Draw a red dot at the anchor point:
   if (this->DebugTextures)
   {
-    unsigned char *ptr =
-        static_cast<unsigned char *>(data->GetScalarPointer(0, 0, 0));
+    unsigned char* ptr = static_cast<unsigned char*>(data->GetScalarPointer(0, 0, 0));
     if (ptr)
     {
       ptr[0] = 255;
@@ -1366,32 +1284,29 @@ bool vtkFreeTypeTools::RenderStringInternal(vtkTextProperty *tprop,
   return true;
 }
 
-//----------------------------------------------------------------------------
-template <typename StringType>
-bool vtkFreeTypeTools::StringToPathInternal(vtkTextProperty *tprop,
-                                            const StringType &str,
-                                            int dpi,
-                                            vtkPath *path)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::StringToPathInternal(
+  vtkTextProperty* tprop, const std::string& str, int dpi, vtkPath* path)
 {
   // Setup the metadata
   MetaData metaData;
   if (!this->PrepareMetaData(tprop, dpi, metaData))
   {
-    vtkErrorMacro(<<"Could not prepare metadata.");
+    vtkErrorMacro(<< "Could not prepare metadata.");
     return false;
   }
 
   // Layout the text, calculate bounding box
   if (!this->CalculateBoundingBox(str, metaData))
   {
-    vtkErrorMacro(<<"Could not calculate bounding box.");
+    vtkErrorMacro(<< "Could not calculate bounding box.");
     return false;
   }
 
   // Create the path
   if (!this->PopulateData(str, path, metaData))
   {
-    vtkErrorMacro(<<"Could not populate path.");
+    vtkErrorMacro(<< "Could not populate path.");
     return false;
   }
 
@@ -1403,22 +1318,15 @@ namespace
 const char* DEFAULT_HEIGHT_STRING = "_/7Agfy";
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::CalculateBoundingBox(const vtkUnicodeString& str, MetaData &metaData)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::CalculateBoundingBox(const vtkStdString& str, MetaData& metaData)
 {
-  return CalculateBoundingBox(str, metaData, vtkUnicodeString::from_utf8(DEFAULT_HEIGHT_STRING));
+  return CalculateBoundingBox(str, metaData, DEFAULT_HEIGHT_STRING);
 }
 
-//----------------------------------------------------------------------------
-bool vtkFreeTypeTools::CalculateBoundingBox(const vtkStdString& str, MetaData &metaData)
-{
-  return CalculateBoundingBox(str, metaData, vtkStdString(DEFAULT_HEIGHT_STRING));
-}
-
-//----------------------------------------------------------------------------
-template <typename T>
-bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
-                                            MetaData &metaData, const T& defaultHeightString)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::CalculateBoundingBox(
+  const std::string& str, MetaData& metaData, const std::string& defaultHeightString)
 {
   // Calculate the metrics for each line. These will be used to calculate
   // a bounding box, but first we need to know the maximum line length to
@@ -1427,34 +1335,30 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
   metaData.maxLineWidth = 0;
 
   // Go through the string, line by line, and build the metrics data.
-  typename T::const_iterator beginLine = str.begin();
-  typename T::const_iterator endLine = std::find(beginLine, str.end(), '\n');
+  std::string::const_iterator beginLine = str.begin();
+  std::string::const_iterator endLine = std::find(beginLine, str.end(), '\n');
   while (endLine != str.end())
   {
-    metaData.lineMetrics.push_back(MetaData::LineMetrics());
-    this->GetLineMetrics(beginLine, endLine, metaData,
-                         metaData.lineMetrics.back().width,
-                         &metaData.lineMetrics.back().xmin);
-    metaData.maxLineWidth = std::max(metaData.maxLineWidth,
-                                     metaData.lineMetrics.back().width);
+    metaData.lineMetrics.emplace_back();
+    this->GetLineMetrics(beginLine, endLine, metaData, metaData.lineMetrics.back().width,
+      &metaData.lineMetrics.back().xmin);
+    metaData.maxLineWidth = std::max(metaData.maxLineWidth, metaData.lineMetrics.back().width);
     beginLine = endLine;
     ++beginLine;
     endLine = std::find(beginLine, str.end(), '\n');
   }
   // Last line...
-  metaData.lineMetrics.push_back(MetaData::LineMetrics());
-  this->GetLineMetrics(beginLine, endLine, metaData,
-                       metaData.lineMetrics.back().width,
-                       &metaData.lineMetrics.back().xmin);
-  metaData.maxLineWidth = std::max(metaData.maxLineWidth,
-                                   metaData.lineMetrics.back().width);
+  metaData.lineMetrics.emplace_back();
+  this->GetLineMetrics(beginLine, endLine, metaData, metaData.lineMetrics.back().width,
+    &metaData.lineMetrics.back().xmin);
+  metaData.maxLineWidth = std::max(metaData.maxLineWidth, metaData.lineMetrics.back().width);
 
-  int numLines = metaData.lineMetrics.size();
-  T heightString;
+  size_t numLines = metaData.lineMetrics.size();
+  std::string heightString;
   if (metaData.textProperty->GetUseTightBoundingBox() && numLines == 1)
   {
-    // Calculate line hight from actual characters. This works only for single line text
-    // and may result in a hight that does not include descent. It is used to get
+    // Calculate line height from actual characters. This works only for single line text
+    // and may result in a height that does not include descent. It is used to get
     // a centered label.
     heightString = str;
   }
@@ -1466,20 +1370,17 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
   }
   int ascent = 0;
   int descent = 0;
-  typename T::const_iterator it = heightString.begin();
+  std::string::const_iterator it = heightString.begin();
   while (it != heightString.end())
   {
     FT_BitmapGlyph bitmapGlyph;
     FT_UInt glyphIndex;
     // Use the unrotated face to get correct metrics:
-    FT_Bitmap *bitmap = this->GetBitmap(
-          *it, &metaData.unrotatedScaler, glyphIndex, bitmapGlyph);
+    FT_Bitmap* bitmap = this->GetBitmap(*it, &metaData.unrotatedScaler, glyphIndex, bitmapGlyph);
     if (bitmap)
     {
       ascent = std::max(bitmapGlyph->top, ascent);
-      descent = std::min(-static_cast<int>((bitmap->rows -
-                                            bitmapGlyph->top - 1)),
-                                            descent);
+      descent = std::min(-static_cast<int>((bitmap->rows - bitmapGlyph->top - 1)), descent);
     }
     ++it;
   }
@@ -1488,21 +1389,19 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
 
   // The unrotated height of the text
   int interLineSpacing = (metaData.textProperty->GetLineSpacing() - 1) * metaData.height;
-  int fullHeight = numLines * metaData.height +
-                   (numLines - 1) * interLineSpacing +
-                   metaData.textProperty->GetLineOffset();
+  int fullHeight = numLines * metaData.height + (numLines - 1) * interLineSpacing +
+    metaData.textProperty->GetLineOffset();
 
   // Will we be rendering a background?
-  bool hasBackground = (static_cast<unsigned char>(
-        metaData.textProperty->GetBackgroundOpacity() * 255) > 0);
+  bool hasBackground =
+    (static_cast<unsigned char>(metaData.textProperty->GetBackgroundOpacity() * 255) > 0);
   bool hasFrame = metaData.textProperty->GetFrame() && metaData.textProperty->GetFrameWidth() > 0;
   int padWidth = hasFrame ? 1 + metaData.textProperty->GetFrameWidth() : 2;
 
   int pad = (hasBackground || hasFrame) ? padWidth : 0; // pixels on each side.
 
   // sin, cos of orientation
-  float angle = vtkMath::RadiansFromDegrees(
-        metaData.textProperty->GetOrientation());
+  float angle = vtkMath::RadiansFromDegrees(metaData.textProperty->GetOrientation());
   float c = cos(angle);
   float s = sin(angle);
 
@@ -1594,7 +1493,7 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
   int justification = metaData.textProperty->GetJustification();
   for (size_t i = 0; i < metaData.lineMetrics.size(); ++i)
   {
-    MetaData::LineMetrics &metrics = metaData.lineMetrics[i];
+    MetaData::LineMetrics& metrics = metaData.lineMetrics[i];
 
     // Apply justification
     origin = pen;
@@ -1605,8 +1504,8 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
       {
         xShift /= 2;
       }
-      origin[0] += vtkMath::Round(c * xShift);
-      origin[1] += vtkMath::Round(s * xShift);
+      origin[0] += static_cast<int>(std::round(c * xShift));
+      origin[1] += static_cast<int>(std::round(s * xShift));
     }
 
     // Set line origin
@@ -1647,14 +1546,14 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
 
   // Compute the background/frame bounding box.
   vtkTuple<int, 4> bgBbox;
-  bgBbox[0] = std::min(std::min(metaData.TL[0], metaData.TR[0]),
-                       std::min(metaData.BL[0], metaData.BR[0]));
-  bgBbox[1] = std::max(std::max(metaData.TL[0], metaData.TR[0]),
-                       std::max(metaData.BL[0], metaData.BR[0]));
-  bgBbox[2] = std::min(std::min(metaData.TL[1], metaData.TR[1]),
-                       std::min(metaData.BL[1], metaData.BR[1]));
-  bgBbox[3] = std::max(std::max(metaData.TL[1], metaData.TR[1]),
-                       std::max(metaData.BL[1], metaData.BR[1]));
+  bgBbox[0] =
+    std::min(std::min(metaData.TL[0], metaData.TR[0]), std::min(metaData.BL[0], metaData.BR[0]));
+  bgBbox[1] =
+    std::max(std::max(metaData.TL[0], metaData.TR[0]), std::max(metaData.BL[0], metaData.BR[0]));
+  bgBbox[2] =
+    std::min(std::min(metaData.TL[1], metaData.TR[1]), std::min(metaData.BL[1], metaData.BR[1]));
+  bgBbox[3] =
+    std::max(std::max(metaData.TL[1], metaData.TR[1]), std::max(metaData.BL[1], metaData.BR[1]));
 
   // Calculate the final bounding box (should just be the bg, but just in
   // case...)
@@ -1666,8 +1565,8 @@ bool vtkFreeTypeTools::CalculateBoundingBox(const T& str,
   return true;
 }
 
-//----------------------------------------------------------------------------
-void vtkFreeTypeTools::PrepareImageData(vtkImageData *data, int textBbox[4])
+//------------------------------------------------------------------------------
+void vtkFreeTypeTools::PrepareImageData(vtkImageData* data, int textBbox[4])
 {
   // Calculate the bbox's dimensions
   int textDims[2];
@@ -1702,17 +1601,12 @@ void vtkFreeTypeTools::PrepareImageData(vtkImageData *data, int textBbox[4])
   data->GetSpacing(imageSpacing);
 
   // Do we need to reallocate the image memory?
-  if (data->GetScalarType() != VTK_UNSIGNED_CHAR ||
-      data->GetNumberOfScalarComponents() != 4 ||
-      imageExtent[0] != targetExtent[0] ||
-      imageExtent[1] != targetExtent[1] ||
-      imageExtent[2] != targetExtent[2] ||
-      imageExtent[3] != targetExtent[3] ||
-      imageExtent[4] != targetExtent[4] ||
-      imageExtent[5] != targetExtent[5] ||
-      fabs(imageSpacing[0] - 1.0) > 1e-10 ||
-      fabs(imageSpacing[1] - 1.0) > 1e-10 ||
-      fabs(imageSpacing[2] - 1.0) > 1e-10 )
+  if (data->GetScalarType() != VTK_UNSIGNED_CHAR || data->GetNumberOfScalarComponents() != 4 ||
+    imageExtent[0] != targetExtent[0] || imageExtent[1] != targetExtent[1] ||
+    imageExtent[2] != targetExtent[2] || imageExtent[3] != targetExtent[3] ||
+    imageExtent[4] != targetExtent[4] || imageExtent[5] != targetExtent[5] ||
+    fabs(imageSpacing[0] - 1.0) > 1e-10 || fabs(imageSpacing[1] - 1.0) > 1e-10 ||
+    fabs(imageSpacing[2] - 1.0) > 1e-10)
   {
     data->SetSpacing(1.0, 1.0, 1.0);
     data->SetExtent(targetExtent);
@@ -1721,11 +1615,12 @@ void vtkFreeTypeTools::PrepareImageData(vtkImageData *data, int textBbox[4])
 
   // Clear the image buffer
   memset(data->GetScalarPointer(), this->DebugTextures ? 64 : 0,
-         (data->GetNumberOfPoints() * data->GetNumberOfScalarComponents()));
+    (data->GetNumberOfPoints() * data->GetNumberOfScalarComponents()));
 }
 
 // Helper functions for rasterizing the background/frame quad:
-namespace RasterScanQuad {
+namespace RasterScanQuad
+{
 
 // Return true and set t1 (if 0 <= t1 <= 1) for the intersection of lines:
 //
@@ -1737,9 +1632,7 @@ namespace RasterScanQuad {
 //
 // If the lines do not intersect or t1 is outside of the specified range, return
 // false.
-inline bool getIntersectionParameter(const vtkVector2i &p1,
-                                     const vtkVector2i &v1,
-                                     int y, float &t1)
+inline bool getIntersectionParameter(const vtkVector2i& p1, const vtkVector2i& v1, int y, float& t1)
 {
   // First check if the input vector is parallel to the scan line, returning
   // false if it is:
@@ -1773,20 +1666,17 @@ inline bool getIntersectionParameter(const vtkVector2i &p1,
 
 // Evaluate the line equation P(t) = p + t * v at the supplied t, and return
 // the x value of the resulting point.
-inline int evaluateLineXOnly(const vtkVector2i &p, const vtkVector2i &v,
-                             float t)
+inline int evaluateLineXOnly(const vtkVector2i& p, const vtkVector2i& v, float t)
 {
-  return p.GetX() + vtkMath::Round(v.GetX() * t);
+  return p.GetX() + static_cast<int>(std::round(v.GetX() * t));
 }
 
 // Given the corners of a rectangle (TL, TR, BL, BR), the vectors that
 // separate them (dx = TR - TL = BR - BL, dy = TR - BR = TL - BL), and the
 // y value to scan, return the minimum and maximum x values that the rectangle
 // contains.
-bool findScanRange(const vtkVector2i &TL, const vtkVector2i &TR,
-                   const vtkVector2i &BL, const vtkVector2i &BR,
-                   const vtkVector2i &dx, const vtkVector2i &dy,
-                   int y, int &min, int &max)
+bool findScanRange(const vtkVector2i& TL, const vtkVector2i& TR, const vtkVector2i& BL,
+  const vtkVector2i& BR, const vtkVector2i& dx, const vtkVector2i& dy, int y, int& min, int& max)
 {
   // Initialize the min and max to a known invalid range using the bounds of the
   // rectangle:
@@ -1834,43 +1724,39 @@ bool findScanRange(const vtkVector2i &TL, const vtkVector2i &TR,
 
 // Clamp value to stay between the minimum and maximum extent for the
 // specified dimension.
-inline void clampToExtent(int extent[6], int dim, int &value)
+inline void clampToExtent(int extent[6], int dim, int& value)
 {
-  value = std::min(extent[2*dim+1], std::max(extent[2*dim], value));
+  value = std::min(extent[2 * dim + 1], std::max(extent[2 * dim], value));
 }
 
 } // end namespace RasterScanQuad
 
-//----------------------------------------------------------------------------
-void vtkFreeTypeTools::RenderBackground(vtkTextProperty *tprop,
-                                        vtkImageData *image,
-                                        ImageMetaData &metaData)
+//------------------------------------------------------------------------------
+void vtkFreeTypeTools::RenderBackground(
+  vtkTextProperty* tprop, vtkImageData* image, ImageMetaData& metaData)
 {
   unsigned char* color;
-  unsigned char backgroundColor[4] = {
-    static_cast<unsigned char>(tprop->GetBackgroundColor()[0] * 255),
+  unsigned char backgroundColor[4] = { static_cast<unsigned char>(
+                                         tprop->GetBackgroundColor()[0] * 255),
     static_cast<unsigned char>(tprop->GetBackgroundColor()[1] * 255),
     static_cast<unsigned char>(tprop->GetBackgroundColor()[2] * 255),
-    static_cast<unsigned char>(tprop->GetBackgroundOpacity()  * 255)
-  };
-  unsigned char frameColor[4] = {
-    static_cast<unsigned char>(tprop->GetFrameColor()[0] * 255),
+    static_cast<unsigned char>(tprop->GetBackgroundOpacity() * 255) };
+  unsigned char frameColor[4] = { static_cast<unsigned char>(tprop->GetFrameColor()[0] * 255),
     static_cast<unsigned char>(tprop->GetFrameColor()[1] * 255),
     static_cast<unsigned char>(tprop->GetFrameColor()[2] * 255),
-    static_cast<unsigned char>(tprop->GetFrame() ? 255 : 0)
-  };
+    static_cast<unsigned char>(tprop->GetFrame() ? 255 : 0) };
 
   if (backgroundColor[3] == 0 && frameColor[3] == 0)
   {
     return;
   }
 
-  const vtkVector2i &dx = metaData.dx;
-  const vtkVector2i &dy = metaData.dy;
-  const vtkVector2i &TL = metaData.TL;
-  const vtkVector2i &TR = metaData.TR;
-  const vtkVector2i &BL = metaData.BL;
-  const vtkVector2i &BR = metaData.BR;
+  const vtkVector2i& dx = metaData.dx;
+  const vtkVector2i& dy = metaData.dy;
+  const vtkVector2i& TL = metaData.TL;
+  const vtkVector2i& TR = metaData.TR;
+  const vtkVector2i& BL = metaData.BL;
+  const vtkVector2i& BR = metaData.BR;
 
   // Find the minimum and maximum y values:
   int yMin = std::min(std::min(TL[1], TR[1]), std::min(BL[1], BR[1]));
@@ -1896,14 +1782,14 @@ void vtkFreeTypeTools::RenderBackground(vtkTextProperty *tprop,
       RasterScanQuad::clampToExtent(extent, 0, xMax);
 
       // Get a pointer into the image data:
-      unsigned char *dataPtr = static_cast<unsigned char*>(
-            image->GetScalarPointer(xMin, y, 0));
+      unsigned char* dataPtr = static_cast<unsigned char*>(image->GetScalarPointer(xMin, y, 0));
       for (int x = xMin; x <= xMax; ++x)
       {
-        color =
-          (frameColor[3] != 0 && (y < (yMin + frameWidth) || y > (yMax - frameWidth)
-            || x < (xMin + frameWidth) || x > (xMax - frameWidth))) ?
-          frameColor : backgroundColor;
+        color = (frameColor[3] != 0 &&
+                  (y < (yMin + frameWidth) || y > (yMax - frameWidth) || x < (xMin + frameWidth) ||
+                    x > (xMax - frameWidth)))
+          ? frameColor
+          : backgroundColor;
         *(dataPtr++) = color[0];
         *(dataPtr++) = color[1];
         *(dataPtr++) = color[2];
@@ -1913,15 +1799,13 @@ void vtkFreeTypeTools::RenderBackground(vtkTextProperty *tprop,
   }
 }
 
-//----------------------------------------------------------------------------
-template <typename StringType, typename DataType>
-bool vtkFreeTypeTools::PopulateData(const StringType &str, DataType data,
-                                    MetaData &metaData)
+//------------------------------------------------------------------------------
+template <typename DataType>
+bool vtkFreeTypeTools::PopulateData(const std::string& str, DataType data, MetaData& metaData)
 {
   // Go through the string, line by line
-  typename StringType::const_iterator beginLine = str.begin();
-  typename StringType::const_iterator endLine =
-      std::find(beginLine, str.end(), '\n');
+  std::string::const_iterator beginLine = str.begin();
+  std::string::const_iterator endLine = std::find(beginLine, str.end(), '\n');
 
   int lineIndex = 0;
   while (endLine != str.end())
@@ -1941,44 +1825,40 @@ bool vtkFreeTypeTools::PopulateData(const StringType &str, DataType data,
   return this->RenderLine(beginLine, endLine, lineIndex, data, metaData);
 }
 
-//----------------------------------------------------------------------------
-template <typename IteratorType, typename DataType>
-bool vtkFreeTypeTools::RenderLine(IteratorType begin, IteratorType end,
-                                  int lineIndex, DataType data,
-                                  MetaData &metaData)
+//------------------------------------------------------------------------------
+template <typename DataType>
+bool vtkFreeTypeTools::RenderLine(std::string::const_iterator begin,
+  std::string::const_iterator end, int lineIndex, DataType data, MetaData& metaData)
 {
   int x = metaData.lineMetrics[lineIndex].origin.GetX();
   int y = metaData.lineMetrics[lineIndex].origin.GetY();
 
   // Render char by char
   FT_UInt previousGlyphIndex = 0; // for kerning
-  for (; begin != end; ++begin)
+  while (begin != end)
   {
-    this->RenderCharacter(*begin, x, y, previousGlyphIndex, data, metaData);
+    vtkTypeUInt32 codepoint = utf8::next(begin, end);
+    this->RenderCharacter(codepoint, x, y, previousGlyphIndex, data, metaData);
   }
 
   return true;
 }
 
-//----------------------------------------------------------------------------
-template <typename CharType>
-bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
-                                       FT_UInt &previousGlyphIndex,
-                                       vtkImageData *image,
-                                       MetaData &metaData)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::RenderCharacter(FT_UInt32 codepoint, int& x, int& y,
+  FT_UInt& previousGlyphIndex, vtkImageData* image, MetaData& metaData)
 {
-  ImageMetaData *iMetaData = reinterpret_cast<ImageMetaData*>(&metaData);
-  FT_BitmapGlyph bitmapGlyph = NULL;
+  ImageMetaData* iMetaData = reinterpret_cast<ImageMetaData*>(&metaData);
+  FT_BitmapGlyph bitmapGlyph = nullptr;
   FT_UInt glyphIndex;
-  FT_Bitmap *bitmap = this->GetBitmap(character, &iMetaData->scaler,
-                                      glyphIndex, bitmapGlyph);
+  FT_Bitmap* bitmap = this->GetBitmap(codepoint, &iMetaData->scaler, glyphIndex, bitmapGlyph);
 
   // Add the kerning
   if (iMetaData->faceHasKerning && previousGlyphIndex && glyphIndex)
   {
     FT_Vector kerningDelta;
-    if (FT_Get_Kerning(iMetaData->face, previousGlyphIndex, glyphIndex,
-                       FT_KERNING_DEFAULT, &kerningDelta) == 0)
+    if (FT_Get_Kerning(
+          iMetaData->face, previousGlyphIndex, glyphIndex, FT_KERNING_DEFAULT, &kerningDelta) == 0)
     {
       if (metaData.faceIsRotated) // PR#15301
       {
@@ -2002,15 +1882,14 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
     vtkVector2i pen(x + bitmapGlyph->left, y + bitmapGlyph->top);
 
     // Render the current glyph into the image
-    unsigned char *ptr = static_cast<unsigned char *>(
-          image->GetScalarPointer(pen[0], pen[1], 0));
+    unsigned char* ptr = static_cast<unsigned char*>(image->GetScalarPointer(pen[0], pen[1], 0));
     if (ptr)
     {
-      int dataPitch = (-iMetaData->imageDimensions[0] - bitmap->width) *
-          iMetaData->imageIncrements[0];
-      unsigned char *glyphPtrRow = bitmap->buffer;
-      unsigned char *glyphPtr;
-      const unsigned char *fgRGB = iMetaData->rgba;
+      int dataPitch =
+        (-iMetaData->imageDimensions[0] - bitmap->width) * iMetaData->imageIncrements[0];
+      unsigned char* glyphPtrRow = bitmap->buffer;
+      unsigned char* glyphPtr;
+      const unsigned char* fgRGB = iMetaData->rgba;
       const float fgA = static_cast<float>(metaData.textProperty->GetOpacity());
 
       for (int j = 0; j < static_cast<int>(bitmap->rows); ++j)
@@ -2075,34 +1954,20 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
   return true;
 }
 
-//----------------------------------------------------------------------------
-template <typename CharType>
-bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
-                                       FT_UInt &previousGlyphIndex,
-                                       vtkPath *path, MetaData &metaData)
+//------------------------------------------------------------------------------
+bool vtkFreeTypeTools::RenderCharacter(FT_UInt32 codepoint, int& x, int& y,
+  FT_UInt& previousGlyphIndex, vtkPath* path, MetaData& metaData)
 {
-  // The FT_CURVE defines don't really work in a switch...only the first two
-  // bits are meaningful, and the rest appear to be garbage. We'll convert them
-  // into values in the enum below:
-  enum controlType
-  {
-    FIRST_POINT,
-    ON_POINT,
-    CUBIC_POINT,
-    CONIC_POINT
-  };
-
-  FT_UInt glyphIndex;
-  FT_OutlineGlyph outlineGlyph = NULL;
-  FT_Outline *outline = this->GetOutline(character, &metaData.scaler,
-                                         glyphIndex, outlineGlyph);
+  FT_UInt glyphIndex = 0;
+  FT_OutlineGlyph outlineGlyph = nullptr;
+  FT_Outline* outline = this->GetOutline(codepoint, &metaData.scaler, glyphIndex, outlineGlyph);
 
   // Add the kerning
   if (metaData.faceHasKerning && previousGlyphIndex && glyphIndex)
   {
     FT_Vector kerningDelta;
-    FT_Get_Kerning(metaData.face, previousGlyphIndex, glyphIndex,
-                   FT_KERNING_DEFAULT, &kerningDelta);
+    FT_Get_Kerning(
+      metaData.face, previousGlyphIndex, glyphIndex, FT_KERNING_DEFAULT, &kerningDelta);
     if (metaData.faceIsRotated) // PR#15301
     {
       FT_Vector_Transform(&kerningDelta, &metaData.rotation);
@@ -2118,11 +1983,31 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
     return false;
   }
 
+  this->OutlineToPath(x, y, outline, path);
+
+  // Advance to next char
+  x += (outlineGlyph->root.advance.x + 0x8000) >> 16;
+  y += (outlineGlyph->root.advance.y + 0x8000) >> 16;
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+void vtkFreeTypeTools::OutlineToPath(int x, int y, FT_Outline* outline, vtkPath* path)
+{
+  // The FT_CURVE defines don't really work in a switch...only the first two
+  // bits are meaningful, and the rest appear to be garbage. We'll convert them
+  // into values in the enum below:
+  enum controlType
+  {
+    FIRST_POINT,
+    ON_POINT,
+    CUBIC_POINT,
+    CONIC_POINT
+  };
+
   if (outline->n_points > 0)
   {
-    int pen_x = x;
-    int pen_y = y;
-
     short point = 0;
     for (short contour = 0; contour < outline->n_contours; ++contour)
     {
@@ -2154,14 +2039,13 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
             break;
           default:
             vtkWarningMacro("Invalid control code returned from FreeType: "
-                            << static_cast<int>(fttag) << " (masked: "
-                            << static_cast<int>(fttag & 0x3));
-            return false;
+              << static_cast<int>(fttag) << " (masked: " << static_cast<int>(fttag & 0x3));
+            return;
         }
 
         double vec[2];
-        vec[0] = ftvec.x / 64.0 + pen_x;
-        vec[1] = ftvec.y / 64.0 + pen_y;
+        vec[0] = ftvec.x / 64.0 + x;
+        vec[1] = ftvec.y / 64.0 + y;
 
         // Handle the first point here, unless it is a CONIC point, in which
         // case the switches below handle it.
@@ -2179,18 +2063,16 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
         switch (tag)
         {
           case ON_POINT:
-            switch(lastTag)
+            switch (lastTag)
             {
               case ON_POINT:
                 path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::LINE_TO);
                 break;
               case CONIC_POINT:
-                path->InsertNextPoint(vec[0], vec[1], 0.0,
-                    vtkPath::CONIC_CURVE);
+                path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CONIC_CURVE);
                 break;
               case CUBIC_POINT:
-                path->InsertNextPoint(vec[0], vec[1], 0.0,
-                    vtkPath::CUBIC_CURVE);
+                path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CUBIC_CURVE);
                 break;
               case FIRST_POINT:
               default:
@@ -2198,62 +2080,56 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
             }
             break;
           case CONIC_POINT:
-            switch(lastTag)
+            switch (lastTag)
             {
               case ON_POINT:
-                path->InsertNextPoint(vec[0], vec[1], 0.0,
-                    vtkPath::CONIC_CURVE);
+                path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CONIC_CURVE);
                 break;
-              case CONIC_POINT: {
+              case CONIC_POINT:
+              {
                 // Two conic points indicate a virtual "ON" point between
                 // them. Insert both points.
-                double virtualOn[2] = {(vec[0] + lastVec[0]) * 0.5,
-                                       (vec[1] + lastVec[1]) * 0.5};
-                path->InsertNextPoint(virtualOn[0], virtualOn[1], 0.0,
-                    vtkPath::CONIC_CURVE);
-                path->InsertNextPoint(vec[0], vec[1], 0.0,
-                    vtkPath::CONIC_CURVE);
+                double virtualOn[2] = { (vec[0] + lastVec[0]) * 0.5, (vec[1] + lastVec[1]) * 0.5 };
+                path->InsertNextPoint(virtualOn[0], virtualOn[1], 0.0, vtkPath::CONIC_CURVE);
+                path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CONIC_CURVE);
               }
-                break;
-              case FIRST_POINT: {
+              break;
+              case FIRST_POINT:
+              {
                 // The first point in the contour can be a conic control
                 // point. Use the last point of the contour as the starting
                 // point. If the last point is a conic point as well, start
                 // on a virtual point between the two:
                 FT_Vector lastContourFTVec = outline->points[contourEnd];
-                double lastContourVec[2] = {lastContourFTVec.x / 64.0 + x,
-                                            lastContourFTVec.y / 64.0 + y};
+                double lastContourVec[2] = { lastContourFTVec.x / 64.0 + x,
+                  lastContourFTVec.y / 64.0 + y };
                 char lastContourFTTag = outline->tags[contourEnd];
                 if (lastContourFTTag & FT_CURVE_TAG_CONIC)
                 {
-                  double virtualOn[2] = {(vec[0] + lastContourVec[0]) * 0.5,
-                                         (vec[1] + lastContourVec[1]) * 0.5};
-                  path->InsertNextPoint(virtualOn[0], virtualOn[1],
-                      0.0, vtkPath::MOVE_TO);
-                  path->InsertNextPoint(vec[0], vec[1], 0.0,
-                      vtkPath::CONIC_CURVE);
+                  double virtualOn[2] = { (vec[0] + lastContourVec[0]) * 0.5,
+                    (vec[1] + lastContourVec[1]) * 0.5 };
+                  path->InsertNextPoint(virtualOn[0], virtualOn[1], 0.0, vtkPath::MOVE_TO);
+                  path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CONIC_CURVE);
                 }
                 else
                 {
-                  path->InsertNextPoint(lastContourVec[0], lastContourVec[1],
-                      0.0, vtkPath::MOVE_TO);
-                  path->InsertNextPoint(vec[0], vec[1], 0.0,
-                      vtkPath::CONIC_CURVE);
+                  path->InsertNextPoint(
+                    lastContourVec[0], lastContourVec[1], 0.0, vtkPath::MOVE_TO);
+                  path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CONIC_CURVE);
                 }
               }
-                break;
+              break;
               case CUBIC_POINT:
               default:
                 break;
             }
             break;
           case CUBIC_POINT:
-            switch(lastTag)
+            switch (lastTag)
             {
               case ON_POINT:
               case CUBIC_POINT:
-                path->InsertNextPoint(vec[0], vec[1], 0.0,
-                    vtkPath::CUBIC_CURVE);
+                path->InsertNextPoint(vec[0], vec[1], 0.0, vtkPath::CUBIC_CURVE);
                 break;
               case CONIC_POINT:
               case FIRST_POINT:
@@ -2276,38 +2152,28 @@ bool vtkFreeTypeTools::RenderCharacter(CharType character, int &x, int &y,
       switch (lastTag)
       {
         case ON_POINT:
-          path->InsertNextPoint(contourStartVec[0], contourStartVec[1], 0.0,
-              vtkPath::LINE_TO);
+          path->InsertNextPoint(contourStartVec[0], contourStartVec[1], 0.0, vtkPath::LINE_TO);
           break;
         case CUBIC_POINT:
-          path->InsertNextPoint(contourStartVec[0], contourStartVec[1], 0.0,
-              vtkPath::CUBIC_CURVE);
+          path->InsertNextPoint(contourStartVec[0], contourStartVec[1], 0.0, vtkPath::CUBIC_CURVE);
           break;
         case CONIC_POINT:
-          path->InsertNextPoint(contourStartVec[0], contourStartVec[1], 0.0,
-              vtkPath::CONIC_CURVE);
+          path->InsertNextPoint(contourStartVec[0], contourStartVec[1], 0.0, vtkPath::CONIC_CURVE);
           break;
         case FIRST_POINT:
         default:
           break;
       } // end switch (lastTag)
-    } // end contour points iteration
-  } // end contour iteration
-
-  // Advance to next char
-  x += (outlineGlyph->root.advance.x + 0x8000) >> 16;
-  y += (outlineGlyph->root.advance.y + 0x8000) >> 16;
-  return true;
+    }   // end contour points iteration
+  }     // end contour iteration
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Similar to implementations in vtkFreeTypeUtilities and vtkTextMapper.
-template <typename T>
-int vtkFreeTypeTools::FitStringToBBox(const T &str, MetaData &metaData,
-                                      int targetWidth, int targetHeight)
+int vtkFreeTypeTools::FitStringToBBox(
+  const std::string& str, MetaData& metaData, int targetWidth, int targetHeight)
 {
-  if (str.empty() || targetWidth == 0 || targetHeight == 0 ||
-      metaData.textProperty == 0)
+  if (str.empty() || targetWidth == 0 || targetHeight == 0 || metaData.textProperty == nullptr)
   {
     return 0;
   }
@@ -2326,14 +2192,13 @@ int vtkFreeTypeTools::FitStringToBBox(const T &str, MetaData &metaData,
   // with the font size:
   if (size[0] != 0 && size[1] != 0)
   {
-    fontSize *= std::min(
-          static_cast<double>(targetWidth)  / static_cast<double>(size[0]),
-        static_cast<double>(targetHeight) / static_cast<double>(size[1]));
+    fontSize *= std::min(static_cast<double>(targetWidth) / static_cast<double>(size[0]),
+      static_cast<double>(targetHeight) / static_cast<double>(size[1]));
     metaData.textProperty->SetFontSize(static_cast<int>(fontSize));
-    metaData.scaler.height = fontSize * 64; // 26.6 format points
-    metaData.scaler.width = fontSize * 64; // 26.6 format points
+    metaData.scaler.height = fontSize * 64;          // 26.6 format points
+    metaData.scaler.width = fontSize * 64;           // 26.6 format points
     metaData.unrotatedScaler.height = fontSize * 64; // 26.6 format points
-    metaData.unrotatedScaler.width = fontSize * 64; // 26.6 format points
+    metaData.unrotatedScaler.width = fontSize * 64;  // 26.6 format points
     if (!this->CalculateBoundingBox(str, metaData))
     {
       return -1;
@@ -2347,10 +2212,10 @@ int vtkFreeTypeTools::FitStringToBBox(const T &str, MetaData &metaData,
   {
     fontSize += 1.;
     metaData.textProperty->SetFontSize(fontSize);
-    metaData.scaler.height = fontSize * 64; // 26.6 format points
-    metaData.scaler.width = fontSize * 64; // 26.6 format points
+    metaData.scaler.height = fontSize * 64;          // 26.6 format points
+    metaData.scaler.width = fontSize * 64;           // 26.6 format points
     metaData.unrotatedScaler.height = fontSize * 64; // 26.6 format points
-    metaData.unrotatedScaler.width = fontSize * 64; // 26.6 format points
+    metaData.unrotatedScaler.width = fontSize * 64;  // 26.6 format points
     if (!this->CalculateBoundingBox(str, metaData))
     {
       return -1;
@@ -2363,10 +2228,10 @@ int vtkFreeTypeTools::FitStringToBBox(const T &str, MetaData &metaData,
   {
     fontSize -= 1.;
     metaData.textProperty->SetFontSize(fontSize);
-    metaData.scaler.height = fontSize * 64; // 26.6 format points
-    metaData.scaler.width = fontSize * 64; // 26.6 format points
+    metaData.scaler.height = fontSize * 64;          // 26.6 format points
+    metaData.scaler.width = fontSize * 64;           // 26.6 format points
     metaData.unrotatedScaler.height = fontSize * 64; // 26.6 format points
-    metaData.unrotatedScaler.width = fontSize * 64; // 26.6 format points
+    metaData.unrotatedScaler.width = fontSize * 64;  // 26.6 format points
     if (!this->CalculateBoundingBox(str, metaData))
     {
       return -1;
@@ -2378,10 +2243,9 @@ int vtkFreeTypeTools::FitStringToBBox(const T &str, MetaData &metaData,
   return fontSize;
 }
 
-//----------------------------------------------------------------------------
-inline bool vtkFreeTypeTools::GetFace(vtkTextProperty *prop,
-                                      size_t &prop_cache_id,
-                                      FT_Face &face, bool &face_has_kerning)
+//------------------------------------------------------------------------------
+inline bool vtkFreeTypeTools::GetFace(
+  vtkTextProperty* prop, size_t& prop_cache_id, FT_Face& face, bool& face_has_kerning)
 {
   this->MapTextPropertyToId(prop, &prop_cache_id);
   if (!this->GetFace(prop_cache_id, &face))
@@ -2393,155 +2257,135 @@ inline bool vtkFreeTypeTools::GetFace(vtkTextProperty *prop,
   return true;
 }
 
-//----------------------------------------------------------------------------
-inline FT_Bitmap* vtkFreeTypeTools::GetBitmap(FT_UInt32 c,
-                                              size_t prop_cache_id,
-                                              int prop_font_size,
-                                              FT_UInt &gindex,
-                                              FT_BitmapGlyph &bitmap_glyph)
+//------------------------------------------------------------------------------
+inline FT_Bitmap* vtkFreeTypeTools::GetBitmap(FT_UInt32 c, size_t prop_cache_id, int prop_font_size,
+  FT_UInt& gindex, FT_BitmapGlyph& bitmap_glyph)
 {
   // Get the glyph index
   if (!this->GetGlyphIndex(prop_cache_id, c, &gindex))
   {
-    return 0;
+    return nullptr;
   }
   FT_Glyph glyph;
   // Get the glyph as a bitmap
-  if (!this->GetGlyph(prop_cache_id,
-                      prop_font_size,
-                      gindex,
-                      &glyph,
-                      vtkFreeTypeTools::GLYPH_REQUEST_BITMAP) ||
-                        glyph->format != ft_glyph_format_bitmap)
+  if (!this->GetGlyph(
+        prop_cache_id, prop_font_size, gindex, &glyph, vtkFreeTypeTools::GLYPH_REQUEST_BITMAP) ||
+    glyph->format != ft_glyph_format_bitmap)
   {
-    return 0;
+    return nullptr;
   }
 
   bitmap_glyph = reinterpret_cast<FT_BitmapGlyph>(glyph);
-  FT_Bitmap *bitmap = &bitmap_glyph->bitmap;
+  FT_Bitmap* bitmap = &bitmap_glyph->bitmap;
 
   if (bitmap->pixel_mode != ft_pixel_mode_grays)
   {
-    return 0;
+    return nullptr;
   }
 
   return bitmap;
 }
 
-//----------------------------------------------------------------------------
-FT_Bitmap *vtkFreeTypeTools::GetBitmap(FT_UInt32 c, FTC_Scaler scaler,
-                                       FT_UInt &gindex,
-                                       FT_BitmapGlyph &bitmap_glyph)
+//------------------------------------------------------------------------------
+FT_Bitmap* vtkFreeTypeTools::GetBitmap(
+  FT_UInt32 c, FTC_Scaler scaler, FT_UInt& gindex, FT_BitmapGlyph& bitmap_glyph)
 {
   // Get the glyph index
-  if (!this->GetGlyphIndex(reinterpret_cast<size_t>(scaler->face_id), c,
-                           &gindex))
+  if (!this->GetGlyphIndex(reinterpret_cast<size_t>(scaler->face_id), c, &gindex))
   {
-    return 0;
+    return nullptr;
   }
 
   // Get the glyph as a bitmap
   FT_Glyph glyph;
-  if (!this->GetGlyph(scaler, gindex, &glyph,
-                      vtkFreeTypeTools::GLYPH_REQUEST_BITMAP)
-      || glyph->format != ft_glyph_format_bitmap)
+  if (!this->GetGlyph(scaler, gindex, &glyph, vtkFreeTypeTools::GLYPH_REQUEST_BITMAP) ||
+    glyph->format != ft_glyph_format_bitmap)
   {
-    return 0;
+    return nullptr;
   }
 
   bitmap_glyph = reinterpret_cast<FT_BitmapGlyph>(glyph);
-  FT_Bitmap *bitmap = &bitmap_glyph->bitmap;
+  FT_Bitmap* bitmap = &bitmap_glyph->bitmap;
 
   if (bitmap->pixel_mode != ft_pixel_mode_grays)
   {
-    return 0;
+    return nullptr;
   }
 
   return bitmap;
 }
 
-//----------------------------------------------------------------------------
-inline FT_Outline *vtkFreeTypeTools::GetOutline(FT_UInt32 c,
-                                                size_t prop_cache_id,
-                                                int prop_font_size,
-                                                FT_UInt &gindex,
-                                                FT_OutlineGlyph &outline_glyph)
+//------------------------------------------------------------------------------
+inline FT_Outline* vtkFreeTypeTools::GetOutline(FT_UInt32 c, size_t prop_cache_id,
+  int prop_font_size, FT_UInt& gindex, FT_OutlineGlyph& outline_glyph)
 {
   // Get the glyph index
   if (!this->GetGlyphIndex(prop_cache_id, c, &gindex))
   {
-    return 0;
+    return nullptr;
   }
   FT_Glyph glyph;
   // Get the glyph as a outline
-  if (!this->GetGlyph(prop_cache_id,
-                      prop_font_size,
-                      gindex,
-                      &glyph,
-                      vtkFreeTypeTools::GLYPH_REQUEST_OUTLINE) ||
-                        glyph->format != ft_glyph_format_outline)
+  if (!this->GetGlyph(
+        prop_cache_id, prop_font_size, gindex, &glyph, vtkFreeTypeTools::GLYPH_REQUEST_OUTLINE) ||
+    glyph->format != ft_glyph_format_outline)
   {
-    return 0;
+    return nullptr;
   }
 
   outline_glyph = reinterpret_cast<FT_OutlineGlyph>(glyph);
-  FT_Outline *outline= &outline_glyph->outline;
+  FT_Outline* outline = &outline_glyph->outline;
 
   return outline;
 }
 
-//----------------------------------------------------------------------------
-FT_Outline *vtkFreeTypeTools::GetOutline(FT_UInt32 c, FTC_Scaler scaler,
-                                         FT_UInt &gindex,
-                                         FT_OutlineGlyph &outline_glyph)
+//------------------------------------------------------------------------------
+FT_Outline* vtkFreeTypeTools::GetOutline(
+  FT_UInt32 c, FTC_Scaler scaler, FT_UInt& gindex, FT_OutlineGlyph& outline_glyph)
 {
   // Get the glyph index
-  if (!this->GetGlyphIndex(reinterpret_cast<size_t>(scaler->face_id), c,
-                           &gindex))
+  if (!this->GetGlyphIndex(reinterpret_cast<size_t>(scaler->face_id), c, &gindex))
   {
-    return 0;
+    return nullptr;
   }
 
   // Get the glyph as a outline
   FT_Glyph glyph;
-  if (!this->GetGlyph(scaler, gindex, &glyph,
-                      vtkFreeTypeTools::GLYPH_REQUEST_OUTLINE)
-      || glyph->format != ft_glyph_format_outline)
+  if (!this->GetGlyph(scaler, gindex, &glyph, vtkFreeTypeTools::GLYPH_REQUEST_OUTLINE) ||
+    glyph->format != ft_glyph_format_outline)
   {
-    return 0;
+    return nullptr;
   }
 
   outline_glyph = reinterpret_cast<FT_OutlineGlyph>(glyph);
-  FT_Outline *outline= &outline_glyph->outline;
+  FT_Outline* outline = &outline_glyph->outline;
 
   return outline;
 }
 
-//----------------------------------------------------------------------------
-template<typename T>
-void vtkFreeTypeTools::GetLineMetrics(T begin, T end, MetaData &metaData,
-                                      int &width, int bbox[4])
+//------------------------------------------------------------------------------
+void vtkFreeTypeTools::GetLineMetrics(std::string::const_iterator begin,
+  std::string::const_iterator end, MetaData& metaData, int& width, int bbox[4])
 {
-  FT_BitmapGlyph bitmapGlyph = NULL;
+  FT_BitmapGlyph bitmapGlyph = nullptr;
   FT_UInt gindex = 0;
   FT_UInt gindexLast = 0;
   FT_Vector delta;
   width = 0;
-  int pen[2] = {0, 0};
+  int pen[2] = { 0, 0 };
   bbox[0] = bbox[1] = pen[0];
   bbox[2] = bbox[3] = pen[1];
 
-  for (; begin != end; ++begin)
+  while (begin != end)
   {
     // Get the bitmap and glyph index:
-    FT_Bitmap *bitmap = this->GetBitmap(*begin, &metaData.scaler, gindex,
-                                        bitmapGlyph);
+    vtkTypeUInt32 codepoint = utf8::next(begin, end);
+    FT_Bitmap* bitmap = this->GetBitmap(codepoint, &metaData.scaler, gindex, bitmapGlyph);
 
     // Adjust the pen location for kerning
     if (metaData.faceHasKerning && gindexLast && gindex)
     {
-      if (FT_Get_Kerning(metaData.face, gindexLast, gindex, FT_KERNING_DEFAULT,
-                         &delta) == 0)
+      if (FT_Get_Kerning(metaData.face, gindexLast, gindex, FT_KERNING_DEFAULT, &delta) == 0)
       {
         // Kerning is not rotated with the face, no need to rotate/adjust for
         // width:
@@ -2569,7 +2413,7 @@ void vtkFreeTypeTools::GetLineMetrics(T begin, T end, MetaData &metaData,
     {
       // FIXME: do something more elegant here.
       // We should render an empty rectangle to adhere to the specs...
-      vtkDebugMacro(<<"Unrecognized character: " << *begin);
+      vtkDebugMacro(<< "Unrecognized character: " << *begin);
       continue;
     }
 

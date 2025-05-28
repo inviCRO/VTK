@@ -1,24 +1,13 @@
-set(Module_SRCS
-  vtkSILBuilder.cxx
-  vtkXdmfDataArray.cxx
-  vtkXdmfHeavyData.cxx
-  vtkXdmfReader.cxx
-  vtkXdmfReaderInternal.cxx
-  vtkXdmfWriter.cxx
-  )
-
-set_source_files_properties(
+set(classes
+  vtkSILBuilder
   vtkXdmfDataArray
-  vtkXdmfHeavyData
-  vtkXdmfReaderInternal
-  WRAP_EXCLUDE
-  )
+  vtkXdmfReader
+  vtkXdmfWriter)
 
-set_source_files_properties(
+set(nowrap_classes
   vtkXdmfHeavyData
-  vtkXdmfReaderInternal
-    PROPERTIES WRAP_EXCLUDE_PYTHON 1
-  )
+  vtkXdmfReaderInternal)
 
-#set(${vtk-module}_NO_HeaderTest 1) # TODO: helper classes and reenable
-vtk_module_library(vtkIOXdmf2 ${Module_SRCS})
+vtk_module_add_module(VTK::IOXdmf2
+  CLASSES ${classes}
+  NOWRAP_CLASSES ${nowrap_classes})

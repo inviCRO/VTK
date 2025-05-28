@@ -18,53 +18,47 @@
 #include "vtkInformationKey.h"
 #include "vtkObjectFactory.h"
 
-vtkStandardNewMacro(vtkInformationKeyLookup)
+vtkStandardNewMacro(vtkInformationKeyLookup);
 
 //------------------------------------------------------------------------------
-void vtkInformationKeyLookup::PrintSelf(std::ostream &os, vtkIndent indent)
+void vtkInformationKeyLookup::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "Registered Keys:\n";
   indent = indent.GetNextIndent();
-  KeyMap &keys = Keys();
+  KeyMap& keys = Keys();
   for (KeyMap::iterator i = keys.begin(), iEnd = keys.end(); i != iEnd; ++i)
   {
-    os << indent << i->first.first << "::" << i->first.second
-       << " @" << i->second << " (" << i->second->GetClassName() << ")\n";
+    os << indent << i->first.first << "::" << i->first.second << " @" << i->second << " ("
+       << i->second->GetClassName() << ")\n";
   }
 }
 
 //------------------------------------------------------------------------------
-vtkInformationKey *vtkInformationKeyLookup::Find(const std::string &name,
-                                                 const std::string &location)
+vtkInformationKey* vtkInformationKeyLookup::Find(
+  const std::string& name, const std::string& location)
 {
-  KeyMap &keys = Keys();
+  KeyMap& keys = Keys();
   KeyMap::iterator it = keys.find(std::make_pair(location, name));
-  return it != keys.end() ? it->second : NULL;
+  return it != keys.end() ? it->second : nullptr;
 }
 
 //------------------------------------------------------------------------------
-vtkInformationKeyLookup::vtkInformationKeyLookup()
+vtkInformationKeyLookup::vtkInformationKeyLookup() = default;
+
+//------------------------------------------------------------------------------
+// Keys are owned / cleaned up by the vtk*InformationKeyManagers.
+vtkInformationKeyLookup::~vtkInformationKeyLookup() = default;
+
+//------------------------------------------------------------------------------
+void vtkInformationKeyLookup::RegisterKey(
+  vtkInformationKey* key, const std::string& name, const std::string& location)
 {
+  vtkInformationKeyLookup::Keys().insert(std::make_pair(std::make_pair(location, name), key));
 }
 
 //------------------------------------------------------------------------------
-vtkInformationKeyLookup::~vtkInformationKeyLookup()
-{
-  // Keys are owned / cleaned up by the vtk*InformationKeyManagers.
-}
-
-//------------------------------------------------------------------------------
-void vtkInformationKeyLookup::RegisterKey(vtkInformationKey *key,
-                                          const std::string &name,
-                                          const std::string &location)
-{
-  vtkInformationKeyLookup::Keys().insert(
-        std::make_pair(std::make_pair(location, name), key));
-}
-
-//------------------------------------------------------------------------------
-vtkInformationKeyLookup::KeyMap &vtkInformationKeyLookup::Keys()
+vtkInformationKeyLookup::KeyMap& vtkInformationKeyLookup::Keys()
 {
   // Ensure that the map is initialized before using from other static
   // initializations:

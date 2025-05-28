@@ -21,21 +21,18 @@ VTK_AOS_DATA_ARRAY_TEMPLATE_INSTANTIATE(short);
 
 #include "vtkObjectFactory.h"
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkShortArray);
+vtkStandardExtendedNewMacro(vtkShortArray);
 
-//----------------------------------------------------------------------------
-vtkShortArray::vtkShortArray()
-{
-}
+//------------------------------------------------------------------------------
+vtkShortArray::vtkShortArray() = default;
 
-//----------------------------------------------------------------------------
-vtkShortArray::~vtkShortArray()
-{
-}
+//------------------------------------------------------------------------------
+vtkShortArray::~vtkShortArray() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkShortArray::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->RealSuperclass::PrintSelf(os,indent);
+  this->RealSuperclass::PrintSelf(os, indent);
 }

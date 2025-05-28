@@ -13,58 +13,58 @@
 
 =========================================================================*/
 #include "vtkAssemblyNode.h"
-#include "vtkProp.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
+#include "vtkProp.h"
 
 vtkStandardNewMacro(vtkAssemblyNode);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAssemblyNode::vtkAssemblyNode()
 {
-  this->ViewProp = 0;
-  this->Matrix = 0;
+  this->ViewProp = nullptr;
+  this->Matrix = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAssemblyNode::~vtkAssemblyNode()
 {
   if (this->Matrix)
   {
     this->Matrix->Delete();
-    this->Matrix = 0;
+    this->Matrix = nullptr;
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Don't do reference counting
-void vtkAssemblyNode::SetViewProp(vtkProp *prop)
+void vtkAssemblyNode::SetViewProp(vtkProp* prop)
 {
   this->ViewProp = prop;
 }
 
-//----------------------------------------------------------------------------
-void vtkAssemblyNode::SetMatrix(vtkMatrix4x4 *matrix)
+//------------------------------------------------------------------------------
+void vtkAssemblyNode::SetMatrix(vtkMatrix4x4* matrix)
 {
   // delete previous
   if (this->Matrix)
   {
     this->Matrix->Delete();
-    this->Matrix = 0;
+    this->Matrix = nullptr;
   }
-  // return if NULL matrix specified
+  // return if nullptr matrix specified
   if (!matrix)
   {
     return;
   }
 
   // else create a copy of the matrix
-  vtkMatrix4x4 *newMatrix = vtkMatrix4x4::New();
+  vtkMatrix4x4* newMatrix = vtkMatrix4x4::New();
   newMatrix->DeepCopy(matrix);
   this->Matrix = newMatrix;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkAssemblyNode::GetMTime()
 {
   vtkMTimeType propMTime = 0;
@@ -82,12 +82,12 @@ vtkMTimeType vtkAssemblyNode::GetMTime()
   return (propMTime > matrixMTime ? propMTime : matrixMTime);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAssemblyNode::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
-  if ( this->ViewProp )
+  if (this->ViewProp)
   {
     os << indent << "ViewProp: " << this->ViewProp << "\n";
   }
@@ -96,7 +96,7 @@ void vtkAssemblyNode::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "ViewProp: (none)\n";
   }
 
-  if ( this->Matrix )
+  if (this->Matrix)
   {
     os << indent << "Matrix: " << this->Matrix << "\n";
   }

@@ -13,38 +13,38 @@
 
 =========================================================================*/
 
+#include "vtkLookupTableItem.h"
 #include "vtkCallbackCommand.h"
 #include "vtkImageData.h"
 #include "vtkLookupTable.h"
-#include "vtkLookupTableItem.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints2D.h"
 
 #include <cassert>
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkLookupTableItem);
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLookupTableItem::vtkLookupTableItem()
 {
   this->Interpolate = false;
-  this->LookupTable = 0;
+  this->LookupTable = nullptr;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLookupTableItem::~vtkLookupTableItem()
 {
   if (this->LookupTable)
   {
     this->LookupTable->Delete();
-    this->LookupTable = 0;
+    this->LookupTable = nullptr;
   }
 }
 
-//-----------------------------------------------------------------------------
-void vtkLookupTableItem::PrintSelf(ostream &os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkLookupTableItem::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "LookupTable: ";
@@ -59,7 +59,7 @@ void vtkLookupTableItem::PrintSelf(ostream &os, vtkIndent indent)
   }
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLookupTableItem::ComputeBounds(double* bounds)
 {
   this->Superclass::ComputeBounds(bounds);
@@ -71,7 +71,7 @@ void vtkLookupTableItem::ComputeBounds(double* bounds)
   }
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLookupTableItem::SetLookupTable(vtkLookupTable* t)
 {
   if (t == this->LookupTable)
@@ -87,20 +87,19 @@ void vtkLookupTableItem::SetLookupTable(vtkLookupTable* t)
   {
     t->AddObserver(vtkCommand::ModifiedEvent, this->Callback);
   }
-  this->ScalarsToColorsModified(this->LookupTable, vtkCommand::ModifiedEvent, 0);
+  this->ScalarsToColorsModified(this->LookupTable, vtkCommand::ModifiedEvent, nullptr);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLookupTableItem::ComputeTexture()
 {
   double bounds[4];
   this->GetBounds(bounds);
-  if (bounds[0] == bounds[1]
-      || !this->LookupTable)
+  if (bounds[0] == bounds[1] || !this->LookupTable)
   {
     return;
   }
-  if (this->Texture == 0)
+  if (this->Texture == nullptr)
   {
     this->Texture = vtkImageData::New();
   }
@@ -108,26 +107,21 @@ void vtkLookupTableItem::ComputeTexture()
   const int dimension = 256;
   double values[256];
   // Texture 1D
-  this->Texture->SetExtent(0, dimension - 1,
-                           0,0,
-                           0,0);
+  this->Texture->SetExtent(0, dimension - 1, 0, 0, 0, 0);
   this->Texture->AllocateScalars(VTK_UNSIGNED_CHAR, 4);
   // TODO: Support log scale ?
   for (int i = 0; i < dimension; ++i)
   {
     values[i] = bounds[0] + i * (bounds[1] - bounds[0]) / (dimension - 1);
   }
-  unsigned char* ptr =
-    reinterpret_cast<unsigned char*>(this->Texture->GetScalarPointer(0,0,0));
-  this->LookupTable->MapScalarsThroughTable2(
-    values, ptr, VTK_DOUBLE, dimension, 1, 4);
+  unsigned char* ptr = reinterpret_cast<unsigned char*>(this->Texture->GetScalarPointer(0, 0, 0));
+  this->LookupTable->MapScalarsThroughTable2(values, ptr, VTK_DOUBLE, dimension, 1, 4);
   if (this->Opacity != 1.)
   {
     for (int i = 0; i < dimension; ++i)
     {
       ptr[3] = static_cast<unsigned char>(this->Opacity * ptr[3]);
-      ptr+=4;
+      ptr += 4;
     }
   }
-  return;
 }

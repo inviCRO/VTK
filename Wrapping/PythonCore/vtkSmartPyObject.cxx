@@ -18,23 +18,24 @@
 #if defined(_MSC_VER) // Visual studio
 // Ignore "constant expression" warnings from MSVC due to the "while (0)" in
 // the Py_X{IN,DE}CREF macros.
-#pragma warning(disable: 4127)
+#pragma warning(disable : 4127)
 #endif
 
-//--------------------------------------------------------------------
-vtkSmartPyObject::vtkSmartPyObject(PyObject *obj) :
-  Object(obj)
-{}
+//------------------------------------------------------------------------------
+vtkSmartPyObject::vtkSmartPyObject(PyObject* obj)
+  : Object(obj)
+{
+}
 
-//--------------------------------------------------------------------
-vtkSmartPyObject::vtkSmartPyObject(const vtkSmartPyObject &other) :
-  Object(other.Object)
+//------------------------------------------------------------------------------
+vtkSmartPyObject::vtkSmartPyObject(const vtkSmartPyObject& other)
+  : Object(other.Object)
 {
   vtkPythonScopeGilEnsurer gilEnsurer;
   Py_XINCREF(this->Object);
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSmartPyObject::~vtkSmartPyObject()
 {
   if (Py_IsInitialized())
@@ -44,9 +45,14 @@ vtkSmartPyObject::~vtkSmartPyObject()
   }
 }
 
-//--------------------------------------------------------------------
-vtkSmartPyObject &vtkSmartPyObject::operator=(const vtkSmartPyObject &other)
+//------------------------------------------------------------------------------
+vtkSmartPyObject& vtkSmartPyObject::operator=(const vtkSmartPyObject& other)
 {
+  if (this == &other)
+  {
+    return *this;
+  }
+
   vtkPythonScopeGilEnsurer gilEnsurer;
   Py_XDECREF(this->Object);
   this->Object = other.Object;
@@ -54,8 +60,8 @@ vtkSmartPyObject &vtkSmartPyObject::operator=(const vtkSmartPyObject &other)
   return *this;
 }
 
-//--------------------------------------------------------------------
-vtkSmartPyObject &vtkSmartPyObject::operator=(PyObject *obj)
+//------------------------------------------------------------------------------
+vtkSmartPyObject& vtkSmartPyObject::operator=(PyObject* obj)
 {
   vtkPythonScopeGilEnsurer gilEnsurer;
   Py_XDECREF(this->Object);
@@ -64,48 +70,48 @@ vtkSmartPyObject &vtkSmartPyObject::operator=(PyObject *obj)
   return *this;
 }
 
-//--------------------------------------------------------------------
-void vtkSmartPyObject::TakeReference(PyObject *obj)
+//------------------------------------------------------------------------------
+void vtkSmartPyObject::TakeReference(PyObject* obj)
 {
   vtkPythonScopeGilEnsurer gilEnsurer;
   Py_XDECREF(this->Object);
   this->Object = obj;
 }
 
-//--------------------------------------------------------------------
-PyObject *vtkSmartPyObject::operator->() const
+//------------------------------------------------------------------------------
+PyObject* vtkSmartPyObject::operator->() const
 {
   return this->Object;
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSmartPyObject::operator PyObject*() const
 {
   return this->Object;
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSmartPyObject::operator bool() const
 {
-  return this->Object != NULL;
+  return this->Object != nullptr;
 }
 
-//--------------------------------------------------------------------
-PyObject *vtkSmartPyObject::ReleaseReference()
+//------------------------------------------------------------------------------
+PyObject* vtkSmartPyObject::ReleaseReference()
 {
-  PyObject *tmp = this->Object;
-  this->Object = NULL;
+  PyObject* tmp = this->Object;
+  this->Object = nullptr;
   return tmp;
 }
 
-//--------------------------------------------------------------------
-PyObject *vtkSmartPyObject::GetPointer() const
+//------------------------------------------------------------------------------
+PyObject* vtkSmartPyObject::GetPointer() const
 {
   return this->Object;
 }
 
-//--------------------------------------------------------------------
-PyObject *vtkSmartPyObject::GetAndIncreaseReferenceCount()
+//------------------------------------------------------------------------------
+PyObject* vtkSmartPyObject::GetAndIncreaseReferenceCount()
 {
   vtkPythonScopeGilEnsurer gilEnsurer;
   Py_XINCREF(this->Object);

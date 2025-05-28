@@ -22,7 +22,7 @@
  *
  * @sa
  * vtkJPEGReader
-*/
+ */
 
 #ifndef vtkJPEGWriter_h
 #define vtkJPEGWriter_h
@@ -36,67 +36,65 @@ class vtkImageData;
 class VTKIOIMAGE_EXPORT vtkJPEGWriter : public vtkImageWriter
 {
 public:
-  static vtkJPEGWriter *New();
-  vtkTypeMacro(vtkJPEGWriter,vtkImageWriter);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkJPEGWriter* New();
+  vtkTypeMacro(vtkJPEGWriter, vtkImageWriter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * The main interface which triggers the writer to start.
    */
-  void Write() VTK_OVERRIDE;
+  void Write() override;
 
-  //@{
+  ///@{
   /**
    * Compression quality. 0 = Low quality, 100 = High quality
    */
   vtkSetClampMacro(Quality, int, 0, 100);
   vtkGetMacro(Quality, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Progressive JPEG generation.
    */
-  vtkSetMacro(Progressive, unsigned int);
-  vtkGetMacro(Progressive, unsigned int);
-  vtkBooleanMacro(Progressive, unsigned int);
-  //@}
+  vtkSetMacro(Progressive, vtkTypeUBool);
+  vtkGetMacro(Progressive, vtkTypeUBool);
+  vtkBooleanMacro(Progressive, vtkTypeUBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Write the image to memory (a vtkUnsignedCharArray)
    */
-  vtkSetMacro(WriteToMemory, unsigned int);
-  vtkGetMacro(WriteToMemory, unsigned int);
-  vtkBooleanMacro(WriteToMemory, unsigned int);
-  //@}
+  vtkSetMacro(WriteToMemory, vtkTypeUBool);
+  vtkGetMacro(WriteToMemory, vtkTypeUBool);
+  vtkBooleanMacro(WriteToMemory, vtkTypeUBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * When writing to memory this is the result, it will be NULL until the
+   * When writing to memory this is the result, it will be nullptr until the
    * data is written the first time
    */
   virtual void SetResult(vtkUnsignedCharArray*);
   vtkGetObjectMacro(Result, vtkUnsignedCharArray);
-  //@}
+  ///@}
 
 protected:
   vtkJPEGWriter();
-  ~vtkJPEGWriter() VTK_OVERRIDE;
+  ~vtkJPEGWriter() override;
 
-  void WriteSlice(vtkImageData *data, int* uExtent);
+  void WriteSlice(vtkImageData* data, int* uExtent);
 
 private:
   int Quality;
-  unsigned int Progressive;
-  vtkUnsignedCharArray *Result;
-  FILE *TempFP;
+  vtkTypeUBool Progressive;
+  vtkUnsignedCharArray* Result;
+  FILE* TempFP;
 
 private:
-  vtkJPEGWriter(const vtkJPEGWriter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkJPEGWriter&) VTK_DELETE_FUNCTION;
+  vtkJPEGWriter(const vtkJPEGWriter&) = delete;
+  void operator=(const vtkJPEGWriter&) = delete;
 };
 
 #endif
-
-

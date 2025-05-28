@@ -14,32 +14,20 @@
 =========================================================================*/
 #include "vtkPointData.h"
 
-#include "vtkDataArray.h"
+#include "vtkDataSetAttributes.h"
 #include "vtkObjectFactory.h"
 
 vtkStandardNewMacro(vtkPointData);
+vtkStandardExtendedNewMacro(vtkPointData);
 
-void vtkPointData::NullPoint (vtkIdType ptId)
+//------------------------------------------------------------------------------
+vtkPointData::vtkPointData()
 {
-  vtkFieldData::Iterator it(this);
-  vtkDataArray* da;
-  for(da=it.Begin(); !it.End(); da=it.Next())
-  {
-    if (da)
-    {
-      int length = da->GetNumberOfComponents();
-      float* tuple = new float[length];
-      for(int j=0; j<length; j++)
-      {
-        tuple[j] = 0;
-      }
-      da->InsertTuple(ptId, tuple);
-      delete[] tuple;
-    }
-  }
+  this->GhostsToSkip = vtkDataSetAttributes::HIDDENPOINT;
 }
 
+//------------------------------------------------------------------------------
 void vtkPointData::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }

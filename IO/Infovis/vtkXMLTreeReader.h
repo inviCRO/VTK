@@ -83,7 +83,7 @@
  * 1             0                 0              0
  * 1             0                 0              1
  * </pre>
-*/
+ */
 
 #ifndef vtkXMLTreeReader_h
 #define vtkXMLTreeReader_h
@@ -95,42 +95,42 @@ class VTKIOINFOVIS_EXPORT vtkXMLTreeReader : public vtkTreeAlgorithm
 {
 public:
   static vtkXMLTreeReader* New();
-  vtkTypeMacro(vtkXMLTreeReader,vtkTreeAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkXMLTreeReader, vtkTreeAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * If set, reads in the XML file specified.
    */
-  vtkGetStringMacro(FileName);
-  vtkSetStringMacro(FileName);
-  //@}
+  vtkGetFilePathMacro(FileName);
+  vtkSetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If set, and FileName is not set, reads in the XML string.
    */
   vtkGetStringMacro(XMLString);
   vtkSetStringMacro(XMLString);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the edge pedigree ids. Default is "edge id".
    */
   vtkGetStringMacro(EdgePedigreeIdArrayName);
   vtkSetStringMacro(EdgePedigreeIdArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the vertex pedigree ids. Default is "vertex id".
    */
   vtkGetStringMacro(VertexPedigreeIdArrayName);
   vtkSetStringMacro(VertexPedigreeIdArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set whether to use an property from the XML file as pedigree ids (off),
    * or generate a new array with integer values starting at zero (on).
@@ -142,9 +142,9 @@ public:
   vtkSetMacro(GenerateVertexPedigreeIds, bool);
   vtkGetMacro(GenerateVertexPedigreeIds, bool);
   vtkBooleanMacro(GenerateVertexPedigreeIds, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on, makes bit arrays for each attribute with name .valid.attribute_name
    * for each attribute.  Default is off.
@@ -152,9 +152,9 @@ public:
   vtkGetMacro(MaskArrays, bool);
   vtkSetMacro(MaskArrays, bool);
   vtkBooleanMacro(MaskArrays, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on, stores the XML character data (i.e. textual data between tags)
    * into an array named CharDataField, otherwise this field is skipped.
@@ -163,9 +163,9 @@ public:
   vtkGetMacro(ReadCharData, bool);
   vtkSetMacro(ReadCharData, bool);
   vtkBooleanMacro(ReadCharData, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If on, stores the XML tag name data in a field called .tagname
    * otherwise this field is skipped.
@@ -174,15 +174,14 @@ public:
   vtkGetMacro(ReadTagName, bool);
   vtkSetMacro(ReadTagName, bool);
   vtkBooleanMacro(ReadTagName, bool);
-  //@}
+  ///@}
 
-
-  static const char * TagNameField;
-  static const char * CharDataField;
+  static const char* TagNameField;
+  static const char* CharDataField;
 
 protected:
   vtkXMLTreeReader();
-  ~vtkXMLTreeReader() VTK_OVERRIDE;
+  ~vtkXMLTreeReader() override;
   char* FileName;
   char* XMLString;
   bool ReadCharData;
@@ -193,15 +192,11 @@ protected:
   bool GenerateEdgePedigreeIds;
   bool GenerateVertexPedigreeIds;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkXMLTreeReader(const vtkXMLTreeReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkXMLTreeReader&) VTK_DELETE_FUNCTION;
+  vtkXMLTreeReader(const vtkXMLTreeReader&) = delete;
+  void operator=(const vtkXMLTreeReader&) = delete;
 };
 
 #endif
-

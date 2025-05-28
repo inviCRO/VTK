@@ -22,23 +22,20 @@
 #include "vtkTable.h"
 #include "vtkUnstructuredGrid.h"
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkExtractSelectionBase::vtkExtractSelectionBase()
 {
   this->PreserveTopology = 0;
   this->SetNumberOfInputPorts(2);
 }
 
-//----------------------------------------------------------------------------
-vtkExtractSelectionBase::~vtkExtractSelectionBase()
-{
-}
+//------------------------------------------------------------------------------
+vtkExtractSelectionBase::~vtkExtractSelectionBase() = default;
 
-//----------------------------------------------------------------------------
-int vtkExtractSelectionBase::FillInputPortInformation(
-  int port, vtkInformation* info)
+//------------------------------------------------------------------------------
+int vtkExtractSelectionBase::FillInputPortInformation(int port, vtkInformation* info)
 {
-  if (port==0)
+  if (port == 0)
   {
     // Cannot work with composite datasets.
     info->Remove(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE());
@@ -54,14 +51,12 @@ int vtkExtractSelectionBase::FillInputPortInformation(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Needed because parent class sets output type to input type
 // and we sometimes want to change it to make an UnstructuredGrid regardless of
 // input type
 int vtkExtractSelectionBase::RequestDataObject(
-  vtkInformation*,
-  vtkInformationVector** inputVector ,
-  vtkInformationVector* outputVector)
+  vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   if (!inInfo)
@@ -69,19 +64,18 @@ int vtkExtractSelectionBase::RequestDataObject(
     return 0;
   }
 
-  vtkDataSet *input = vtkDataSet::GetData(inInfo);
+  vtkDataSet* input = vtkDataSet::GetData(inInfo);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   if (input)
   {
-    int passThrough = this->PreserveTopology? 1 : 0;
+    int passThrough = this->PreserveTopology ? 1 : 0;
 
-    vtkDataSet *output = vtkDataSet::GetData(outInfo);
-    if (!output ||
-      (passThrough && !output->IsA(input->GetClassName())) ||
+    vtkDataSet* output = vtkDataSet::GetData(outInfo);
+    if (!output || (passThrough && !output->IsA(input->GetClassName())) ||
       (!passThrough && !output->IsA("vtkUnstructuredGrid")))
     {
-      vtkDataSet* newOutput = NULL;
+      vtkDataSet* newOutput = nullptr;
       if (!passThrough)
       {
         // The mesh will be modified.
@@ -98,7 +92,7 @@ int vtkExtractSelectionBase::RequestDataObject(
     return 1;
   }
 
-  vtkGraph *graphInput = vtkGraph::GetData(inInfo);
+  vtkGraph* graphInput = vtkGraph::GetData(inInfo);
   if (graphInput)
   {
     // Accept graph input, but we don't produce the correct extracted
@@ -106,10 +100,10 @@ int vtkExtractSelectionBase::RequestDataObject(
     return 1;
   }
 
-  vtkTable *tableInput = vtkTable::GetData(inInfo);
+  vtkTable* tableInput = vtkTable::GetData(inInfo);
   if (tableInput)
   {
-    vtkTable *output = vtkTable::GetData(outInfo);
+    vtkTable* output = vtkTable::GetData(outInfo);
     if (!output)
     {
       output = vtkTable::New();
@@ -122,7 +116,7 @@ int vtkExtractSelectionBase::RequestDataObject(
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkExtractSelectionBase::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

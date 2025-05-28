@@ -21,35 +21,28 @@
  *
  * @sa
  * vtkLookupTable
-*/
+ */
 
 #ifndef vtkImageMapToRGBA_h
 #define vtkImageMapToRGBA_h
 
-
-#include "vtkImagingColorModule.h" // For export macro
 #include "vtkImageMapToColors.h"
+#include "vtkImagingColorModule.h" // For export macro
 
 class VTKIMAGINGCOLOR_EXPORT vtkImageMapToRGBA : public vtkImageMapToColors
 {
 public:
-  static vtkImageMapToRGBA *New();
-  vtkTypeMacro(vtkImageMapToRGBA,vtkImageMapToColors);
+  static vtkImageMapToRGBA* New();
+  vtkTypeMacro(vtkImageMapToRGBA, vtkImageMapToColors);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
-  vtkImageMapToRGBA() {}
-  ~vtkImageMapToRGBA() VTK_OVERRIDE {}
+  vtkImageMapToRGBA() = default;
+  ~vtkImageMapToRGBA() override = default;
+
 private:
-  vtkImageMapToRGBA(const vtkImageMapToRGBA&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageMapToRGBA&) VTK_DELETE_FUNCTION;
+  vtkImageMapToRGBA(const vtkImageMapToRGBA&) = delete;
+  void operator=(const vtkImageMapToRGBA&) = delete;
 };
 
 #endif
-
-
-
-
-
-
-
-// VTK-HeaderTest-Exclude: vtkImageMapToRGBA.h

@@ -19,7 +19,7 @@
  *
  * vtkFlyingEdgesPlaneCutter is a specialization of the FlyingEdges algorithm
  * to cut a volume with a single plane. It is designed for performance and
- * an exploratory, fast workflow.
+ * an exploratory, fast workflow. The filter handles oriented volumes.
  *
  * This algorithm is not only fast because it uses flying edges, but also
  * because it plays some "tricks" during processing. For example, rather
@@ -33,6 +33,10 @@
  * A High-Performance Scalable Isocontouring Algorithm" by Schroeder,
  * Maynard, Geveci. Proc. of LDAV 2015. Chicago, IL.
  *
+ * The filter interpolates the input scalar field across the vtkPlane provided.
+ * If additional point and cell attribute data is to be interpolated, enable
+ * InterpolateAttributes.
+ *
  * @warning
  * This filter is specialized to 3D volumes. This implementation can produce
  * degenerate triangles (i.e., zero-area triangles).
@@ -44,7 +48,7 @@
  *
  * @sa
  * vtkFlyingEdges2D vtkFlyingEdges3D
-*/
+ */
 
 #ifndef vtkFlyingEdgesPlaneCutter_h
 #define vtkFlyingEdgesPlaneCutter_h
@@ -58,77 +62,75 @@ class vtkPlane;
 class VTKFILTERSCORE_EXPORT vtkFlyingEdgesPlaneCutter : public vtkPolyDataAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard construction and print methods.
    */
-  static vtkFlyingEdgesPlaneCutter *New();
-  vtkTypeMacro(vtkFlyingEdgesPlaneCutter,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkFlyingEdgesPlaneCutter* New();
+  vtkTypeMacro(vtkFlyingEdgesPlaneCutter, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * The modified time depends on the delegated cut plane.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
-  //@{
+  ///@{
   /**
    * Specify the plane (an implicit function) to perform the cutting. The
    * definition of the plane (its origin and normal) is controlled via this
    * instance of vtkPlane.
    */
   virtual void SetPlane(vtkPlane*);
-  vtkGetObjectMacro(Plane,vtkPlane);
-  //@}
+  vtkGetObjectMacro(Plane, vtkPlane);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the computation of normals. The normal generated is simply the
    * cut plane normal. By default this is disabled.
    */
-  vtkSetMacro(ComputeNormals,int);
-  vtkGetMacro(ComputeNormals,int);
-  vtkBooleanMacro(ComputeNormals,int);
-  //@}
+  vtkSetMacro(ComputeNormals, vtkTypeBool);
+  vtkGetMacro(ComputeNormals, vtkTypeBool);
+  vtkBooleanMacro(ComputeNormals, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Indicate whether to interpolate other attribute data besides the input
-   * scalars (which are required). That is, as the isosurface is generated,
-   * interpolate all other point attribute data across intersected edges.
+   * Indicate whether to interpolate additional point data (beyond the point
+   * scalars which are always interpolated) and cell attribute data. By
+   * default this is disabled (for reasons of performance).
    */
-  vtkSetMacro(InterpolateAttributes,int);
-  vtkGetMacro(InterpolateAttributes,int);
-  vtkBooleanMacro(InterpolateAttributes,int);
-  //@}
+  vtkSetMacro(InterpolateAttributes, vtkTypeBool);
+  vtkGetMacro(InterpolateAttributes, vtkTypeBool);
+  vtkBooleanMacro(InterpolateAttributes, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set/get which component of the scalar array to contour on; defaults to 0.
+   * Set/get which component of the point data scalar array to contour on; defaults to 0.
    */
   vtkSetMacro(ArrayComponent, int);
   vtkGetMacro(ArrayComponent, int);
-  //@}
+  ///@}
 
 protected:
   vtkFlyingEdgesPlaneCutter();
-  ~vtkFlyingEdgesPlaneCutter() VTK_OVERRIDE;
+  ~vtkFlyingEdgesPlaneCutter() override;
 
-  vtkPlane *Plane;
-  int ComputeNormals;
-  int InterpolateAttributes;
+  vtkPlane* Plane;
+  vtkTypeBool ComputeNormals;
+  vtkTypeBool InterpolateAttributes;
   int ArrayComponent;
 
-  int RequestData(vtkInformation *, vtkInformationVector **,
-                  vtkInformationVector *) VTK_OVERRIDE;
-  int RequestUpdateExtent(vtkInformation *, vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkFlyingEdgesPlaneCutter(const vtkFlyingEdgesPlaneCutter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkFlyingEdgesPlaneCutter&) VTK_DELETE_FUNCTION;
+  vtkFlyingEdgesPlaneCutter(const vtkFlyingEdgesPlaneCutter&) = delete;
+  void operator=(const vtkFlyingEdgesPlaneCutter&) = delete;
 };
 
 #endif

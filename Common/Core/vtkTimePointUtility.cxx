@@ -21,23 +21,21 @@
 #include "vtkTimePointUtility.h"
 
 #include "vtkObjectFactory.h"
-#include "vtkStdString.h"
 
-#include <sstream>
 #include <cctype> // for isdigit
 #include <locale> // C++ locale
+#include <sstream>
 
-
-const int vtkTimePointUtility::MILLIS_PER_SECOND  =     1000;
-const int vtkTimePointUtility::MILLIS_PER_MINUTE  =    60000;
-const int vtkTimePointUtility::MILLIS_PER_HOUR    =  3600000;
-const int vtkTimePointUtility::MILLIS_PER_DAY     = 86400000;
-const int vtkTimePointUtility::SECONDS_PER_MINUTE =       60;
-const int vtkTimePointUtility::SECONDS_PER_HOUR   =     3600;
-const int vtkTimePointUtility::SECONDS_PER_DAY    =    86400;
-const int vtkTimePointUtility::MINUTES_PER_HOUR   =       60;
-const int vtkTimePointUtility::MINUTES_PER_DAY    =     1440;
-const int vtkTimePointUtility::HOURS_PER_DAY      =       24;
+const int vtkTimePointUtility::MILLIS_PER_SECOND = 1000;
+const int vtkTimePointUtility::MILLIS_PER_MINUTE = 60000;
+const int vtkTimePointUtility::MILLIS_PER_HOUR = 3600000;
+const int vtkTimePointUtility::MILLIS_PER_DAY = 86400000;
+const int vtkTimePointUtility::SECONDS_PER_MINUTE = 60;
+const int vtkTimePointUtility::SECONDS_PER_HOUR = 3600;
+const int vtkTimePointUtility::SECONDS_PER_DAY = 86400;
+const int vtkTimePointUtility::MINUTES_PER_HOUR = 60;
+const int vtkTimePointUtility::MINUTES_PER_DAY = 1440;
+const int vtkTimePointUtility::HOURS_PER_DAY = 24;
 
 vtkStandardNewMacro(vtkTimePointUtility);
 
@@ -46,8 +44,7 @@ void vtkTimePointUtility::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
 }
 
-vtkTypeUInt64 vtkTimePointUtility::DateToTimePoint(
-  int year, int month, int day)
+vtkTypeUInt64 vtkTimePointUtility::DateToTimePoint(int year, int month, int day)
 {
   if (year < 0)
   {
@@ -59,19 +56,17 @@ vtkTypeUInt64 vtkTimePointUtility::DateToTimePoint(
   {
     // Gregorian calendar starting from October 15, 1582
     // Algorithm from Henry F. Fliegel and Thomas C. Van Flandern
-    julianDay = (1461 * (year + 4800 + (month - 14) / 12)) / 4
-       + (367 * (month - 2 - 12 * ((month - 14) / 12))) / 12
-       - (3 * ((year + 4900 + (month - 14) / 12) / 100)) / 4
-       + day - 32075;
+    julianDay = (1461 * (year + 4800 + (month - 14) / 12)) / 4 +
+      (367 * (month - 2 - 12 * ((month - 14) / 12))) / 12 -
+      (3 * ((year + 4900 + (month - 14) / 12) / 100)) / 4 + day - 32075;
   }
   else if (year < 1582 || (year == 1582 && (month < 10 || (month == 10 && day <= 4))))
   {
     // Julian calendar until October 4, 1582
     // Algorithm from Frequently Asked Questions about Calendars by Claus Toendering
     int a = (14 - month) / 12;
-    julianDay = (153 * (month + (12 * a) - 3) + 2) / 5
-       + (1461 * (year + 4800 - a)) / 4
-       + day - 32083;
+    julianDay =
+      (153 * (month + (12 * a) - 3) + 2) / 5 + (1461 * (year + 4800 - a)) / 4 + day - 32083;
   }
   else
   {
@@ -81,24 +76,18 @@ vtkTypeUInt64 vtkTimePointUtility::DateToTimePoint(
   return julianDay * MILLIS_PER_DAY;
 }
 
-vtkTypeUInt64 vtkTimePointUtility::TimeToTimePoint(
-  int hour, int minute, int second, int millis)
+vtkTypeUInt64 vtkTimePointUtility::TimeToTimePoint(int hour, int minute, int second, int millis)
 {
-  return MILLIS_PER_HOUR*hour +
-    MILLIS_PER_MINUTE*minute +
-    MILLIS_PER_SECOND*second + millis;
+  return MILLIS_PER_HOUR * hour + MILLIS_PER_MINUTE * minute + MILLIS_PER_SECOND * second + millis;
 }
 
 vtkTypeUInt64 vtkTimePointUtility::DateTimeToTimePoint(
-  int year, int month, int day,
-  int hour, int minute, int second, int millis)
+  int year, int month, int day, int hour, int minute, int second, int millis)
 {
-  return DateToTimePoint(year, month, day) +
-    TimeToTimePoint(hour, minute, second, millis);
+  return DateToTimePoint(year, month, day) + TimeToTimePoint(hour, minute, second, millis);
 }
 
-void vtkTimePointUtility::GetDate(vtkTypeUInt64 time,
-  int& year, int& month, int& day)
+void vtkTimePointUtility::GetDate(vtkTypeUInt64 time, int& year, int& month, int& day)
 {
   int y, m, d;
   int julianDay = static_cast<int>(time / MILLIS_PER_DAY);
@@ -141,8 +130,8 @@ void vtkTimePointUtility::GetDate(vtkTypeUInt64 time,
   day = d;
 }
 
-void vtkTimePointUtility::GetTime(vtkTypeUInt64 time,
-  int& hour, int& minute, int& second, int& millis)
+void vtkTimePointUtility::GetTime(
+  vtkTypeUInt64 time, int& hour, int& minute, int& second, int& millis)
 {
   hour = static_cast<int>(time % MILLIS_PER_DAY) / MILLIS_PER_HOUR;
   minute = static_cast<int>(time % MILLIS_PER_HOUR) / MILLIS_PER_MINUTE;
@@ -150,8 +139,7 @@ void vtkTimePointUtility::GetTime(vtkTypeUInt64 time,
   millis = static_cast<int>(time % MILLIS_PER_SECOND);
 }
 
-void vtkTimePointUtility::GetDateTime(vtkTypeUInt64 time,
-  int& year, int& month, int& day,
+void vtkTimePointUtility::GetDateTime(vtkTypeUInt64 time, int& year, int& month, int& day,
   int& hour, int& minute, int& second, int& millis)
 {
   GetDate(time, year, month, day);
@@ -204,7 +192,7 @@ vtkTypeUInt64 vtkTimePointUtility::ISO8601ToTimePoint(const char* cstr, bool* ok
   bool formatValid = true;
   vtkTypeUInt64 value = 0;
 
-  vtkStdString str(cstr);
+  std::string str(cstr);
 
   if (str.length() == 19 || str.length() == 23)
   {
@@ -213,7 +201,7 @@ vtkTypeUInt64 vtkTimePointUtility::ISO8601ToTimePoint(const char* cstr, bool* ok
     // -OR-
     // Format is [YYYY]-[MM]-[DD]T[hh]:[mm]:[ss].[SSS]
     // Index:     0123 4 56 7 89 0 12 3 45 6 78 9 012
-    for (vtkStdString::size_type c = 0; c < str.length(); c++)
+    for (std::string::size_type c = 0; c < str.length(); c++)
     {
       if (c == 4 || c == 7)
       {
@@ -273,7 +261,7 @@ vtkTypeUInt64 vtkTimePointUtility::ISO8601ToTimePoint(const char* cstr, bool* ok
   {
     // Format is [YYYY]-[MM]-[DD]
     // Index:     0123 4 56 7 89
-    for (vtkStdString::size_type c = 0; c < str.length(); c++)
+    for (std::string::size_type c = 0; c < str.length(); c++)
     {
       if (c == 4 || c == 7)
       {
@@ -304,7 +292,7 @@ vtkTypeUInt64 vtkTimePointUtility::ISO8601ToTimePoint(const char* cstr, bool* ok
     // -OR-
     // Format is [hh]:[mm]:[ss].[SSS]
     // Index:     01 2 34 5 67 8 901
-    for (vtkStdString::size_type c = 0; c < str.length(); c++)
+    for (std::string::size_type c = 0; c < str.length(); c++)
     {
       if (c == 2 || c == 5)
       {
@@ -346,7 +334,7 @@ vtkTypeUInt64 vtkTimePointUtility::ISO8601ToTimePoint(const char* cstr, bool* ok
     formatValid = false;
   }
 
-  if (ok != NULL)
+  if (ok != nullptr)
   {
     *ok = formatValid;
   }
@@ -425,7 +413,7 @@ const char* vtkTimePointUtility::TimePointToISO8601(vtkTypeUInt64 time, int form
   else
   {
     vtkGenericWarningMacro(<< "Format undefined.");
-    return 0;
+    return nullptr;
   }
   char* copy = new char[25];
   strcpy(copy, oss.str().c_str());

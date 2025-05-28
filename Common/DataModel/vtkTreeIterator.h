@@ -26,7 +26,7 @@
  *
  * @sa
  * vtkTreeBFSIterator vtkTreeDFSIterator
-*/
+ */
 
 #ifndef vtkTreeIterator_h
 #define vtkTreeIterator_h
@@ -40,17 +40,17 @@ class VTKCOMMONDATAMODEL_EXPORT vtkTreeIterator : public vtkObject
 {
 public:
   vtkTypeMacro(vtkTreeIterator, vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set/get the graph to iterate over.
    */
-  void SetTree(vtkTree* graph);
-  vtkGetMacro(Tree, vtkTree*);
-  //@}
+  void SetTree(vtkTree* tree);
+  vtkGetObjectMacro(Tree, vtkTree);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The start vertex of the traversal.
    * The tree iterator will only iterate over the subtree rooted at vertex.
@@ -58,7 +58,7 @@ public:
    */
   void SetStartVertex(vtkIdType vertex);
   vtkGetMacro(StartVertex, vtkIdType);
-  //@}
+  ///@}
 
   /**
    * The next vertex visited in the graph.
@@ -77,7 +77,7 @@ public:
 
 protected:
   vtkTreeIterator();
-  ~vtkTreeIterator() VTK_OVERRIDE;
+  ~vtkTreeIterator() override;
 
   virtual void Initialize() = 0;
   virtual vtkIdType NextInternal() = 0;
@@ -87,8 +87,8 @@ protected:
   vtkIdType NextId;
 
 private:
-  vtkTreeIterator(const vtkTreeIterator &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTreeIterator &) VTK_DELETE_FUNCTION;
+  vtkTreeIterator(const vtkTreeIterator&) = delete;
+  void operator=(const vtkTreeIterator&) = delete;
 };
 
 #endif

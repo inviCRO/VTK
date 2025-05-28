@@ -19,32 +19,32 @@
 
 vtkStandardNewMacro(ExternalVTKWidget);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 ExternalVTKWidget::ExternalVTKWidget()
 {
-  this->RenderWindow = 0;
+  this->RenderWindow = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 ExternalVTKWidget::~ExternalVTKWidget()
 {
-  this->SetRenderWindow(NULL);
+  this->SetRenderWindow(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkExternalOpenGLRenderWindow* ExternalVTKWidget::GetRenderWindow()
 {
   if (!this->RenderWindow)
   {
-    vtkExternalOpenGLRenderWindow * win = vtkExternalOpenGLRenderWindow::New();
+    vtkExternalOpenGLRenderWindow* win = vtkExternalOpenGLRenderWindow::New();
     this->SetRenderWindow(win);
     win->Delete();
   }
   return this->RenderWindow;
 }
 
-//----------------------------------------------------------------------------
-vtkExternalOpenGLRenderer* ExternalVTKWidget::AddRenderer(void)
+//------------------------------------------------------------------------------
+vtkExternalOpenGLRenderer* ExternalVTKWidget::AddRenderer()
 {
   vtkExternalOpenGLRenderer* ren = vtkExternalOpenGLRenderer::New();
   this->GetRenderWindow()->AddRenderer(ren);
@@ -52,14 +52,14 @@ vtkExternalOpenGLRenderer* ExternalVTKWidget::AddRenderer(void)
   return ren;
 }
 
-//----------------------------------------------------------------------------
-void ExternalVTKWidget::PrintSelf(ostream &os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void ExternalVTKWidget::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
-void ExternalVTKWidget::SetRenderWindow(vtkExternalOpenGLRenderWindow * w)
+//------------------------------------------------------------------------------
+void ExternalVTKWidget::SetRenderWindow(vtkExternalOpenGLRenderWindow* w)
 {
   // Do nothing if we don't have to
   if (this->RenderWindow == w)
@@ -68,7 +68,7 @@ void ExternalVTKWidget::SetRenderWindow(vtkExternalOpenGLRenderWindow * w)
   }
 
   // Swap the renderers from the old window to the new one
-  vtkRendererCollection* renderers = 0;
+  vtkRendererCollection* renderers = nullptr;
 
   // Unregister the previous window
   if (this->RenderWindow)
@@ -95,11 +95,10 @@ void ExternalVTKWidget::SetRenderWindow(vtkExternalOpenGLRenderWindow * w)
     if (renderers)
     {
       // Add the renderers
-      vtkRenderer * aren;
+      vtkRenderer* aren;
       vtkCollectionSimpleIterator rsit;
 
-      for (renderers->InitTraversal(rsit);
-         (aren = renderers->GetNextRenderer(rsit)); )
+      for (renderers->InitTraversal(rsit); (aren = renderers->GetNextRenderer(rsit));)
       {
         this->RenderWindow->AddRenderer(aren);
       }

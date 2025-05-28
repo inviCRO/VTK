@@ -30,7 +30,7 @@
 namespace
 {
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestDataSet(vtkDataSet* ds, int expectedValue)
 {
   vtkNew<vtkDataSetSurfaceFilter> surfacer;
@@ -44,7 +44,7 @@ int TestDataSet(vtkDataSet* ds, int expectedValue)
 
   vtkFieldData* fieldData = surfacer->GetOutput()->GetFieldData();
   const char* className = ds->GetClassName();
-  if (fieldData == NULL || fieldData->GetNumberOfArrays() == 0)
+  if (fieldData == nullptr || fieldData->GetNumberOfArrays() == 0)
   {
     std::cerr << "No field data was associated with data set type " << className << "\n";
     return EXIT_FAILURE;
@@ -56,14 +56,14 @@ int TestDataSet(vtkDataSet* ds, int expectedValue)
     vtkIntArray* array = vtkArrayDownCast<vtkIntArray>(fieldData->GetArray(0));
     if (!array)
     {
-      std::cerr << "Field data array was not of type vtkIntArray for data set type"
-                << className << "\n";
+      std::cerr << "Field data array was not of type vtkIntArray for data set type" << className
+                << "\n";
       return EXIT_FAILURE;
     }
     else if (array->GetNumberOfTuples() < 1)
     {
-      std::cerr << "No tuples in field data array for surface from data set type "
-                << className << "\n";
+      std::cerr << "No tuples in field data array for surface from data set type " << className
+                << "\n";
       return EXIT_FAILURE;
     }
     else
@@ -75,8 +75,8 @@ int TestDataSet(vtkDataSet* ds, int expectedValue)
       if (value != expectedValue)
       {
         std::cerr << "Unexpected block field array value " << value
-                  << " for surface from data set type " << className
-                  << ". Expected " << expectedValue << "\n";
+                  << " for surface from data set type " << className << ". Expected "
+                  << expectedValue << "\n";
         return EXIT_FAILURE;
       }
     }
@@ -85,7 +85,7 @@ int TestDataSet(vtkDataSet* ds, int expectedValue)
   return EXIT_SUCCESS;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void AddFieldData(vtkDataSet* ds, int id)
 {
   vtkNew<vtkIntArray> array;
@@ -94,13 +94,13 @@ void AddFieldData(vtkDataSet* ds, int id)
   array->SetNumberOfTuples(1);
   array->SetTypedTuple(0, &id);
 
-  ds->GetFieldData()->AddArray(array.GetPointer());
+  ds->GetFieldData()->AddArray(array);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestImageData()
 {
- // Create image data
+  // Create image data
   vtkNew<vtkImageData> imageData;
   imageData->Initialize();
   imageData->SetSpacing(1, 1, 1);
@@ -108,7 +108,7 @@ int TestImageData()
   imageData->SetDimensions(10, 10, 10);
 
   int id = 1;
-  AddFieldData(imageData.GetPointer(), id);
+  AddFieldData(imageData, id);
 
   // Add point data
   vtkNew<vtkFloatArray> pa;
@@ -116,12 +116,12 @@ int TestImageData()
   pa->SetNumberOfComponents(1);
   pa->SetNumberOfTuples(10 * 10 * 10);
 
-  imageData->GetPointData()->AddArray(pa.GetPointer());
+  imageData->GetPointData()->AddArray(pa);
 
-  return TestDataSet(imageData.GetPointer(), id);
+  return TestDataSet(imageData, id);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestPolyData()
 {
   // Create polydata
@@ -129,12 +129,12 @@ int TestPolyData()
   polyData->Initialize();
 
   int id = 2;
-  AddFieldData(polyData.GetPointer(), id);
+  AddFieldData(polyData, id);
 
-  return TestDataSet(polyData.GetPointer(), id);
+  return TestDataSet(polyData, id);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestStructuredGrid()
 {
   // Create structured grid data
@@ -142,12 +142,12 @@ int TestStructuredGrid()
   structuredGrid->Initialize();
 
   int id = 3;
-  AddFieldData(structuredGrid.GetPointer(), id);
+  AddFieldData(structuredGrid, id);
 
-  return TestDataSet(structuredGrid.GetPointer(), id);
+  return TestDataSet(structuredGrid, id);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestUnstructuredGrid()
 {
   // Create unstructured grid data
@@ -155,14 +155,14 @@ int TestUnstructuredGrid()
   unstructuredGrid->Initialize();
 
   int id = 4;
-  AddFieldData(unstructuredGrid.GetPointer(), id);
+  AddFieldData(unstructuredGrid, id);
 
-  return TestDataSet(unstructuredGrid.GetPointer(), id);
+  return TestDataSet(unstructuredGrid, id);
 }
 
 } // end anonymous namespace
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestDataSetSurfaceFieldData(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   if (TestImageData() != EXIT_SUCCESS)

@@ -20,7 +20,7 @@
  * subclass of vtkInformationKey defined in the vtkFiltering library.
  * It makes sure that the table of keys is created before and
  * destroyed after it is used.
-*/
+ */
 
 #ifndef vtkFilteringInformationKeyManager_h
 #define vtkFilteringInformationKeyManager_h
@@ -48,9 +48,8 @@ public:
 
 private:
   // Unimplemented
-  vtkFilteringInformationKeyManager(const vtkFilteringInformationKeyManager&);
-  vtkFilteringInformationKeyManager& operator=(
-    const vtkFilteringInformationKeyManager&);
+  vtkFilteringInformationKeyManager(const vtkFilteringInformationKeyManager&) = delete;
+  vtkFilteringInformationKeyManager& operator=(const vtkFilteringInformationKeyManager&) = delete;
 
   static void ClassInitialize();
   static void ClassFinalize();

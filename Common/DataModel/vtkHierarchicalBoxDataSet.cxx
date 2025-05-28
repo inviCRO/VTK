@@ -1,6 +1,6 @@
 /*=========================================================================
   Program:   Visualization Toolkit
-  Module:    vtkHierarchicalBoxDataSet.h
+  Module:    vtkHierarchicalBoxDataSet.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -12,51 +12,41 @@
 
 =========================================================================*/
 #include "vtkHierarchicalBoxDataSet.h"
-#include "vtkObjectFactory.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkHierarchicalBoxDataIterator.h"
+#include "vtkObjectFactory.h"
+#include "vtkUniformGridAMRDataIterator.h"
 
 vtkStandardNewMacro(vtkHierarchicalBoxDataSet);
 
-//-----------------------------------------------------------------------------
-vtkHierarchicalBoxDataSet::vtkHierarchicalBoxDataSet()
-{
+//------------------------------------------------------------------------------
+vtkHierarchicalBoxDataSet::vtkHierarchicalBoxDataSet() = default;
 
-}
+//------------------------------------------------------------------------------
+vtkHierarchicalBoxDataSet::~vtkHierarchicalBoxDataSet() = default;
 
-//-----------------------------------------------------------------------------
-vtkHierarchicalBoxDataSet::~vtkHierarchicalBoxDataSet()
-{
-
-}
-
-//-----------------------------------------------------------------------------
-void vtkHierarchicalBoxDataSet::PrintSelf(ostream &os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkHierarchicalBoxDataSet::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkCompositeDataIterator* vtkHierarchicalBoxDataSet::NewIterator()
 {
-  vtkCompositeDataIterator* iter = vtkHierarchicalBoxDataIterator::New();
+  vtkCompositeDataIterator* iter = vtkUniformGridAMRDataIterator::New();
   iter->SetDataSet(this);
   return iter;
 }
 
-//-----------------------------------------------------------------------------
-vtkHierarchicalBoxDataSet* vtkHierarchicalBoxDataSet::GetData(
-  vtkInformation* info)
+//------------------------------------------------------------------------------
+vtkHierarchicalBoxDataSet* vtkHierarchicalBoxDataSet::GetData(vtkInformation* info)
 {
-  return
-    info?vtkHierarchicalBoxDataSet::SafeDownCast(info->Get(DATA_OBJECT())) : 0;
+  return info ? vtkHierarchicalBoxDataSet::SafeDownCast(info->Get(DATA_OBJECT())) : nullptr;
 }
 
-//----------------------------------------------------------------------------
-vtkHierarchicalBoxDataSet* vtkHierarchicalBoxDataSet::GetData(
-  vtkInformationVector* v, int i)
+//------------------------------------------------------------------------------
+vtkHierarchicalBoxDataSet* vtkHierarchicalBoxDataSet::GetData(vtkInformationVector* v, int i)
 {
   return vtkHierarchicalBoxDataSet::GetData(v->GetInformationObject(i));
 }

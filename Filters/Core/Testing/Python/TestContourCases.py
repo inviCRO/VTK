@@ -71,11 +71,11 @@ class CellTestBase:
 
             calcFilter = vtk.vtkArrayCalculator()
             calcFilter.SetInputConnection(normalsFilter.GetOutputPort())
-            calcFilter.SetAttributeModeToUsePointData()
+            calcFilter.SetAttributeTypeToPointData()
             calcFilter.AddVectorArrayName('grad')
             calcFilter.AddVectorArrayName('Normals')
             calcFilter.SetResultArrayName('dir')
-            calcFilter.SetFunction('grad.Normals')
+            calcFilter.SetFunction('dot(grad,Normals)')
             calcFilter.Update()
 
             out = vtk.vtkUnstructuredGrid()

@@ -23,7 +23,7 @@
  * the collection, only the iterators currently pointing to those
  * items are invalidated.  Other iterators will still continue to
  * function normally.
-*/
+ */
 
 #ifndef vtkCollectionIterator_h
 #define vtkCollectionIterator_h
@@ -37,17 +37,17 @@ class vtkCollectionElement;
 class VTKCOMMONCORE_EXPORT vtkCollectionIterator : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkCollectionIterator,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkCollectionIterator, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkCollectionIterator* New();
 
-  //@{
+  ///@{
   /**
    * Set/Get the collection over which to iterate.
    */
   virtual void SetCollection(vtkCollection*);
   vtkGetObjectMacro(Collection, vtkCollection);
-  //@}
+  ///@}
 
   /**
    * Position the iterator at the first item in the collection.
@@ -78,7 +78,7 @@ public:
 
 protected:
   vtkCollectionIterator();
-  ~vtkCollectionIterator() VTK_OVERRIDE;
+  ~vtkCollectionIterator() override;
 
   // The collection over which we are iterating.
   vtkCollection* Collection;
@@ -87,9 +87,10 @@ protected:
   vtkCollectionElement* Element;
 
   vtkObject* GetObjectInternal();
+
 private:
-  vtkCollectionIterator(const vtkCollectionIterator&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCollectionIterator&) VTK_DELETE_FUNCTION;
+  vtkCollectionIterator(const vtkCollectionIterator&) = delete;
+  void operator=(const vtkCollectionIterator&) = delete;
 };
 
 #endif

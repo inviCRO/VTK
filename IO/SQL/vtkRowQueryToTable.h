@@ -33,7 +33,7 @@
  *
  * @sa
  * vtkSQLDatabase vtkRowQuery
-*/
+ */
 
 #ifndef vtkRowQueryToTable_h
 #define vtkRowQueryToTable_h
@@ -48,36 +48,32 @@ class VTKIOSQL_EXPORT vtkRowQueryToTable : public vtkTableAlgorithm
 public:
   static vtkRowQueryToTable* New();
   vtkTypeMacro(vtkRowQueryToTable, vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * The query to execute.
    */
   void SetQuery(vtkRowQuery* query);
   vtkGetObjectMacro(Query, vtkRowQuery);
-  //@}
+  ///@}
 
   /**
    * Update the modified time based on the query.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
 protected:
   vtkRowQueryToTable();
-  ~vtkRowQueryToTable() VTK_OVERRIDE;
+  ~vtkRowQueryToTable() override;
 
   vtkRowQuery* Query;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkRowQueryToTable(const vtkRowQueryToTable&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkRowQueryToTable&) VTK_DELETE_FUNCTION;
+  vtkRowQueryToTable(const vtkRowQueryToTable&) = delete;
+  void operator=(const vtkRowQueryToTable&) = delete;
 };
 
 #endif
-

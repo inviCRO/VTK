@@ -12,213 +12,90 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <cmath>
-#include <cassert>
-
-#include "vtkOpenVROverlay.h"
 #include "vtkOpenVRRenderWindowInteractor.h"
-#include "vtkOpenVRRenderWindow.h"
-#include "vtkRendererCollection.h"
 
-
-#include "vtkActor.h"
-#include "vtkCommand.h"
-#include "vtkOpenVRInteractorStyle.h"
-#include "vtkNew.h"
+#include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
-#include "vtkOpenVRCamera.h"
-#include "vtkPropPicker3D.h"
+#include "vtkOpenGLState.h"
+#include "vtkOpenVRInteractorStyle.h"
+#include "vtkOpenVROverlay.h"
+#include "vtkOpenVRRenderWindow.h"
 #include "vtkTextureObject.h"
+
+#include <vtksys/SystemTools.hxx>
 
 vtkStandardNewMacro(vtkOpenVRRenderWindowInteractor);
 
-void (*vtkOpenVRRenderWindowInteractor::ClassExitMethod)(void *) = (void (*)(void *))NULL;
-void *vtkOpenVRRenderWindowInteractor::ClassExitMethodArg = (void *)NULL;
-void (*vtkOpenVRRenderWindowInteractor::ClassExitMethodArgDelete)(void *) = (void (*)(void *))NULL;
-
-//----------------------------------------------------------------------------
-// Construct object so that light follows camera motion.
+//------------------------------------------------------------------------------
 vtkOpenVRRenderWindowInteractor::vtkOpenVRRenderWindowInteractor()
 {
-    vtkNew<vtkOpenVRInteractorStyle> style;
-    this->SetInteractorStyle(style.Get());
+  vtkNew<vtkOpenVRInteractorStyle> style;
+  this->SetInteractorStyle(style);
+  this->ActionManifestFileName = "./vtk_openvr_actions.json";
+  this->ActionSetName = "/actions/vtk";
 }
 
-//----------------------------------------------------------------------------
-vtkOpenVRRenderWindowInteractor::~vtkOpenVRRenderWindowInteractor()
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderWindowInteractor::Initialize()
 {
-}
+  // Start with superclass initialization
+  this->Superclass::Initialize();
 
-void vtkOpenVRRenderWindowInteractor::SetPhysicalTranslation(vtkCamera *camin, double t1, double t2, double t3)
-{
-  vtkOpenVRCamera *cam =
-    static_cast<vtkOpenVRCamera *>(camin);
-  cam->SetTranslation(t1,t2,t3);
-}
+  std::string fullpath = vtksys::SystemTools::CollapseFullPath(this->ActionManifestFileName);
+  vr::VRInput()->SetActionManifestPath(fullpath.c_str());
+  vr::VRInput()->GetActionSetHandle(this->ActionSetName.c_str(), &this->ActionsetVTK);
 
-double *vtkOpenVRRenderWindowInteractor::GetPhysicalTranslation(vtkCamera *camin)
-{
-  vtkOpenVRCamera *cam =
-    static_cast<vtkOpenVRCamera *>(camin);
-  return cam->GetTranslation();
-}
+  // add in pose events
+  vr::VRInput()->GetInputSourceHandle(
+    "/user/hand/left", &this->Trackers[vtkOpenVRRenderWindowInteractor::LEFT_HAND].Source);
+  vr::VRInput()->GetInputSourceHandle(
+    "/user/hand/right", &this->Trackers[vtkOpenVRRenderWindowInteractor::RIGHT_HAND].Source);
+  vr::VRInput()->GetInputSourceHandle(
+    "/user/head", &this->Trackers[vtkOpenVRRenderWindowInteractor::HEAD].Source);
 
-void vtkOpenVRRenderWindowInteractor::ConvertPoseToWorldCoordinates(
-  vtkRenderer *ren,
-  vr::TrackedDevicePose_t &tdPose,
-  double pos[3],
-  double wxyz[4],
-  double ppos[3])
-{
-  vtkOpenVRRenderWindow *win =
-    vtkOpenVRRenderWindow::SafeDownCast(this->RenderWindow);
-  vtkOpenVRCamera *cam =
-    static_cast<vtkOpenVRCamera *>(ren->GetActiveCamera());
-  double distance = cam->GetDistance();
-  double *trans = cam->GetTranslation();
+  this->AddAction("/actions/vtk/in/LeftGripAction", false,
+    [this](vtkEventData* ed) { this->HandleGripEvents(ed); });
+  this->AddAction("/actions/vtk/in/RightGripAction", false,
+    [this](vtkEventData* ed) { this->HandleGripEvents(ed); });
 
-  // Vive to world axes
-  double *vup = win->GetInitialViewUp();
-  double *dop = win->GetInitialViewDirection();
-  double vright[3];
-  vtkMath::Cross(dop, vup, vright);
-
-  // extract HMD axes
-  double hvright[3];
-  hvright[0] = tdPose.mDeviceToAbsoluteTracking.m[0][0];
-  hvright[1] = tdPose.mDeviceToAbsoluteTracking.m[1][0];
-  hvright[2] = tdPose.mDeviceToAbsoluteTracking.m[2][0];
-  double hvup[3];
-  hvup[0] = tdPose.mDeviceToAbsoluteTracking.m[0][1];
-  hvup[1] = tdPose.mDeviceToAbsoluteTracking.m[1][1];
-  hvup[2] = tdPose.mDeviceToAbsoluteTracking.m[2][1];
-
-  // convert position to world coordinates
-  // get the position and orientation of the button press
-  for (int i = 0; i < 3; i++)
+  // add extra event actions
+  for (auto& it : this->ActionMap)
   {
-    pos[i] = tdPose.mDeviceToAbsoluteTracking.m[i][3];
-  }
-
-  ppos[0] = pos[0]*vright[0] + pos[1]*vup[0] - pos[2]*dop[0];
-  ppos[1] = pos[0]*vright[1] + pos[1]*vup[1] - pos[2]*dop[1];
-  ppos[2] = pos[0]*vright[2] + pos[1]*vup[2] - pos[2]*dop[2];
-  // now adjust for scale and translation
-  for (int i = 0; i < 3; i++)
-  {
-    pos[i] = ppos[i]*distance - trans[i];
-  }
-
-  // convert axes to world coordinates
-  double fvright[3]; // final vright
-  fvright[0] = hvright[0]*vright[0] + hvright[1]*vup[0] - hvright[2]*dop[0];
-  fvright[1] = hvright[0]*vright[1] + hvright[1]*vup[1] - hvright[2]*dop[1];
-  fvright[2] = hvright[0]*vright[2] + hvright[1]*vup[2] - hvright[2]*dop[2];
-  double fvup[3]; // final vup
-  fvup[0] = hvup[0]*vright[0] + hvup[1]*vup[0] - hvup[2]*dop[0];
-  fvup[1] = hvup[0]*vright[1] + hvup[1]*vup[1] - hvup[2]*dop[1];
-  fvup[2] = hvup[0]*vright[2] + hvup[1]*vup[2] - hvup[2]*dop[2];
-  double fdop[3];
-  vtkMath::Cross(fvup, fvright, fdop);
-
-  double ortho[3][3];
-  for (int i = 0; i < 3; i++)
-  {
-    ortho[i][0] = fvright[i];
-    ortho[i][1] = fvup[i];
-    ortho[i][2] = -fdop[i];
-  }
-
-  vtkMath::Matrix3x3ToQuaternion(ortho, wxyz);
-
-  // calc the return value wxyz
- double mag = sqrt( wxyz[1] * wxyz[1] + wxyz[2] * wxyz[2] + wxyz[3] * wxyz[3] );
-
-  if ( mag != 0.0 )
-  {
-    wxyz[0] = 2.0 * vtkMath::DegreesFromRadians( atan2( mag, wxyz[0] ) );
-    wxyz[1] /= mag;
-    wxyz[2] /= mag;
-    wxyz[3] /= mag;
-  }
-  else
-  {
-    wxyz[0] = 0.0;
-    wxyz[1] = 0.0;
-    wxyz[2] = 0.0;
-    wxyz[3] = 1.0;
+    vr::VRInput()->GetActionHandle(it.first.c_str(), &it.second.ActionHandle);
   }
 }
 
-void vtkOpenVRRenderWindowInteractor::UpdateTouchPadPosition(
-  vr::IVRSystem *pHMD,
-   vr::TrackedDeviceIndex_t tdi)
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderWindowInteractor::DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren)
 {
-  vr::VRControllerState_t cstate;
-  pHMD->GetControllerState(tdi, &cstate, sizeof(cstate));
+  vtkOpenVRRenderWindow* oRenWin = vtkOpenVRRenderWindow::SafeDownCast(renWin);
 
-  for (unsigned int i = 0; i < vr::k_unControllerStateAxisCount; i++)
-  {
-    if (pHMD->GetInt32TrackedDeviceProperty(tdi,
-      static_cast<vr::ETrackedDeviceProperty>(vr::ETrackedDeviceProperty::Prop_Axis0Type_Int32 + i))
-      == vr::EVRControllerAxisType::k_eControllerAxis_TrackPad)
-    {
-      this->SetTouchPadPosition(cstate.rAxis[i].x,cstate.rAxis[i].y);
-    }
-  }
-}
-
-//----------------------------------------------------------------------------
-void  vtkOpenVRRenderWindowInteractor::StartEventLoop()
-{
-  this->StartedMessageLoop = 1;
-  this->Done = false;
-
-  vtkOpenVRRenderWindow *renWin =
-    vtkOpenVRRenderWindow::SafeDownCast(this->RenderWindow);
-
-  vtkRenderer *ren = static_cast<vtkRenderer *>(
-    renWin->GetRenderers()->GetItemAsObject(0));
-
-  while (!this->Done)
-  {
-    this->DoOneEvent(renWin, ren);
-  }
-}
-
-void vtkOpenVRRenderWindowInteractor::DoOneEvent(vtkOpenVRRenderWindow *renWin, vtkRenderer *ren)
-{
-  if (!renWin || !ren)
+  if (!oRenWin || !ren)
   {
     return;
   }
-  vr::IVRSystem *pHMD = renWin->GetHMD();
+  vr::IVRSystem* pHMD = oRenWin->GetHMD();
 
   if (!pHMD)
   {
     // try rendering to create the HMD connection
-    renWin->Render();
+    oRenWin->Render();
     return;
   }
 
   vr::VREvent_t event;
-  vtkOpenVROverlay *ovl = renWin->GetDashboardOverlay();
+  vtkOpenVROverlay* ovl = oRenWin->GetDashboardOverlay();
   bool result = false;
 
-  if (vr::VROverlay() &&
-     vr::VROverlay()->IsOverlayVisible( ovl->GetOverlayHandle() ))
+  if (vr::VROverlay() && vr::VROverlay()->IsOverlayVisible(ovl->GetOverlayHandle()))
   {
-    result = vr::VROverlay()->PollNextOverlayEvent(
-      ovl->GetOverlayHandle(),
-      &event, sizeof( vr::VREvent_t ) );
+    result =
+      vr::VROverlay()->PollNextOverlayEvent(ovl->GetOverlayHandle(), &event, sizeof(vr::VREvent_t));
 
     if (result)
     {
       int height = ovl->GetOverlayTexture()->GetHeight();
-      switch( event.eventType )
+      switch (event.eventType)
       {
         case vr::VREvent_MouseButtonDown:
         {
@@ -246,244 +123,277 @@ void vtkOpenVRRenderWindowInteractor::DoOneEvent(vtkOpenVRRenderWindow *renWin, 
 
         case vr::VREvent_OverlayShown:
         {
-          renWin->RenderOverlay();
+          oRenWin->RenderOverlay();
         }
         break;
 
         case vr::VREvent_Quit:
           this->Done = true;
-        break;
+          break;
       }
+    }
+
+    // eat up any pending events
+    while (pHMD->PollNextEvent(&event, sizeof(vr::VREvent_t)))
+    {
     }
   }
   else
   {
     result = pHMD->PollNextEvent(&event, sizeof(vr::VREvent_t));
 
-    if (result)
+    // process all pending events
+    while (result)
     {
-      vr::TrackedDeviceIndex_t tdi = event.trackedDeviceIndex;
+      result = pHMD->PollNextEvent(&event, sizeof(vr::VREvent_t));
+    }
 
-      // is it a controller button action?
-      if (pHMD->GetTrackedDeviceClass(tdi) ==
-          vr::ETrackedDeviceClass::TrackedDeviceClass_Controller &&
-            (event.eventType == vr::VREvent_ButtonPress ||
-             event.eventType == vr::VREvent_ButtonUnpress))
+    // Process SteamVR action state
+    // UpdateActionState is called each frame to update the state of the actions themselves. The
+    // application controls which action sets are active with the provided array of
+    // VRActiveActionSet_t structs.
+    vr::VRActiveActionSet_t actionSet = { 0 };
+    actionSet.ulActionSet = this->ActionsetVTK;
+    vr::VRInput()->UpdateActionState(&actionSet, sizeof(actionSet), 1);
+
+    for (int tracker = 0; tracker < vtkOpenVRRenderWindowInteractor::NUMBER_OF_TRACKERS; tracker++)
+    {
+      vr::InputOriginInfo_t originInfo;
+      vr::EVRInputError evriError = vr::VRInput()->GetOriginTrackedDeviceInfo(
+        this->Trackers[tracker].Source, &originInfo, sizeof(vr::InputOriginInfo_t));
+      if (evriError != vr::VRInputError_None)
       {
-        vr::ETrackedControllerRole role = pHMD->GetControllerRoleForTrackedDeviceIndex(tdi);
+        // this can happen when a tracker isn't online
+        continue;
+      }
 
-        this->UpdateTouchPadPosition(pHMD,tdi);
+      vr::EVRCompositorError evrcError = vr::VRCompositor()->GetLastPoseForTrackedDeviceIndex(
+        originInfo.trackedDeviceIndex, &this->Trackers[tracker].LastPose, nullptr);
+      if (evrcError != vr::VRCompositorError_None)
+      {
+        vtkErrorMacro("Error in GetLastPoseForTrackedDeviceIndex: " << evrcError);
+        continue;
+      }
 
-        // 0 = right hand 1 = left
-        int pointerIndex =
-          (role == vr::ETrackedControllerRole::TrackedControllerRole_RightHand ? 0 : 1);
-        this->PointerIndexLookup[pointerIndex] = tdi;
+      if (this->Trackers[tracker].LastPose.bPoseIsValid)
+      {
+        double pos[3] = { 0.0 };
+        double ppos[3] = { 0.0 };
+        double wxyz[4] = { 0.0 };
+        double wdir[3] = { 0.0 };
 
-        vr::TrackedDevicePose_t &tdPose = renWin->GetTrackedDevicePose(tdi);
-        double pos[3];
-        double ppos[3];
-        double wxyz[4];
-        this->ConvertPoseToWorldCoordinates(ren, tdPose, pos, wxyz, ppos);
+        vtkNew<vtkMatrix4x4> lastPose;
+        oRenWin->SetMatrixFromOpenVRPose(lastPose, this->Trackers[tracker].LastPose);
+        this->ConvertPoseToWorldCoordinates(lastPose, pos, wxyz, ppos, wdir);
+        vtkNew<vtkEventDataDevice3D> ed;
+        ed->SetWorldPosition(pos);
+        ed->SetWorldOrientation(wxyz);
+        ed->SetWorldDirection(wdir);
 
-        // so even though we have world coordinates we have to convert them to
-        // screen coordinates because all of VTKs picking code is currently
-        // based on screen coordinates
-        ren->SetWorldPoint(pos[0],pos[1],pos[2],1.0);
-        ren->WorldToDisplay();
-        double *displayCoords = ren->GetDisplayPoint();
-
-        this->SetEventPosition(displayCoords[0],displayCoords[1],pointerIndex);
-        this->SetWorldEventPosition(pos[0],pos[1],pos[2],pointerIndex);
-        this->SetPhysicalEventPosition(ppos[0], ppos[1], ppos[2], pointerIndex);
-        this->SetWorldEventOrientation(wxyz[0],wxyz[1],wxyz[2],wxyz[3],pointerIndex);
-        this->SetPointerIndex(pointerIndex);
-
-        if (event.eventType == vr::VREvent_ButtonPress)
+        switch (tracker)
         {
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_Axis1)
-          {
-            this->LeftButtonPressEvent();
-          }
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_Axis0)
-          {
-            this->RightButtonPressEvent();
-          }
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_Grip)
-          {
-            this->MiddleButtonPressEvent();
-          }
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_ApplicationMenu)
-          {
-            this->FourthButtonPressEvent();
-          }
+          case vtkOpenVRRenderWindowInteractor::LEFT_HAND:
+            ed->SetDevice(vtkEventDataDevice::LeftController);
+            break;
+          case vtkOpenVRRenderWindowInteractor::RIGHT_HAND:
+            ed->SetDevice(vtkEventDataDevice::RightController);
+            break;
+          case vtkOpenVRRenderWindowInteractor::HEAD:
+            ed->SetDevice(vtkEventDataDevice::HeadMountedDisplay);
+            break;
         }
-        if (event.eventType == vr::VREvent_ButtonUnpress)
+        ed->SetType(vtkCommand::Move3DEvent);
+
+        // would like to remove the three following lines, they are there mostly to support
+        // multitouch and event handling where the handler doesn;t use the data in the event
+        // the first doesn't seem to be a common use pattern for VR, the second isn't used
+        // to my knowledge
+        this->SetPointerIndex(static_cast<int>(ed->GetDevice()));
+        this->SetPhysicalEventPosition(ppos[0], ppos[1], ppos[2], this->PointerIndex);
+        this->SetWorldEventPosition(pos[0], pos[1], pos[2], this->PointerIndex);
+        this->SetWorldEventOrientation(wxyz[0], wxyz[1], wxyz[2], wxyz[3], this->PointerIndex);
+
+        if (this->Enabled)
         {
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_Axis1)
-          {
-            this->LeftButtonReleaseEvent();
-          }
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_Axis0)
-          {
-            this->RightButtonReleaseEvent();
-          }
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_Grip)
-          {
-            this->MiddleButtonReleaseEvent();
-          }
-          if (event.data.controller.button == vr::EVRButtonId::k_EButton_ApplicationMenu)
-          {
-            this->FourthButtonReleaseEvent();
-          }
+          this->InvokeEvent(vtkCommand::Move3DEvent, ed);
         }
       }
     }
-    else
-    {
-      // if pointers are down track the movement
-      if (this->PointersDownCount)
-      {
-        for (int i = 0; i < VTKI_MAX_POINTERS; i++)
-        {
-          if (this->PointersDown[i])
-          {
-            this->UpdateTouchPadPosition(pHMD,
-             static_cast<vr::TrackedDeviceIndex_t>(this->PointerIndexLookup[i]));
-            vr::TrackedDevicePose_t &tdPose =
-              renWin->GetTrackedDevicePose(
-              static_cast<vr::TrackedDeviceIndex_t>(this->PointerIndexLookup[i]));
-            double pos[3];
-            double ppos[3];
-            double wxyz[4];
-            this->ConvertPoseToWorldCoordinates(ren, tdPose, pos, wxyz, ppos);
 
-            // so even though we have world coordinates we have to convert them to
-            // screen coordinates because all of VTKs picking code is currently
-            // based on screen coordinates
-            ren->SetWorldPoint(pos[0],pos[1],pos[2],1.0);
-            ren->WorldToDisplay();
-            double *displayCoords = ren->GetDisplayPoint();
-            this->SetEventPosition(displayCoords[0], displayCoords[1], i);
-            this->SetWorldEventPosition(pos[0],pos[1],pos[2],i);
-            this->SetWorldEventOrientation(wxyz[0],wxyz[1],wxyz[2],wxyz[3],i);
-            this->SetPhysicalEventPosition(ppos[0], ppos[1], ppos[2], i);
+    // handle other actions
+    for (auto& it : this->ActionMap)
+    {
+      vr::VRActionHandle_t& actionHandle = it.second.ActionHandle;
+      vtkEventDataDevice3D* edp = nullptr;
+      vr::VRInputValueHandle_t activeOrigin = 0;
+
+      if (it.second.IsAnalog)
+      {
+        vr::InputAnalogActionData_t analogData;
+        if (vr::VRInput()->GetAnalogActionData(actionHandle, &analogData, sizeof(analogData),
+              vr::k_ulInvalidInputValueHandle) == vr::VRInputError_None &&
+          analogData.bActive)
+        {
+          // send a movement event
+          edp = vtkEventDataDevice3D::New();
+          edp->SetTrackPadPosition(analogData.x, analogData.y);
+          activeOrigin = analogData.activeOrigin;
+        }
+      }
+      else
+      {
+        vr::InputDigitalActionData_t actionData;
+        auto vrresult = vr::VRInput()->GetDigitalActionData(
+          actionHandle, &actionData, sizeof(actionData), vr::k_ulInvalidInputValueHandle);
+        if (vrresult == vr::VRInputError_None && actionData.bActive && actionData.bChanged)
+        {
+          edp = vtkEventDataDevice3D::New();
+          edp->SetAction(
+            actionData.bState ? vtkEventDataAction::Press : vtkEventDataAction::Release);
+          activeOrigin = actionData.activeOrigin;
+        }
+      }
+
+      if (edp)
+      {
+        double pos[3] = { 0.0 };
+        double ppos[3] = { 0.0 };
+        double wxyz[4] = { 0.0 };
+        double wdir[3] = { 0.0 };
+
+        vr::InputBindingInfo_t inBindingInfo;
+        uint32_t returnedBindingInfoCount = 0;
+        vr::VRInput()->GetActionBindingInfo(
+          actionHandle, &inBindingInfo, sizeof(inBindingInfo), 1, &returnedBindingInfoCount);
+
+        std::string inputSource = inBindingInfo.rchInputSourceType;
+        if (inputSource == "trackpad")
+        {
+          edp->SetInput(vtkEventDataDeviceInput::TrackPad);
+        }
+        else if (inputSource == "joystick")
+        {
+          edp->SetInput(vtkEventDataDeviceInput::Joystick);
+        }
+        else if (inputSource == "trigger")
+        {
+          edp->SetInput(vtkEventDataDeviceInput::Trigger);
+        }
+        else if (inputSource == "grip")
+        {
+          edp->SetInput(vtkEventDataDeviceInput::Grip);
+        }
+        else
+        {
+          edp->SetInput(vtkEventDataDeviceInput::Unknown);
+        }
+
+        vr::InputOriginInfo_t originInfo;
+        if (vr::VRInputError_None ==
+          vr::VRInput()->GetOriginTrackedDeviceInfo(activeOrigin, &originInfo, sizeof(originInfo)))
+        {
+          if (originInfo.devicePath ==
+            this->Trackers[vtkOpenVRRenderWindowInteractor::LEFT_HAND].Source)
+          {
+            edp->SetDevice(vtkEventDataDevice::LeftController);
+
+            vtkNew<vtkMatrix4x4> lastPose;
+            oRenWin->SetMatrixFromOpenVRPose(lastPose, this->Trackers[0].LastPose);
+            this->ConvertPoseToWorldCoordinates(lastPose, pos, wxyz, ppos, wdir);
+          }
+          if (originInfo.devicePath ==
+            this->Trackers[vtkOpenVRRenderWindowInteractor::RIGHT_HAND].Source)
+          {
+            edp->SetDevice(vtkEventDataDevice::RightController);
+
+            vtkNew<vtkMatrix4x4> lastPose;
+            oRenWin->SetMatrixFromOpenVRPose(lastPose, this->Trackers[1].LastPose);
+            this->ConvertPoseToWorldCoordinates(lastPose, pos, wxyz, ppos, wdir);
           }
         }
-        this->MouseMoveEvent();
+        edp->SetWorldPosition(pos);
+        edp->SetWorldOrientation(wxyz);
+        edp->SetWorldDirection(wdir);
+        edp->SetType(it.second.EventId);
+
+        if (it.second.UseFunction)
+        {
+          it.second.Function(edp);
+        }
+        else
+        {
+          this->InvokeEvent(it.second.EventId, edp);
+        }
+        edp->Delete();
       }
     }
-    renWin->Render();
+
+    if (this->RecognizeGestures)
+    {
+      this->RecognizeComplexGesture(nullptr);
+    }
+    this->InvokeEvent(vtkCommand::RenderEvent);
+    auto ostate = oRenWin->GetState();
+    oRenWin->MakeCurrent();
+    ostate->Reset();
+    ostate->Push();
+    oRenWin->Render();
+    ostate->Pop();
   }
 }
 
-
-//----------------------------------------------------------------------------
-void vtkOpenVRRenderWindowInteractor::Initialize()
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderWindowInteractor::AddAction(
+  std::string path, vtkCommand::EventIds eid, bool isAnalog)
 {
-  // make sure we have a RenderWindow and camera
-  if ( ! this->RenderWindow)
-  {
-    vtkErrorMacro(<<"No renderer defined!");
-    return;
-  }
+  // Path example: "/user/hand/right/input/trackpad"
+  auto& am = this->ActionMap[path];
+  am.EventId = eid;
+  am.UseFunction = false;
+  am.IsAnalog = isAnalog;
   if (this->Initialized)
   {
-    return;
+    vr::VRInput()->GetActionHandle(path.c_str(), &am.ActionHandle);
   }
-
-  vtkOpenVRRenderWindow *ren =
-    vtkOpenVRRenderWindow::SafeDownCast(this->RenderWindow);
-  int *size;
-
-  this->Initialized = 1;
-  // get the info we need from the RenderingWindow
-
-  size = ren->GetSize();
-  ren->GetPosition();
-  this->Enable();
-  this->Size[0] = size[0];
-  this->Size[1] = size[1];
 }
 
-//----------------------------------------------------------------------------
-void vtkOpenVRRenderWindowInteractor::TerminateApp(void)
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderWindowInteractor::AddAction(
+  std::string path, bool isAnalog, std::function<void(vtkEventData*)> func)
 {
-  this->Done = true;
-}
-
-//----------------------------------------------------------------------------
-int vtkOpenVRRenderWindowInteractor::InternalCreateTimer(
-  int vtkNotUsed(timerId),
-  int vtkNotUsed(timerType),
-  unsigned long vtkNotUsed(duration))
-{
-  // todo
-  return 0;
-}
-
-//----------------------------------------------------------------------------
-int vtkOpenVRRenderWindowInteractor::InternalDestroyTimer(
-  int vtkNotUsed(platformTimerId))
-{
-  // todo
-  return 0;
-}
-
-
-//----------------------------------------------------------------------------
-// Specify the default function to be called when an interactor needs to exit.
-// This callback is overridden by an instance ExitMethod that is defined.
-void
-vtkOpenVRRenderWindowInteractor::SetClassExitMethod(void (*f)(void *),void *arg)
-{
-  if ( f != vtkOpenVRRenderWindowInteractor::ClassExitMethod
-       || arg != vtkOpenVRRenderWindowInteractor::ClassExitMethodArg)
+  // Path example: "/user/hand/right/input/trackpad"
+  auto& am = this->ActionMap[path];
+  am.UseFunction = true;
+  am.Function = func;
+  am.IsAnalog = isAnalog;
+  if (this->Initialized)
   {
-    // delete the current arg if there is a delete method
-    if ((vtkOpenVRRenderWindowInteractor::ClassExitMethodArg)
-        && (vtkOpenVRRenderWindowInteractor::ClassExitMethodArgDelete))
+    vr::VRInput()->GetActionHandle(path.c_str(), &am.ActionHandle);
+  }
+}
+
+//------------------------------------------------------------------------------
+// Purpose: Returns true if the action is active and its state is true
+//------------------------------------------------------------------------------
+bool GetDigitalActionState(
+  vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr)
+{
+  vr::InputDigitalActionData_t actionData;
+  vr::VRInput()->GetDigitalActionData(
+    action, &actionData, sizeof(actionData), vr::k_ulInvalidInputValueHandle);
+  if (pDevicePath)
+  {
+    *pDevicePath = vr::k_ulInvalidInputValueHandle;
+    if (actionData.bActive)
     {
-      (*vtkOpenVRRenderWindowInteractor::ClassExitMethodArgDelete)
-        (vtkOpenVRRenderWindowInteractor::ClassExitMethodArg);
+      vr::InputOriginInfo_t originInfo;
+      if (vr::VRInputError_None ==
+        vr::VRInput()->GetOriginTrackedDeviceInfo(
+          actionData.activeOrigin, &originInfo, sizeof(originInfo)))
+      {
+        *pDevicePath = originInfo.devicePath;
+      }
     }
-    vtkOpenVRRenderWindowInteractor::ClassExitMethod = f;
-    vtkOpenVRRenderWindowInteractor::ClassExitMethodArg = arg;
-
-    // no call to this->Modified() since this is a class member function
   }
-}
-
-//----------------------------------------------------------------------------
-// Set the arg delete method.  This is used to free user memory.
-void
-vtkOpenVRRenderWindowInteractor::SetClassExitMethodArgDelete(void (*f)(void *))
-{
-  if (f != vtkOpenVRRenderWindowInteractor::ClassExitMethodArgDelete)
-  {
-    vtkOpenVRRenderWindowInteractor::ClassExitMethodArgDelete = f;
-
-    // no call to this->Modified() since this is a class member function
-  }
-}
-
-//----------------------------------------------------------------------------
-void vtkOpenVRRenderWindowInteractor::PrintSelf(ostream& os, vtkIndent indent)
-{
-  this->Superclass::PrintSelf(os,indent);
-  os << indent << "StartedMessageLoop: " << this->StartedMessageLoop << endl;
-}
-
-//----------------------------------------------------------------------------
-void vtkOpenVRRenderWindowInteractor::ExitCallback()
-{
-  if (this->HasObserver(vtkCommand::ExitEvent))
-  {
-    this->InvokeEvent(vtkCommand::ExitEvent,NULL);
-  }
-  else if (this->ClassExitMethod)
-  {
-    (*this->ClassExitMethod)(this->ClassExitMethodArg);
-  }
-
-  this->TerminateApp();
+  return actionData.bActive && actionData.bState;
 }

@@ -19,35 +19,29 @@
 
 // This is largely here to confirm the approach works, and will be replaced
 // with standard factory override logic in the modularized source tree.
-//----------------------------------------------------------------------------
-vtkObjectFactoryNewMacro(vtkInteractorStyleSwitchBase)
+//------------------------------------------------------------------------------
+vtkObjectFactoryNewMacro(vtkInteractorStyleSwitchBase);
 
-//----------------------------------------------------------------------------
-vtkInteractorStyleSwitchBase::vtkInteractorStyleSwitchBase()
-{
-}
+//------------------------------------------------------------------------------
+vtkInteractorStyleSwitchBase::vtkInteractorStyleSwitchBase() = default;
 
-//----------------------------------------------------------------------------
-vtkInteractorStyleSwitchBase::~vtkInteractorStyleSwitchBase()
-{
-}
+//------------------------------------------------------------------------------
+vtkInteractorStyleSwitchBase::~vtkInteractorStyleSwitchBase() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkRenderWindowInteractor* vtkInteractorStyleSwitchBase::GetInteractor()
 {
   static bool warned = false;
-  if (!warned &&
-      strcmp(this->GetClassName(), "vtkInteractorStyleSwitchBase") == 0)
+  if (!warned && strcmp(this->GetClassName(), "vtkInteractorStyleSwitchBase") == 0)
   {
-    vtkWarningMacro(
-      "Warning: Link to vtkInteractionStyle for default style selection.");
+    vtkWarningMacro("Warning: Link to vtkInteractionStyle for default style selection.");
     warned = true;
   }
-  return NULL;
+  return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInteractorStyleSwitchBase::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }

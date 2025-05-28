@@ -27,7 +27,7 @@
  *
  * Triangle subdivision is controlled by specifying a maximum edge length
  * and/or triangle area that any given triangle may have. Subdivision
- * proceeds until there criteria are satisified. Note that using excessively
+ * proceeds until their criteria are satisfied. Note that using excessively
  * small criteria values can produce enormous meshes with the possibility of
  * exhausting system memory. Also, if you want to ignore a particular
  * criterion value (e.g., triangle area) then simply set the criterion value
@@ -64,7 +64,7 @@
  * @sa
  * vtkInterpolatingSubdivisionFilter vtkLinearSubdivisionFilter
  * vtkButterflySubdivisionFilter vtkTriangleFilter
-*/
+ */
 
 #ifndef vtkAdaptiveSubdivisionFilter_h
 #define vtkAdaptiveSubdivisionFilter_h
@@ -74,41 +74,40 @@
 
 class vtkIncrementalPointLocator;
 
-
 class VTKFILTERSMODELING_EXPORT vtkAdaptiveSubdivisionFilter : public vtkPolyDataAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard methods for instantiation, type info, and printing.
    */
-  static vtkAdaptiveSubdivisionFilter *New();
-  vtkTypeMacro(vtkAdaptiveSubdivisionFilter,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkAdaptiveSubdivisionFilter* New();
+  vtkTypeMacro(vtkAdaptiveSubdivisionFilter, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the maximum edge length that a triangle may have. Edges longer
    * than this value are split in half and the associated triangles are
    * modified accordingly.
    */
-  vtkSetClampMacro(MaximumEdgeLength,double,0.000001,VTK_DOUBLE_MAX);
-  vtkGetMacro(MaximumEdgeLength,double);
-  //@}
+  vtkSetClampMacro(MaximumEdgeLength, double, 0.000001, VTK_DOUBLE_MAX);
+  vtkGetMacro(MaximumEdgeLength, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the maximum area that a triangle may have. Triangles larger
    * than this value are subdivided to meet this threshold. Note that if
    * this criterion is used it may produce non-watertight meshes as a
    * result.
    */
-  vtkSetClampMacro(MaximumTriangleArea,double,0.000001,VTK_DOUBLE_MAX);
-  vtkGetMacro(MaximumTriangleArea,double);
-  //@}
+  vtkSetClampMacro(MaximumTriangleArea, double, 0.000001, VTK_DOUBLE_MAX);
+  vtkGetMacro(MaximumTriangleArea, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set a limit on the maximum number of triangles that can be created.  If
    * the limit is hit, it may result in premature termination of the
@@ -116,32 +115,32 @@ public:
    * non-watertight meshes may be created). By default, the limit is set to a
    * very large number (i.e., no effective limit).
    */
-  vtkSetClampMacro(MaximumNumberOfTriangles,vtkIdType,1,VTK_ID_MAX);
-  vtkGetMacro(MaximumNumberOfTriangles,vtkIdType);
-  //@}
+  vtkSetClampMacro(MaximumNumberOfTriangles, vtkIdType, 1, VTK_ID_MAX);
+  vtkGetMacro(MaximumNumberOfTriangles, vtkIdType);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set a limit on the number of passes (i.e., levels of subdivision).  If
    * the limit is hit, then the subdivision process stops and additional
    * passes (needed to meet other criteria) are aborted. The default limit is
    * set to a very large number (i.e., no effective limit).
    */
-  vtkSetClampMacro(MaximumNumberOfPasses,vtkIdType,1,VTK_ID_MAX);
-  vtkGetMacro(MaximumNumberOfPasses,vtkIdType);
-  //@}
+  vtkSetClampMacro(MaximumNumberOfPasses, vtkIdType, 1, VTK_ID_MAX);
+  vtkGetMacro(MaximumNumberOfPasses, vtkIdType);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set / get a spatial locator for merging points. By default,
    * an instance of vtkMergePoints is used. This is used to merge
    * coincident points during subdivision.
    */
-  void SetLocator(vtkIncrementalPointLocator *locator);
-  vtkGetObjectMacro(Locator,vtkIncrementalPointLocator);
-  //@}
+  void SetLocator(vtkIncrementalPointLocator* locator);
+  vtkGetObjectMacro(Locator, vtkIncrementalPointLocator);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the desired precision for the output types. See the documentation
    * for the vtkAlgorithm::Precision enum for an explanation of the available
@@ -149,7 +148,7 @@ public:
    */
   vtkSetMacro(OutputPointsPrecision, int);
   vtkGetMacro(OutputPointsPrecision, int);
-  //@}
+  ///@}
 
   /**
    * Create a default locator. Used to create one when none is
@@ -160,24 +159,24 @@ public:
   /**
    * Modified GetMTime because of the dependence on the locator.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
 protected:
   vtkAdaptiveSubdivisionFilter();
-  ~vtkAdaptiveSubdivisionFilter() VTK_OVERRIDE;
+  ~vtkAdaptiveSubdivisionFilter() override;
 
   double MaximumEdgeLength;
   double MaximumTriangleArea;
   vtkIdType MaximumNumberOfTriangles;
   vtkIdType MaximumNumberOfPasses;
-  vtkIncrementalPointLocator *Locator;
+  vtkIncrementalPointLocator* Locator;
   int OutputPointsPrecision;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkAdaptiveSubdivisionFilter(const vtkAdaptiveSubdivisionFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkAdaptiveSubdivisionFilter&) VTK_DELETE_FUNCTION;
+  vtkAdaptiveSubdivisionFilter(const vtkAdaptiveSubdivisionFilter&) = delete;
+  void operator=(const vtkAdaptiveSubdivisionFilter&) = delete;
 };
 
 #endif

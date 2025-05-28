@@ -17,7 +17,7 @@
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestVectorOperators(int, char*[])
 {
   vtkVector3i vec3i(0, 6, 9);
@@ -41,14 +41,14 @@ int TestVectorOperators(int, char*[])
   }
   if (vec3ia == vec3ib)
   {
-    cerr << "vec3ia == vec3ib failed (are not equal, but reported equal)."
-         << endl << "vec3i = " << vec3i << ", vec3ia = " << vec3ia << endl;
+    cerr << "vec3ia == vec3ib failed (are not equal, but reported equal)." << endl
+         << "vec3i = " << vec3i << ", vec3ia = " << vec3ia << endl;
     ++retVal;
   }
   if (vector3f == vec3i)
   {
-    cerr << "vector3f == vec3ib failed (are not equal, but reported equal)."
-         << endl << "vec3i = " << vector3f << ", vec3ia = " << vec3ia << endl;
+    cerr << "vector3f == vec3ib failed (are not equal, but reported equal)." << endl
+         << "vec3i = " << vector3f << ", vec3ia = " << vec3ia << endl;
     ++retVal;
   }
 
@@ -110,6 +110,26 @@ int TestVectorOperators(int, char*[])
   {
     cerr << "Vector multiplication by scalar operator failed." << endl;
     cerr << "2 * " << vec3ia << " = " << result << endl;
+    ++retVal;
+  }
+
+  // Test the += operator
+  result = vec3ia;
+  result += vec3ib;
+  if (result != vtkVector3i(0, 12, 17))
+  {
+    cerr << "Vector += operator failed." << endl;
+    cerr << vec3ia << " + " << vec3ib << " = " << result << endl;
+    ++retVal;
+  }
+
+  // Test the -= operator
+  result = vec3ia;
+  result -= vec3ib;
+  if (result != vtkVector3i(0, 0, 1))
+  {
+    cerr << "Vector -= operator failed." << endl;
+    cerr << vec3ia << " - " << vec3ib << " = " << result << endl;
     ++retVal;
   }
 

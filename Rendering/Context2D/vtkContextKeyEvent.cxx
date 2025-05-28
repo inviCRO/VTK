@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkContextScene.h
+  Module:    vtkContextKeyEvent.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -19,14 +19,16 @@
 
 #include <cassert>
 
-void vtkContextKeyEvent::SetInteractor(vtkRenderWindowInteractor *interactor)
+vtkContextKeyEvent::vtkContextKeyEvent() = default;
+
+void vtkContextKeyEvent::SetInteractor(vtkRenderWindowInteractor* interactor)
 {
   this->Interactor = interactor;
 }
 
 vtkRenderWindowInteractor* vtkContextKeyEvent::GetInteractor() const
 {
-  return this->Interactor.GetPointer();
+  return this->Interactor;
 }
 
 char vtkContextKeyEvent::GetKeyCode() const

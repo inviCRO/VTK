@@ -25,50 +25,42 @@
 #include "vtkGraph.h"
 #include "vtkInformation.h"
 #include "vtkInformationIntegerKey.h"
-#include "vtkStdString.h"
 #include "vtkVariant.h"
 
-
-#include <climits> // CHAR_BIT
 #include <cassert> // assert()
-
+#include <climits> // CHAR_BIT
 
 vtkInformationKeyMacro(vtkDistributedGraphHelper, DISTRIBUTEDVERTEXIDS, Integer);
 vtkInformationKeyMacro(vtkDistributedGraphHelper, DISTRIBUTEDEDGEIDS, Integer);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // class vtkDistributedGraphHelper
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDistributedGraphHelper::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
-  int numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
-  int myRank
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_PIECE_NUMBER());
+  this->Superclass::PrintSelf(os, indent);
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int myRank = this->Graph->GetInformation()->Get(vtkDataObject::DATA_PIECE_NUMBER());
   os << indent << "Processor: " << myRank << " of " << numProcs << endl;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDistributedGraphHelper::vtkDistributedGraphHelper()
 {
-  this->Graph = 0;
-  this->VertexDistribution = 0;
+  this->Graph = nullptr;
+  this->VertexDistribution = nullptr;
 }
 
-//----------------------------------------------------------------------------
-vtkDistributedGraphHelper::~vtkDistributedGraphHelper()
-{
-}
+//------------------------------------------------------------------------------
+vtkDistributedGraphHelper::~vtkDistributedGraphHelper() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDistributedGraphHelper::GetVertexOwner(vtkIdType v) const
 {
   vtkIdType owner = v;
-  int numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
 
   if (numProcs > 1)
   {
@@ -87,7 +79,7 @@ vtkIdType vtkDistributedGraphHelper::GetVertexOwner(vtkIdType v) const
       owner = v >> this->indexBits;
     }
   }
-  else  // numProcs = 1
+  else // numProcs = 1
   {
     owner = 0;
   }
@@ -95,12 +87,11 @@ vtkIdType vtkDistributedGraphHelper::GetVertexOwner(vtkIdType v) const
   return owner;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDistributedGraphHelper::GetVertexIndex(vtkIdType v) const
 {
   vtkIdType index = v;
-  int numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
 
   if (numProcs > 1)
   {
@@ -111,12 +102,11 @@ vtkIdType vtkDistributedGraphHelper::GetVertexIndex(vtkIdType v) const
   return index;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDistributedGraphHelper::GetEdgeOwner(vtkIdType e_id) const
 {
   vtkIdType owner = e_id;
-  int numProcs =
-    this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
 
   if (numProcs > 1)
   {
@@ -131,7 +121,7 @@ vtkIdType vtkDistributedGraphHelper::GetEdgeOwner(vtkIdType e_id) const
       owner = e_id >> this->indexBits;
     }
   }
-  else  // numProcs = 1
+  else // numProcs = 1
   {
     owner = 0;
   }
@@ -139,12 +129,11 @@ vtkIdType vtkDistributedGraphHelper::GetEdgeOwner(vtkIdType e_id) const
   return owner;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDistributedGraphHelper::GetEdgeIndex(vtkIdType e_id) const
 {
   vtkIdType index = e_id;
-  int numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
 
   if (numProcs > 1)
   {
@@ -155,11 +144,10 @@ vtkIdType vtkDistributedGraphHelper::GetEdgeIndex(vtkIdType e_id) const
   return index;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDistributedGraphHelper::MakeDistributedId(int owner, vtkIdType local)
 {
-  int numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
 
   if (numProcs > 1)
   {
@@ -170,23 +158,23 @@ vtkIdType vtkDistributedGraphHelper::MakeDistributedId(int owner, vtkIdType loca
   return local;
 }
 
-//----------------------------------------------------------------------------
-void vtkDistributedGraphHelper::AttachToGraph(vtkGraph *graph)
+//------------------------------------------------------------------------------
+void vtkDistributedGraphHelper::AttachToGraph(vtkGraph* graph)
 {
   this->Graph = graph;
 
   // Some factors and masks to help speed up encoding/decoding {owner,index}
-  int numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  int numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
   int tmp = numProcs - 1;
   // The following is integer arith equiv of ceil(log2(numProcs)):
   int numProcBits = 0;
-  while( tmp != 0 )
+  while (tmp != 0)
   {
     tmp >>= 1;
     numProcBits++;
   }
-  if (numProcs == 1)  numProcBits = 1;
+  if (numProcs == 1)
+    numProcBits = 1;
 
   this->signBitMask = VTK_ID_MIN;
   this->highBitShiftMask = static_cast<vtkIdType>(1) << numProcBits;
@@ -194,33 +182,26 @@ void vtkDistributedGraphHelper::AttachToGraph(vtkGraph *graph)
   this->indexBits = (sizeof(vtkIdType) * CHAR_BIT) - (numProcBits + 1);
 }
 
-//----------------------------------------------------------------------------
-void
-vtkDistributedGraphHelper::
-SetVertexPedigreeIdDistribution(vtkVertexPedigreeIdDistribution Func,
-                                void *userData)
+//------------------------------------------------------------------------------
+void vtkDistributedGraphHelper::SetVertexPedigreeIdDistribution(
+  vtkVertexPedigreeIdDistribution Func, void* userData)
 {
   this->VertexDistribution = Func;
   this->VertexDistributionUserData = userData;
 }
 
-//----------------------------------------------------------------------------
-vtkIdType
-vtkDistributedGraphHelper::
-GetVertexOwnerByPedigreeId(const vtkVariant& pedigreeId)
+//------------------------------------------------------------------------------
+vtkIdType vtkDistributedGraphHelper::GetVertexOwnerByPedigreeId(const vtkVariant& pedigreeId)
 {
-  vtkIdType numProcs
-    = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
+  vtkIdType numProcs = this->Graph->GetInformation()->Get(vtkDataObject::DATA_NUMBER_OF_PIECES());
   if (this->VertexDistribution)
   {
-    return (this->VertexDistribution(pedigreeId,
-                                     this->VertexDistributionUserData)
-            % numProcs);
+    return (this->VertexDistribution(pedigreeId, this->VertexDistributionUserData) % numProcs);
   }
 
   // Hash the variant in a very lame way.
   double numericValue;
-  vtkStdString stringValue;
+  std::string stringValue;
   const unsigned char *charsStart, *charsEnd;
   if (pedigreeId.IsNumeric())
   {
@@ -239,8 +220,7 @@ GetVertexOwnerByPedigreeId(const vtkVariant& pedigreeId)
   }
   else
   {
-    vtkErrorMacro("Cannot hash vertex pedigree ID of type "
-                  << pedigreeId.GetType());
+    vtkErrorMacro("Cannot hash vertex pedigree ID of type " << pedigreeId.GetType());
     return 0;
   }
 

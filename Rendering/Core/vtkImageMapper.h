@@ -25,13 +25,13 @@
  *
  * @sa
  * vtkMapper2D vtkActor2D
-*/
+ */
 
 #ifndef vtkImageMapper_h
 #define vtkImageMapper_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkMapper2D.h"
+#include "vtkRenderingCoreModule.h" // For export macro
 
 class vtkWindow;
 class vtkViewport;
@@ -42,31 +42,31 @@ class VTKRENDERINGCORE_EXPORT vtkImageMapper : public vtkMapper2D
 {
 public:
   vtkTypeMacro(vtkImageMapper, vtkMapper2D);
-  static vtkImageMapper *New();
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkImageMapper* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Override Modifiedtime as we have added a lookuptable
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
-  //@{
+  ///@{
   /**
    * Set/Get the window value for window/level
    */
   vtkSetMacro(ColorWindow, double);
   vtkGetMacro(ColorWindow, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the level value for window/level
    */
   vtkSetMacro(ColorLevel, double);
   vtkGetMacro(ColorLevel, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the current slice number. The axis Z in ZSlice does not
    * necessarily have any relation to the z axis of the data on disk.
@@ -80,7 +80,7 @@ public:
   vtkGetMacro(ZSlice, int);
   int GetWholeZMin();
   int GetWholeZMax();
-  //@}
+  ///@}
 
   /**
    * Draw the image to the screen.
@@ -90,39 +90,39 @@ public:
   /**
    * Function called by Render to actually draw the image to to the screen
    */
-  virtual void RenderData(vtkViewport*, vtkImageData*, vtkActor2D* )=0;
+  virtual void RenderData(vtkViewport*, vtkImageData*, vtkActor2D*) {}
 
-  //@{
+  ///@{
   /**
    * Methods used internally for performing the Window/Level mapping.
    */
   double GetColorShift();
   double GetColorScale();
-  //@}
+  ///@}
 
   // Public for templated functions. * *  Should remove this * *
   int DisplayExtent[6];
 
-  //@{
+  ///@{
   /**
    * Set the Input of a filter.
    */
-  virtual void SetInputData(vtkImageData *input);
-  vtkImageData *GetInput();
-  //@}
+  virtual void SetInputData(vtkImageData* input);
+  vtkImageData* GetInput();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If RenderToRectangle is set (by default not), then the imagemapper
    * will render the image into the rectangle supplied by the Actor2D's
    * PositionCoordinate and Position2Coordinate
    */
-  vtkSetMacro(RenderToRectangle, int);
-  vtkGetMacro(RenderToRectangle, int);
-  vtkBooleanMacro(RenderToRectangle, int);
-  //@}
+  vtkSetMacro(RenderToRectangle, vtkTypeBool);
+  vtkGetMacro(RenderToRectangle, vtkTypeBool);
+  vtkBooleanMacro(RenderToRectangle, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Usually, the entire image is displayed, if UseCustomExtents
    * is set (by default not), then the region supplied in the
@@ -130,12 +130,12 @@ public:
    * Note that the Custom extents are x,y only and the zslice is still
    * applied
    */
-  vtkSetMacro(UseCustomExtents, int);
-  vtkGetMacro(UseCustomExtents, int);
-  vtkBooleanMacro(UseCustomExtents, int);
-  //@}
+  vtkSetMacro(UseCustomExtents, vtkTypeBool);
+  vtkGetMacro(UseCustomExtents, vtkTypeBool);
+  vtkBooleanMacro(UseCustomExtents, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The image extents which should be displayed with UseCustomExtents
    * Note that the Custom extents are x,y only and the zslice is still
@@ -143,25 +143,26 @@ public:
    */
   vtkSetVectorMacro(CustomDisplayExtents, int, 4);
   vtkGetVectorMacro(CustomDisplayExtents, int, 4);
-  //@}
+  ///@}
 
 protected:
   vtkImageMapper();
-  ~vtkImageMapper() VTK_OVERRIDE;
+  ~vtkImageMapper() override;
 
   double ColorWindow;
   double ColorLevel;
 
   int PositionAdjustment[2];
   int ZSlice;
-  int UseCustomExtents;
+  vtkTypeBool UseCustomExtents;
   int CustomDisplayExtents[4];
-  int RenderToRectangle;
+  vtkTypeBool RenderToRectangle;
 
-  int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  int FillInputPortInformation(int, vtkInformation*) override;
+
 private:
-  vtkImageMapper(const vtkImageMapper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageMapper&) VTK_DELETE_FUNCTION;
+  vtkImageMapper(const vtkImageMapper&) = delete;
+  void operator=(const vtkImageMapper&) = delete;
 };
 
 #endif

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import vtk
+from math import cos, sin, pi
 from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
@@ -72,6 +73,15 @@ while i < n:
 
     i += 1
 
+angle = pi/6
+orientation = [
+  -cos(angle), 0, sin(angle),
+  0, 1, 0,
+  sin(angle), 0, cos(angle),
+]
+blobImage.SetDirectionMatrix(orientation)
+
+# Extract labeled blobs
 discrete = vtk.vtkDiscreteMarchingCubes()
 discrete.SetInputData(blobImage)
 discrete.GenerateValues(n, 1, n)
@@ -84,8 +94,19 @@ mapper.SetScalarRange(0, lut.GetNumberOfColors())
 actor = vtk.vtkActor()
 actor.SetMapper(mapper)
 
+# Put an outline around it
+outline = vtk.vtkImageDataOutlineFilter()
+outline.SetInputData(blobImage)
+
+outlineMapper = vtk.vtkPolyDataMapper()
+outlineMapper.SetInputConnection(outline.GetOutputPort())
+
+outlineActor = vtk.vtkActor()
+outlineActor.SetMapper(outlineMapper)
+outlineActor.GetProperty().SetColor(1,1,1)
+
 ren1.AddActor(actor)
+ren1.AddActor(outlineActor)
 
 renWin.Render()
-
-#iren.Start()
+iren.Start()

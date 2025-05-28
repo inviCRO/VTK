@@ -25,17 +25,20 @@
  * writer). If the array is not a vtkUnsignedCharArray with 3 or 4 components,
  * you need to specify a vtkLookupTable to map the scalars to RGB.
  *
+ * To enable saving out alpha (opacity) values, you must enable alpha using
+ * `vtkPLYWriter::SetEnableAlpha()`.
+ *
  * @warning
  * PLY does not handle big endian versus little endian correctly.
  *
  * @sa
  * vtkPLYReader
-*/
+ */
 
 #ifndef vtkPLYWriter_h
 #define vtkPLYWriter_h
 
-#include "vtkIOPLYModule.h" // For export macro
+#include "vtkIOPLYModule.h"  // For export macro
 #include "vtkSmartPointer.h" // For protected ivars
 #include "vtkWriter.h"
 
@@ -45,9 +48,10 @@ class vtkDataSetAttributes;
 class vtkPolyData;
 class vtkScalarsToColors;
 class vtkStringArray;
+class vtkUnsignedCharArray;
 
 #define VTK_LITTLE_ENDIAN 0
-#define VTK_BIG_ENDIAN    1
+#define VTK_BIG_ENDIAN 1
 
 #define VTK_COLOR_MODE_DEFAULT 0
 #define VTK_COLOR_MODE_UNIFORM_CELL_COLOR 1
@@ -61,24 +65,37 @@ class vtkStringArray;
 class VTKIOPLY_EXPORT vtkPLYWriter : public vtkWriter
 {
 public:
-  static vtkPLYWriter *New();
-  vtkTypeMacro(vtkPLYWriter,vtkWriter);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkPLYWriter* New();
+  vtkTypeMacro(vtkPLYWriter, vtkWriter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * If the file type is binary, then the user can specify which
    * byte order to use (little versus big endian).
    */
-  vtkSetClampMacro(DataByteOrder,int,VTK_LITTLE_ENDIAN,VTK_BIG_ENDIAN);
-  vtkGetMacro(DataByteOrder,int);
-  void SetDataByteOrderToBigEndian()
-    {this->SetDataByteOrder(VTK_BIG_ENDIAN);}
-  void SetDataByteOrderToLittleEndian()
-    {this->SetDataByteOrder(VTK_LITTLE_ENDIAN);}
-  //@}
+  vtkSetClampMacro(DataByteOrder, int, VTK_LITTLE_ENDIAN, VTK_BIG_ENDIAN);
+  vtkGetMacro(DataByteOrder, int);
+  void SetDataByteOrderToBigEndian() { this->SetDataByteOrder(VTK_BIG_ENDIAN); }
+  void SetDataByteOrderToLittleEndian() { this->SetDataByteOrder(VTK_LITTLE_ENDIAN); }
+  ///@}
 
-  //@{
+  ///@{
+  /**
+   * Enable writing to an OutputString instead of the default, a file.
+   * Note that writing to an output stream would be more flexible (enabling
+   * other kind of streams) and possibly more efficient because we don't need
+   * to write the whole stream to a string. However a stream interface
+   * does not translate well to python and the string interface satisfies
+   * our current needs. So we leave the stream interface for future work.
+   */
+  vtkSetMacro(WriteToOutputString, bool);
+  vtkGetMacro(WriteToOutputString, bool);
+  vtkBooleanMacro(WriteToOutputString, bool);
+  const std::string& GetOutputString() const { return this->OutputString; }
+  ///@}
+
+  ///@{
   /**
    * These methods enable the user to control how to add color into the PLY
    * output file. The default behavior is as follows. The user provides the
@@ -96,114 +113,138 @@ public:
    * cells have the arrays with the same name, then both colors will be
    * written.)
    */
-  vtkSetMacro(ColorMode,int);
-  vtkGetMacro(ColorMode,int);
-  void SetColorModeToDefault()
-    {this->SetColorMode(VTK_COLOR_MODE_DEFAULT);}
-  void SetColorModeToUniformCellColor()
-    {this->SetColorMode(VTK_COLOR_MODE_UNIFORM_CELL_COLOR);}
-  void SetColorModeToUniformPointColor()
-    {this->SetColorMode(VTK_COLOR_MODE_UNIFORM_POINT_COLOR);}
-  void SetColorModeToUniformColor() //both cells and points are colored
-    {this->SetColorMode(VTK_COLOR_MODE_UNIFORM_COLOR);}
-  void SetColorModeToOff() //No color information is written
-    {this->SetColorMode(VTK_COLOR_MODE_OFF);}
-  //@}
+  vtkSetMacro(ColorMode, int);
+  vtkGetMacro(ColorMode, int);
+  void SetColorModeToDefault() { this->SetColorMode(VTK_COLOR_MODE_DEFAULT); }
+  void SetColorModeToUniformCellColor() { this->SetColorMode(VTK_COLOR_MODE_UNIFORM_CELL_COLOR); }
+  void SetColorModeToUniformPointColor() { this->SetColorMode(VTK_COLOR_MODE_UNIFORM_POINT_COLOR); }
+  void SetColorModeToUniformColor() // both cells and points are colored
+  {
+    this->SetColorMode(VTK_COLOR_MODE_UNIFORM_COLOR);
+  }
+  void SetColorModeToOff() // No color information is written
+  {
+    this->SetColorMode(VTK_COLOR_MODE_OFF);
+  }
+  ///@}
 
-  //@{
+  ///@{
+  /**
+   * Enable alpha output. Default is off, i.e. only color values will be saved
+   * based on ColorMode.
+   */
+  vtkSetMacro(EnableAlpha, bool);
+  vtkGetMacro(EnableAlpha, bool);
+  vtkBooleanMacro(EnableAlpha, bool);
+  ///@}
+
+  ///@{
   /**
    * Specify the array name to use to color the data.
    */
   vtkSetStringMacro(ArrayName);
   vtkGetStringMacro(ArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the array component to use to color the data.
    */
-  vtkSetClampMacro(Component,int,0,VTK_INT_MAX);
-  vtkGetMacro(Component,int);
-  //@}
+  vtkSetClampMacro(Component, int, 0, VTK_INT_MAX);
+  vtkGetMacro(Component, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * A lookup table can be specified in order to convert data arrays to
    * RGBA colors.
    */
   virtual void SetLookupTable(vtkScalarsToColors*);
-  vtkGetObjectMacro(LookupTable,vtkScalarsToColors);
-  //@}
+  vtkGetObjectMacro(LookupTable, vtkScalarsToColors);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the color to use when using a uniform color (either point or cells,
    * or both). The color is specified as a triplet of three unsigned chars
    * between (0,255). This only takes effect when the ColorMode is set to
    * uniform point, uniform cell, or uniform color.
    */
-  vtkSetVector3Macro(Color,unsigned char);
-  vtkGetVector3Macro(Color,unsigned char);
-  //@}
+  vtkSetVector3Macro(Color, unsigned char);
+  vtkGetVector3Macro(Color, unsigned char);
+  ///@}
 
-  //@{
+  ///@{
+  /** Set the alpha to use when using a uniform color (effect point or cells, or
+   *  both) and EnableAlpha is ON.
+   */
+  vtkSetMacro(Alpha, unsigned char);
+  vtkGetMacro(Alpha, unsigned char);
+  ///@}
+
+  ///@{
   /**
    * Get the input to this writer.
    */
   vtkPolyData* GetInput();
   vtkPolyData* GetInput(int port);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify file name of vtk polygon data file to write.
    */
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
-  //@}
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify file type (ASCII or BINARY) for vtk data file.
    */
-  vtkSetClampMacro(FileType,int,VTK_ASCII,VTK_BINARY);
-  vtkGetMacro(FileType,int);
-  void SetFileTypeToASCII() {this->SetFileType(VTK_ASCII);};
-  void SetFileTypeToBinary() {this->SetFileType(VTK_BINARY);};
-  //@}
+  vtkSetClampMacro(FileType, int, VTK_ASCII, VTK_BINARY);
+  vtkGetMacro(FileType, int);
+  void SetFileTypeToASCII() { this->SetFileType(VTK_ASCII); }
+  void SetFileTypeToBinary() { this->SetFileType(VTK_BINARY); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Choose the name used for the texture coordinates.
    * (u, v) or (texture_u, texture_v)
    */
-  vtkSetClampMacro(TextureCoordinatesName,int,VTK_TEXTURECOORDS_UV, VTK_TEXTURECOORDS_TEXTUREUV);
-  vtkGetMacro(TextureCoordinatesName,int);
-  void SetTextureCoordinatesNameToUV()
-    {this->SetTextureCoordinatesName(VTK_TEXTURECOORDS_UV);}
+  vtkSetClampMacro(TextureCoordinatesName, int, VTK_TEXTURECOORDS_UV, VTK_TEXTURECOORDS_TEXTUREUV);
+  vtkGetMacro(TextureCoordinatesName, int);
+  void SetTextureCoordinatesNameToUV() { this->SetTextureCoordinatesName(VTK_TEXTURECOORDS_UV); }
   void SetTextureCoordinatesNameToTextureUV()
-    {this->SetTextureCoordinatesName(VTK_TEXTURECOORDS_TEXTUREUV);}
-  //@}
+  {
+    this->SetTextureCoordinatesName(VTK_TEXTURECOORDS_TEXTUREUV);
+  }
+  ///@}
 
   /**
    * Add a comment in the header part.
    */
-  void AddComment(const std::string &comment);
+  void AddComment(const std::string& comment);
 
 protected:
   vtkPLYWriter();
-  ~vtkPLYWriter() VTK_OVERRIDE;
+  ~vtkPLYWriter() override;
 
-  void WriteData() VTK_OVERRIDE;
-  unsigned char *GetColors(vtkIdType num, vtkDataSetAttributes *dsa);
-  const float *GetTextureCoordinates(vtkIdType num, vtkDataSetAttributes *dsa);
+  void WriteData() override;
+  vtkSmartPointer<vtkUnsignedCharArray> GetColors(vtkIdType num, vtkDataSetAttributes* dsa);
+  const float* GetTextureCoordinates(vtkIdType num, vtkDataSetAttributes* dsa);
+  const float* GetNormals(vtkIdType num, vtkDataSetAttributes* dsa);
 
   int DataByteOrder;
-  char *ArrayName;
+  char* ArrayName;
   int Component;
   int ColorMode;
-  vtkScalarsToColors *LookupTable;
+  vtkScalarsToColors* LookupTable;
   unsigned char Color[3];
+
+  bool EnableAlpha;
+  unsigned char Alpha;
 
   char* FileName;
 
@@ -212,12 +253,18 @@ protected:
 
   vtkSmartPointer<vtkStringArray> HeaderComments;
 
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  // Whether this object is writing to a string or a file.
+  // Default is 0: write to file.
+  bool WriteToOutputString;
+
+  // The output string.
+  std::string OutputString;
+
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkPLYWriter(const vtkPLYWriter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPLYWriter&) VTK_DELETE_FUNCTION;
+  vtkPLYWriter(const vtkPLYWriter&) = delete;
+  void operator=(const vtkPLYWriter&) = delete;
 };
 
 #endif
-

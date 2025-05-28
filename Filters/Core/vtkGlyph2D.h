@@ -23,9 +23,12 @@
  * z-axis. (See vtkGlyph3D for documentation on the interface to this
  * class.)
  *
+ * Frequently this class is used in combination with vtkGlyphSource.
+ * vtkGlyphSource2D can produce a family of 2D glyphs.
+ *
  * @sa
- * vtkTensorGlyph vtkGlyph3D vtkProgrammableGlyphFilter
-*/
+ * vtkTensorGlyph vtkGlyph3D vtkProgrammableGlyphFilter vtkGlyphSource2D
+ */
 
 #ifndef vtkGlyph2D_h
 #define vtkGlyph2D_h
@@ -36,8 +39,13 @@
 class VTKFILTERSCORE_EXPORT vtkGlyph2D : public vtkGlyph3D
 {
 public:
-  vtkTypeMacro(vtkGlyph2D,vtkGlyph3D);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  ///@{
+  /**
+   * Standard methods for obtaining type information and printing.
+   */
+  vtkTypeMacro(vtkGlyph2D, vtkGlyph3D);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Construct object with scaling on, scaling mode is by scalar value,
@@ -45,17 +53,17 @@ public:
    * orientation is by vector. Clamping and indexing are turned off. No
    * initial sources are defined.
    */
-  static vtkGlyph2D *New();
+  static vtkGlyph2D* New();
 
 protected:
-  vtkGlyph2D() {}
-  ~vtkGlyph2D() VTK_OVERRIDE {}
+  vtkGlyph2D() = default;
+  ~vtkGlyph2D() override = default;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkGlyph2D(const vtkGlyph2D&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGlyph2D&) VTK_DELETE_FUNCTION;
+  vtkGlyph2D(const vtkGlyph2D&) = delete;
+  void operator=(const vtkGlyph2D&) = delete;
 };
 
 #endif

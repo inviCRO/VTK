@@ -34,16 +34,16 @@ vtkCxxSetObjectMacro(vtkArrayIteratorTemplate<T>, Array, vtkAbstractArray);
 template <class T>
 vtkArrayIteratorTemplate<T>::vtkArrayIteratorTemplate()
 {
-  this->Array = 0;
-  this->Pointer = 0;
+  this->Array = nullptr;
+  this->Pointer = nullptr;
 }
 
 //-----------------------------------------------------------------------------
 template <class T>
 vtkArrayIteratorTemplate<T>::~vtkArrayIteratorTemplate()
 {
-  this->SetArray(0);
-  this->Pointer = 0;
+  this->SetArray(nullptr);
+  this->Pointer = nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -51,7 +51,7 @@ template <class T>
 void vtkArrayIteratorTemplate<T>::Initialize(vtkAbstractArray* a)
 {
   this->SetArray(a);
-  this->Pointer = 0;
+  this->Pointer = nullptr;
   if (this->Array)
   {
     this->Pointer = static_cast<T*>(this->Array->GetVoidPointer(0));
@@ -60,7 +60,7 @@ void vtkArrayIteratorTemplate<T>::Initialize(vtkAbstractArray* a)
 
 //-----------------------------------------------------------------------------
 template <class T>
-vtkIdType vtkArrayIteratorTemplate<T>::GetNumberOfTuples()
+vtkIdType vtkArrayIteratorTemplate<T>::GetNumberOfTuples() const
 {
   if (this->Array)
   {
@@ -71,7 +71,7 @@ vtkIdType vtkArrayIteratorTemplate<T>::GetNumberOfTuples()
 
 //-----------------------------------------------------------------------------
 template <class T>
-vtkIdType vtkArrayIteratorTemplate<T>::GetNumberOfValues()
+vtkIdType vtkArrayIteratorTemplate<T>::GetNumberOfValues() const
 {
   if (this->Array)
   {
@@ -82,7 +82,7 @@ vtkIdType vtkArrayIteratorTemplate<T>::GetNumberOfValues()
 
 //-----------------------------------------------------------------------------
 template <class T>
-int vtkArrayIteratorTemplate<T>::GetNumberOfComponents()
+int vtkArrayIteratorTemplate<T>::GetNumberOfComponents() const
 {
   if (this->Array)
   {
@@ -100,14 +100,14 @@ T* vtkArrayIteratorTemplate<T>::GetTuple(vtkIdType id)
 
 //-----------------------------------------------------------------------------
 template <class T>
-int vtkArrayIteratorTemplate<T>::GetDataType()
+int vtkArrayIteratorTemplate<T>::GetDataType() const
 {
   return this->Array->GetDataType();
 }
 
 //-----------------------------------------------------------------------------
 template <class T>
-int vtkArrayIteratorTemplate<T>::GetDataTypeSize()
+int vtkArrayIteratorTemplate<T>::GetDataTypeSize() const
 {
   return this->Array->GetDataTypeSize();
 }
@@ -117,7 +117,7 @@ template <class T>
 void vtkArrayIteratorTemplate<T>::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "Array: " ;
+  os << indent << "Array: ";
   if (this->Array)
   {
     os << "\n";
@@ -125,9 +125,9 @@ void vtkArrayIteratorTemplate<T>::PrintSelf(ostream& os, vtkIndent indent)
   }
   else
   {
-    os << "(none)" << "\n";
+    os << "(none)"
+       << "\n";
   }
 }
 
 #endif
-

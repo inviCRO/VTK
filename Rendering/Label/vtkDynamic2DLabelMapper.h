@@ -48,26 +48,26 @@
  * This algorithm was developed in the paper
  * Ken Been and Chee Yap. Dynamic Map Labeling. IEEE Transactions on
  * Visualization and Computer Graphics, Vol. 12, No. 5, 2006. pp. 773-780.
-*/
+ */
 
 #ifndef vtkDynamic2DLabelMapper_h
 #define vtkDynamic2DLabelMapper_h
 
-#include "vtkRenderingLabelModule.h" // For export macro
 #include "vtkLabeledDataMapper.h"
+#include "vtkRenderingLabelModule.h" // For export macro
 
 class VTKRENDERINGLABEL_EXPORT vtkDynamic2DLabelMapper : public vtkLabeledDataMapper
 {
 public:
-  //@{
+  ///@{
   /**
    * Instantiate object with %%-#6.3g label format. By default, point ids
    * are labeled.
    */
-  static vtkDynamic2DLabelMapper *New();
+  static vtkDynamic2DLabelMapper* New();
   vtkTypeMacro(vtkDynamic2DLabelMapper, vtkLabeledDataMapper);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Set the points array name to use to give priority to labels.
@@ -75,7 +75,7 @@ public:
    */
   void SetPriorityArrayName(const char* name);
 
-  //@{
+  ///@{
   /**
    * Whether to reverse the priority order (i.e. low values have high priority).
    * Default is off.
@@ -83,9 +83,9 @@ public:
   vtkSetMacro(ReversePriority, bool);
   vtkGetMacro(ReversePriority, bool);
   vtkBooleanMacro(ReversePriority, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the label height padding as a percentage. The percentage
    * is a percentage of your label height.
@@ -93,9 +93,9 @@ public:
    */
   vtkSetMacro(LabelHeightPadding, float);
   vtkGetMacro(LabelHeightPadding, float);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the label width padding as a percentage. The percentage
    * is a percentage of your label ^height^ (yes, not a typo).
@@ -103,24 +103,24 @@ public:
    */
   vtkSetMacro(LabelWidthPadding, float);
   vtkGetMacro(LabelWidthPadding, float);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Draw non-overlapping labels to the screen.
    */
-  void RenderOpaqueGeometry(vtkViewport* viewport, vtkActor2D* actor) VTK_OVERRIDE;
-  void RenderOverlay(vtkViewport *viewport, vtkActor2D *actor) VTK_OVERRIDE;
-  //@}
+  void RenderOpaqueGeometry(vtkViewport* viewport, vtkActor2D* actor) override;
+  void RenderOverlay(vtkViewport* viewport, vtkActor2D* actor) override;
+  ///@}
 
 protected:
   vtkDynamic2DLabelMapper();
-  ~vtkDynamic2DLabelMapper() VTK_OVERRIDE;
+  ~vtkDynamic2DLabelMapper() override;
 
   /**
    * Calculate the current zoom scale of the viewport.
    */
-  double GetCurrentScale(vtkViewport *viewport);
+  double GetCurrentScale(vtkViewport* viewport);
 
   float* LabelWidth;
   float* LabelHeight;
@@ -132,9 +132,8 @@ protected:
   bool ReversePriority;
 
 private:
-  vtkDynamic2DLabelMapper(const vtkDynamic2DLabelMapper&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDynamic2DLabelMapper&) VTK_DELETE_FUNCTION;
+  vtkDynamic2DLabelMapper(const vtkDynamic2DLabelMapper&) = delete;
+  void operator=(const vtkDynamic2DLabelMapper&) = delete;
 };
 
 #endif
-

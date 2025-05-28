@@ -25,7 +25,7 @@
  * to vtkElevationFilter is of type vtkPolyData, and you know the output of
  * vtkElevationFilter is the same type as its input.
  *
- * vtkCastToConcrete performs run-time checking to insure that output type
+ * vtkCastToConcrete performs run-time checking to ensure that output type
  * is of the right type. An error message will result if you try to cast
  * an input type improperly. Otherwise, the filter performs the appropriate
  * cast and returns the data.
@@ -36,7 +36,7 @@
  *
  * @sa
  * vtkDataSetAlgorithm vtkPointSetToPointSetFilter
-*/
+ */
 
 #ifndef vtkCastToConcrete_h
 #define vtkCastToConcrete_h
@@ -48,19 +48,21 @@ class VTKCOMMONEXECUTIONMODEL_EXPORT vtkCastToConcrete : public vtkDataSetAlgori
 {
 
 public:
-  static vtkCastToConcrete *New();
-  vtkTypeMacro(vtkCastToConcrete,vtkDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkCastToConcrete* New();
+  vtkTypeMacro(vtkCastToConcrete, vtkDataSetAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
-  vtkCastToConcrete() {}
-  ~vtkCastToConcrete() VTK_OVERRIDE {}
+  vtkCastToConcrete() = default;
+  ~vtkCastToConcrete() override = default;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE; //insures compatibility; satisfies abstract api in vtkFilter
-  int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**,
+    vtkInformationVector*) override; // insures compatibility; satisfies abstract api in vtkFilter
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
 private:
-  vtkCastToConcrete(const vtkCastToConcrete&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCastToConcrete&) VTK_DELETE_FUNCTION;
+  vtkCastToConcrete(const vtkCastToConcrete&) = delete;
+  void operator=(const vtkCastToConcrete&) = delete;
 };
 
 #endif

@@ -53,7 +53,7 @@
  *
  * @par Thanks:
  * Developed by Timothy M. Shead (tshead@sandia.gov) at Sandia National Laboratories.
-*/
+ */
 
 #ifndef vtkDotProductSimilarity_h
 #define vtkDotProductSimilarity_h
@@ -66,101 +66,98 @@ class VTKINFOVISCORE_EXPORT vtkDotProductSimilarity : public vtkTableAlgorithm
 public:
   static vtkDotProductSimilarity* New();
   vtkTypeMacro(vtkDotProductSimilarity, vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Controls whether to compute similarities for row-vectors or column-vectors.
    * 0 = rows, 1 = columns.
    */
   vtkGetMacro(VectorDimension, vtkIdType);
   vtkSetMacro(VectorDimension, vtkIdType);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When computing similarities for a single input matrix, controls whether the
    * results will include the upper diagonal of the similarity matrix.  Default: true.
    */
   vtkGetMacro(UpperDiagonal, int);
   vtkSetMacro(UpperDiagonal, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When computing similarities for a single input matrix, controls whether the
    * results will include the diagonal of the similarity matrix.  Default: false.
    */
   vtkGetMacro(Diagonal, int);
   vtkSetMacro(Diagonal, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When computing similarities for a single input matrix, controls whether the
    * results will include the lower diagonal of the similarity matrix.  Default: false.
    */
   vtkGetMacro(LowerDiagonal, int);
   vtkSetMacro(LowerDiagonal, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When computing similarities for two input matrices, controls whether the results
    * will include comparisons from the first matrix to the second matrix.
    */
   vtkGetMacro(FirstSecond, int);
   vtkSetMacro(FirstSecond, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When computing similarities for two input matrices, controls whether the results
    * will include comparisons from the second matrix to the first matrix.
    */
   vtkGetMacro(SecondFirst, int);
   vtkSetMacro(SecondFirst, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specifies a minimum threshold that a similarity must exceed to be included in
    * the output.
    */
   vtkGetMacro(MinimumThreshold, double);
   vtkSetMacro(MinimumThreshold, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specifies a minimum number of edges to include for each vector.
    */
   vtkGetMacro(MinimumCount, vtkIdType);
   vtkSetMacro(MinimumCount, vtkIdType);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specifies a maximum number of edges to include for each vector.
    */
   vtkGetMacro(MaximumCount, vtkIdType);
   vtkSetMacro(MaximumCount, vtkIdType);
-  //@}
+  ///@}
 
 protected:
   vtkDotProductSimilarity();
-  ~vtkDotProductSimilarity() VTK_OVERRIDE;
+  ~vtkDotProductSimilarity() override;
 
-  int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  int FillInputPortInformation(int, vtkInformation*) override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkDotProductSimilarity(const vtkDotProductSimilarity&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDotProductSimilarity&) VTK_DELETE_FUNCTION;
+  vtkDotProductSimilarity(const vtkDotProductSimilarity&) = delete;
+  void operator=(const vtkDotProductSimilarity&) = delete;
 
   vtkIdType VectorDimension;
   double MinimumThreshold;
@@ -175,4 +172,3 @@ private:
 };
 
 #endif
-

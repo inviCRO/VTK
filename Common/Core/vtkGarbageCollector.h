@@ -31,33 +31,26 @@
  * \code
  *
  *  public:
- *   void Register(vtkObjectBase* o) VTK_OVERRIDE
- *     {
- *     this->RegisterInternal(o, true);
- *     }
- *   void UnRegister(vtkObjectBase* o) VTK_OVERRIDE
- *     {
- *     this->UnRegisterInternal(o, true);
- *     }
+ *   bool UsesGarbageCollector() const override { return true; }
  *
  *  protected:
  *
- *   void ReportReferences(vtkGarbageCollector* collector) VTK_OVERRIDE
- *     {
+ *   void ReportReferences(vtkGarbageCollector* collector) override
+ *   {
  *     // Report references held by this object that may be in a loop.
  *     this->Superclass::ReportReferences(collector);
  *     vtkGarbageCollectorReport(collector, this->OtherObject, "Other Object");
- *     }
+ *   }
  * \endcode
  *
  * The implementations should be in the .cxx file in practice.
  * It is important that the reference be reported using the real
  * pointer or smart pointer instance that holds the reference.  When
  * collecting the garbage collector will actually set this pointer to
- * NULL.  The destructor of the class should be written to deal with
+ * nullptr.  The destructor of the class should be written to deal with
  * this.  It is also expected that an invariant is maintained for any
  * reference that is reported.  The variable holding the reference
- * must always either be NULL or refer to a fully constructed valid
+ * must always either be nullptr or refer to a fully constructed valid
  * object.  Therefore code like "this->Object->UnRegister(this)" must
  * be avoided if "this->Object" is a reported reference because it
  * is possible that the object is deleted before UnRegister returns
@@ -74,21 +67,19 @@
  *
  * If subclassing from a class that already supports garbage
  * collection, one need only provide the ReportReferences method.
-*/
+ */
 
 #ifndef vtkGarbageCollector_h
 #define vtkGarbageCollector_h
 
-#include "vtkCommonCoreModule.h" // For export macro
-#include "vtkObject.h"
+#include "vtkCommonCoreModule.h"        // For export macro
 #include "vtkGarbageCollectorManager.h" // Needed for singleton initialization.
+#include "vtkObject.h"
 
 // This function is a friend of the collector so that it can call the
 // internal report method.
-void VTKCOMMONCORE_EXPORT
-vtkGarbageCollectorReportInternal(vtkGarbageCollector*,
-                                  vtkObjectBase*, void*,
-                                  const char*);
+void VTKCOMMONCORE_EXPORT vtkGarbageCollectorReportInternal(
+  vtkGarbageCollector*, vtkObjectBase*, void*, const char*);
 
 // This allows vtkObjectBase to get at the methods it needs.
 class vtkObjectBaseToGarbageCollectorFriendship;
@@ -96,8 +87,8 @@ class vtkObjectBaseToGarbageCollectorFriendship;
 class VTKCOMMONCORE_EXPORT vtkGarbageCollector : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkGarbageCollector,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkGarbageCollector, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkGarbageCollector* New();
 
   /**
@@ -127,7 +118,7 @@ public:
    */
   static void Collect(vtkObjectBase* root);
 
-  //@{
+  ///@{
   /**
    * Push/Pop whether to do deferred collection.  Whenever the total
    * number of pushes exceeds the total number of pops collection will
@@ -136,23 +127,22 @@ public:
    */
   static void DeferredCollectionPush();
   static void DeferredCollectionPop();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get global garbage collection debugging flag.  When set to true,
    * all garbage collection checks will produce debugging information.
    */
   static void SetGlobalDebugFlag(bool flag);
   static bool GetGlobalDebugFlag();
-  //@}
+  ///@}
 
 protected:
   vtkGarbageCollector();
-  ~vtkGarbageCollector() VTK_OVERRIDE;
+  ~vtkGarbageCollector() override;
 
 private:
-
   /**
    * Called by UnRegister method of an object that supports garbage
    * collection.  The UnRegister may not actually decrement the
@@ -184,14 +174,12 @@ private:
 
   // Internal report callback and friend function that calls it.
   virtual void Report(vtkObjectBase* obj, void* ptr, const char* desc);
-  friend void VTKCOMMONCORE_EXPORT
-  vtkGarbageCollectorReportInternal(vtkGarbageCollector*,
-                                    vtkObjectBase*, void*,
-                                    const char*);
+  friend void VTKCOMMONCORE_EXPORT vtkGarbageCollectorReportInternal(
+    vtkGarbageCollector*, vtkObjectBase*, void*, const char*);
 
 private:
-  vtkGarbageCollector(const vtkGarbageCollector&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGarbageCollector&) VTK_DELETE_FUNCTION;
+  vtkGarbageCollector(const vtkGarbageCollector&) = delete;
+  void operator=(const vtkGarbageCollector&) = delete;
 };
 
 class vtkSmartPointerBase;
@@ -199,20 +187,16 @@ class vtkSmartPointerBase;
 /**
  * Function to report a reference held by a smart pointer to a collector.
  */
-void VTKCOMMONCORE_EXPORT
-vtkGarbageCollectorReport(vtkGarbageCollector* collector,
-                          vtkSmartPointerBase& ptr,
-                          const char* desc);
+void VTKCOMMONCORE_EXPORT vtkGarbageCollectorReport(
+  vtkGarbageCollector* collector, vtkSmartPointerBase& ptr, const char* desc);
 
 /**
  * Function to report a reference held by a raw pointer to a collector.
  */
 template <class T>
-void vtkGarbageCollectorReport(vtkGarbageCollector* collector, T*& ptr,
-                               const char* desc)
+void vtkGarbageCollectorReport(vtkGarbageCollector* collector, T*& ptr, const char* desc)
 {
   vtkGarbageCollectorReportInternal(collector, ptr, &ptr, desc);
 }
 
 #endif
-// VTK-HeaderTest-Exclude: vtkGarbageCollector.h

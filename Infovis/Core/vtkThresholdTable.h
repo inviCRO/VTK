@@ -25,7 +25,7 @@
  * vtkThresholdTable uses minimum and/or maximum values to threshold
  * table rows based on the values in a particular column.
  * The column to threshold is specified using SetInputArrayToProcess(0, ...).
-*/
+ */
 
 #ifndef vtkThresholdTable_h
 #define vtkThresholdTable_h
@@ -39,16 +39,17 @@ class VTKINFOVISCORE_EXPORT vtkThresholdTable : public vtkTableAlgorithm
 public:
   static vtkThresholdTable* New();
   vtkTypeMacro(vtkThresholdTable, vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  enum {
+  enum
+  {
     ACCEPT_LESS_THAN = 0,
     ACCEPT_GREATER_THAN = 1,
     ACCEPT_BETWEEN = 2,
     ACCEPT_OUTSIDE = 3
   };
 
-  //@{
+  ///@{
   /**
    * The mode of the threshold filter.  Options are:
    * ACCEPT_LESS_THAN (0) accepts rows with values < MaxValue;
@@ -58,9 +59,9 @@ public:
    */
   vtkSetClampMacro(Mode, int, 0, 3);
   vtkGetMacro(Mode, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The minimum value for the threshold.
    * This may be any data type stored in a vtkVariant.
@@ -70,13 +71,10 @@ public:
     this->MinValue = v;
     this->Modified();
   }
-  virtual vtkVariant GetMinValue()
-  {
-    return this->MinValue;
-  }
-  //@}
+  virtual vtkVariant GetMinValue() { return this->MinValue; }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The maximum value for the threshold.
    * This may be any data type stored in a vtkVariant.
@@ -86,11 +84,8 @@ public:
     this->MaxValue = v;
     this->Modified();
   }
-  virtual vtkVariant GetMaxValue()
-  {
-    return this->MaxValue;
-  }
-  //@}
+  virtual vtkVariant GetMaxValue() { return this->MaxValue; }
+  ///@}
 
   /**
    * Criterion is rows whose scalars are between lower and upper thresholds
@@ -101,18 +96,12 @@ public:
   /**
    * The minimum value for the threshold as a double.
    */
-  void SetMinValue(double v)
-  {
-    this->SetMinValue(vtkVariant(v));
-  }
+  void SetMinValue(double v) { this->SetMinValue(vtkVariant(v)); }
 
   /**
    * The maximum value for the threshold as a double.
    */
-  void SetMaxValue(double v)
-  {
-    this->SetMaxValue(vtkVariant(v));
-  }
+  void SetMaxValue(double v) { this->SetMaxValue(vtkVariant(v)); }
 
   /**
    * Criterion is rows whose scalars are between lower and upper thresholds
@@ -120,26 +109,22 @@ public:
    */
   void ThresholdBetween(double lower, double upper)
   {
-    this->ThresholdBetween(vtkVariant(lower),vtkVariant(upper));
+    this->ThresholdBetween(vtkVariant(lower), vtkVariant(upper));
   }
 
 protected:
   vtkThresholdTable();
-  ~vtkThresholdTable() VTK_OVERRIDE;
+  ~vtkThresholdTable() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   vtkVariant MinValue;
   vtkVariant MaxValue;
   int Mode;
 
 private:
-  vtkThresholdTable(const vtkThresholdTable&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkThresholdTable&) VTK_DELETE_FUNCTION;
+  vtkThresholdTable(const vtkThresholdTable&) = delete;
+  void operator=(const vtkThresholdTable&) = delete;
 };
 
 #endif
-

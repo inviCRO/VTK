@@ -1,0 +1,1067 @@
+include:
+    # Metadata shared my many jobs
+    - local: .gitlab/rules.yml
+    - local: .gitlab/artifacts.yml
+    - local: .gitlab/upload.yml
+    - local: .gitlab/vtk-mixins.yml
+    - local: .gitlab/warning-policy.yml
+
+    # OS builds.
+    - local: .gitlab/os-linux.yml
+    - local: .gitlab/os-macos.yml
+    - local: .gitlab/os-windows.yml
+
+stages:
+    - build
+    - test
+    - test-ext
+    - release-prep
+    - upload
+
+################################################################################
+# Job declarations
+#
+# Each job must pull in each of the following keys:
+#
+#   - a "base image"
+#   - a build script
+#   - tags for the jobs
+#     - already provided for upload and CI update jobs
+#   - rules for when to run the job
+#
+# Additionally, jobs may also contain:
+#
+#   - artifacts
+#   - dependency/needs jobs for required jobs
+################################################################################
+
+# Linux
+
+## Basic builds
+
+el8-mpi-python:build:
+    extends:
+        - .el8_icc_mpi_python
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+el8-mpi-python:test:
+    extends:
+        - .el8_icc_mpi_python
+        - .cmake_test_linux
+        - .linux_qt_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - el8-mpi-python:build
+    needs:
+        - el8-mpi-python:build
+
+fedora34-mpi-renderless:build:
+    extends:
+        - .fedora34_mpi_renderless
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+fedora34-mpi-renderless:test:
+    extends:
+        - .fedora34_mpi_renderless
+        - .cmake_test_linux
+        - .linux_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-renderless:build
+    needs:
+        - fedora34-mpi-renderless:build
+
+vtk:fedora34-mpi-renderless:test-ext:
+    extends:
+        - .fedora34_mpi_renderless_ext_vtk
+        - .cmake_test_external_linux
+        - .linux_builder_tags
+        - .cmake_junit_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-renderless:test
+    needs:
+        - fedora34-mpi-renderless:test
+
+fedora34-cuda-mpi:build:
+    extends:
+        - .fedora34_cuda_mpi
+        - .cmake_build_linux
+        - .cmake_build_artifacts
+        - .linux_cuda_builder_tags
+        - .run_manually
+    variables:
+        CTEST_MAX_PARALLELISM: 4
+    timeout: 8 hours
+
+fedora34-cuda-mpi:test:
+    extends:
+        - .fedora34_cuda_mpi
+        - .cmake_test_linux
+        - .cmake_test_artifacts
+        - .linux_cuda_tester_tags
+        - .run_automatically
+    dependencies:
+        - fedora34-cuda-mpi:build
+    needs:
+        - fedora34-cuda-mpi:build
+    variables:
+        CTEST_MAX_PARALLELISM: 8
+    timeout: 2 hours
+
+vtk:fedora34-cuda-mpi:test-ext:
+    extends:
+        - .fedora34_cuda_mpi_ext_vtk
+        - .cmake_test_external_linux
+        - .cmake_tidy_artifacts
+        - .linux_cuda_tester_tags
+        - .run_automatically
+    dependencies:
+        - fedora34-cuda-mpi:test
+    needs:
+        - fedora34-cuda-mpi:test
+    variables:
+        CTEST_MAX_PARALLELISM: 8
+    timeout: 150 minutes
+
+fedora34-mpi-offscreen-osmesa-python:build:
+    extends:
+        - .fedora34_mpi_offscreen_osmesa_python
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+fedora34-mpi-offscreen-osmesa-python:test:
+    extends:
+        - .fedora34_mpi_offscreen_osmesa_python
+        - .cmake_test_linux
+        - .linux_qt_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-offscreen-osmesa-python:build
+    needs:
+        - fedora34-mpi-offscreen-osmesa-python:build
+
+vtk:fedora34-mpi-offscreen-osmesa-python:test-ext:
+    extends:
+        - .fedora34_mpi_offscreen_osmesa_python_ext_vtk
+        - .cmake_test_external_linux
+        - .linux_qt_builder_tags
+        - .cmake_junit_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-offscreen-osmesa-python:test
+    needs:
+        - fedora34-mpi-offscreen-osmesa-python:test
+    timeout: 90 minutes
+
+# fedora34-java-mpi-qt-tbb:build:
+#     extends:
+#         - .fedora34_java_mpi_qt_tbb
+#         - .cmake_build_linux
+#         - .linux_qt_builder_tags
+#         - .cmake_build_artifacts
+#         - .run_manually
+#     # The Java build extends the build time considerably.
+#     timeout: 2 hours
+
+# fedora34-java-mpi-qt-tbb:test:
+#     extends:
+#         - .fedora34_java_mpi_qt_tbb
+#         - .cmake_test_linux
+#         - .linux_qt_tester_tags
+#         - .cmake_test_artifacts
+#         - .run_automatically
+#     dependencies:
+#         - fedora34-java-mpi-qt-tbb:build
+#     needs:
+#         - fedora34-java-mpi-qt-tbb:build
+
+fedora34-mpi-python-qt-tbb:build:
+    extends:
+        - .fedora34_mpi_python_qt_tbb
+        - .cmake_build_linux
+        - .linux_qt_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    timeout: 90 minutes
+
+fedora34-mpi-python-qt-tbb:test:
+    extends:
+        - .fedora34_mpi_python_qt_tbb
+        - .cmake_test_linux
+        - .linux_qt_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-python-qt-tbb:build
+    needs:
+        - fedora34-mpi-python-qt-tbb:build
+
+vtk:fedora34-mpi-python-qt-tbb:test-ext:
+    extends:
+        - .fedora34_mpi_python_qt_tbb_ext_vtk
+        - .cmake_test_external_linux
+        - .linux_qt_tester_tags
+        - .cmake_junit_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-python-qt-tbb:test
+    needs:
+        - fedora34-mpi-python-qt-tbb:test
+
+fedora34-mpi-python-qt-stdthread:test:
+    extends:
+        - .fedora34_mpi_python_qt_stdthread
+        - .smp_backend_stdthread_env_variable
+        - .ctest_new_cdash_submission
+        - .cmake_test_linux
+        - .linux_qt_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-python-qt-tbb:build
+    needs:
+        - fedora34-mpi-python-qt-tbb:build
+
+fedora34-mpi-python-vtkmoverride:build:
+    extends:
+        - .fedora34_mpi_python_vtkmoverride
+        - .cmake_build_linux
+        - .linux_qt_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    timeout: 90 minutes
+
+fedora34-mpi-python-vtkmoverride:test:
+    extends:
+        - .fedora34_mpi_python_vtkmoverride
+        - .cmake_test_linux
+        - .linux_qt_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-mpi-python-vtkmoverride:build
+    needs:
+        - fedora34-mpi-python-vtkmoverride:build
+
+
+## Python wheel builds
+
+wheel-linux-python36-x86_64:build:
+    extends:
+        - .wheel_linux36_x86_64
+        - .cmake_build_wheel_linux
+        - .linux_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+# XXX(rust): This build ends up needing a Rust compiler to compile the
+# `cryptography` package.
+# wheel-linux-python36-x86_64:test:
+#     extends:
+#         - .wheel_linux36_x86_64
+#         - .cmake_test_wheel_linux
+#         - .linux_builder_tags
+#         - .merged_only
+#     dependencies:
+#         - wheel-linux-python36-x86_64:build
+#     needs:
+#         - wheel-linux-python36-x86_64:build
+
+wheel-linux-python37-x86_64:build:
+    extends:
+        - .wheel_linux37_x86_64
+        - .cmake_build_wheel_linux
+        - .linux_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-linux-python37-x86_64:test:
+    extends:
+        - .wheel_linux37_x86_64
+        - .cmake_test_wheel_linux
+        - .linux_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-linux-python37-x86_64:build
+    needs:
+        - wheel-linux-python37-x86_64:build
+
+wheel-linux-python38-x86_64:build:
+    extends:
+        - .wheel_linux38_x86_64
+        - .cmake_build_wheel_linux
+        - .linux_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-linux-python38-x86_64:test:
+    extends:
+        - .wheel_linux38_x86_64
+        - .cmake_test_wheel_linux
+        - .linux_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-linux-python38-x86_64:build
+    needs:
+        - wheel-linux-python38-x86_64:build
+
+wheel-linux-python39-x86_64:build:
+    extends:
+        - .wheel_linux39_x86_64
+        - .cmake_build_wheel_linux
+        - .linux_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-linux-python39-x86_64:test:
+    extends:
+        - .wheel_linux39_x86_64
+        - .cmake_test_wheel_linux
+        - .linux_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-linux-python39-x86_64:build
+    needs:
+        - wheel-linux-python39-x86_64:build
+
+wheel-linux-python310-x86_64:build:
+    extends:
+        - .wheel_linux310_x86_64
+        - .cmake_build_wheel_linux
+        - .linux_builder_tags
+        - .cmake_wheel_artifacts
+        - .run_manually
+
+wheel-linux-python310-x86_64:test:
+    extends:
+        - .wheel_linux310_x86_64
+        - .cmake_test_wheel_linux
+        - .linux_builder_tags
+        - .run_automatically
+    dependencies:
+        - wheel-linux-python310-x86_64:build
+    needs:
+        - wheel-linux-python310-x86_64:build
+
+wheel:pypi:upload:
+    extends:
+        - .pypi_upload
+        - .tag_only
+    dependencies:
+        - wheel-linux-python36-x86_64:build
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python38-x86_64:build
+        - wheel-linux-python39-x86_64:build
+        - wheel-linux-python310-x86_64:build
+        - wheel-macos-python36-x86_64:build
+        - wheel-macos-python37-x86_64:build
+        - wheel-macos-python38-x86_64:build
+        - wheel-macos-python39-arm64:build
+        - wheel-macos-python39-x86_64:build
+        - wheel-macos-python310-arm64:build
+        - wheel-macos-python310-x86_64:build
+        - wheel-windows-python36-x86_64:build
+        - wheel-windows-python37-x86_64:build
+        - wheel-windows-python38-x86_64:build
+        - wheel-windows-python39-x86_64:build
+        - wheel-windows-python310-x86_64:build
+    needs:
+        - wheel-linux-python36-x86_64:build
+        # - wheel-linux-python36-x86_64:test
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python37-x86_64:test
+        - wheel-linux-python38-x86_64:build
+        - wheel-linux-python38-x86_64:test
+        - wheel-linux-python39-x86_64:build
+        - wheel-linux-python39-x86_64:test
+        - wheel-linux-python310-x86_64:build
+        - wheel-linux-python310-x86_64:test
+        - wheel-macos-python36-x86_64:build
+        - wheel-macos-python36-x86_64:test
+        - wheel-macos-python37-x86_64:build
+        - wheel-macos-python37-x86_64:test
+        - wheel-macos-python38-x86_64:build
+        - wheel-macos-python38-x86_64:test
+        - wheel-macos-python39-arm64:build
+        - wheel-macos-python39-arm64:test
+        - wheel-macos-python39-x86_64:build
+        - wheel-macos-python39-x86_64:test
+        - wheel-macos-python310-arm64:build
+        - wheel-macos-python310-arm64:test
+        - wheel-macos-python310-x86_64:build
+        - wheel-macos-python310-x86_64:test
+        - wheel-windows-python36-x86_64:build
+        # - wheel-windows-python36-x86_64:test
+        - wheel-windows-python37-x86_64:build
+        - wheel-windows-python37-x86_64:test
+        - wheel-windows-python38-x86_64:build
+        - wheel-windows-python38-x86_64:test
+        - wheel-windows-python39-x86_64:build
+        - wheel-windows-python39-x86_64:test
+        - wheel-windows-python310-x86_64:build
+        - wheel-windows-python310-x86_64:test
+
+wheel:vtk:upload:
+    extends:
+        - .pypi_vtk_upload
+        - .weekly_upload_only
+    dependencies:
+        - wheel-linux-python36-x86_64:build
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python38-x86_64:build
+        - wheel-linux-python39-x86_64:build
+        - wheel-linux-python310-x86_64:build
+        - wheel-macos-python36-x86_64:build
+        - wheel-macos-python37-x86_64:build
+        - wheel-macos-python38-x86_64:build
+        - wheel-macos-python39-arm64:build
+        - wheel-macos-python39-x86_64:build
+        - wheel-macos-python310-arm64:build
+        - wheel-macos-python310-x86_64:build
+        - wheel-windows-python36-x86_64:build
+        - wheel-windows-python37-x86_64:build
+        - wheel-windows-python38-x86_64:build
+        - wheel-windows-python39-x86_64:build
+        - wheel-windows-python310-x86_64:build
+    needs:
+        - wheel-linux-python36-x86_64:build
+        # - wheel-linux-python36-x86_64:test
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python37-x86_64:test
+        - wheel-linux-python38-x86_64:build
+        - wheel-linux-python38-x86_64:test
+        - wheel-linux-python39-x86_64:build
+        - wheel-linux-python39-x86_64:test
+        - wheel-linux-python310-x86_64:build
+        - wheel-linux-python310-x86_64:test
+        - wheel-macos-python36-x86_64:build
+        - wheel-macos-python36-x86_64:test
+        - wheel-macos-python37-x86_64:build
+        - wheel-macos-python37-x86_64:test
+        - wheel-macos-python38-x86_64:build
+        - wheel-macos-python38-x86_64:test
+        - wheel-macos-python39-arm64:build
+        - wheel-macos-python39-arm64:test
+        - wheel-macos-python39-x86_64:build
+        - wheel-macos-python39-x86_64:test
+        - wheel-macos-python310-arm64:build
+        - wheel-macos-python310-arm64:test
+        - wheel-macos-python310-x86_64:build
+        - wheel-macos-python310-x86_64:test
+        - wheel-windows-python36-x86_64:build
+        # - wheel-windows-python36-x86_64:test
+        - wheel-windows-python37-x86_64:build
+        - wheel-windows-python37-x86_64:test
+        - wheel-windows-python38-x86_64:build
+        - wheel-windows-python38-x86_64:test
+        - wheel-windows-python39-x86_64:build
+        - wheel-windows-python39-x86_64:test
+        - wheel-windows-python310-x86_64:build
+        - wheel-windows-python310-x86_64:test
+
+wheel-sdk:upload:
+    extends:
+        - .rsync_upload_wheel_sdk
+        - .weekly_upload_only
+    dependencies:
+        - wheel-linux-python36-x86_64:build
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python38-x86_64:build
+        - wheel-linux-python39-x86_64:build
+        - wheel-linux-python310-x86_64:build
+        - wheel-macos-python36-x86_64:build
+        - wheel-macos-python37-x86_64:build
+        - wheel-macos-python38-x86_64:build
+        - wheel-macos-python39-arm64:build
+        - wheel-macos-python39-x86_64:build
+        - wheel-macos-python310-arm64:build
+        - wheel-macos-python310-x86_64:build
+        - wheel-windows-python36-x86_64:build
+        - wheel-windows-python37-x86_64:build
+        - wheel-windows-python38-x86_64:build
+        - wheel-windows-python39-x86_64:build
+        - wheel-windows-python310-x86_64:build
+    needs:
+        - wheel-linux-python36-x86_64:build
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python37-x86_64:test
+        - wheel-linux-python38-x86_64:build
+        - wheel-linux-python38-x86_64:test
+        - wheel-linux-python39-x86_64:build
+        - wheel-linux-python39-x86_64:test
+        - wheel-linux-python310-x86_64:build
+        - wheel-linux-python310-x86_64:test
+        - wheel-macos-python36-x86_64:build
+        - wheel-macos-python36-x86_64:test
+        - wheel-macos-python37-x86_64:build
+        - wheel-macos-python37-x86_64:test
+        - wheel-macos-python38-x86_64:build
+        - wheel-macos-python38-x86_64:test
+        - wheel-macos-python39-arm64:build
+        - wheel-macos-python39-arm64:test
+        - wheel-macos-python39-x86_64:build
+        - wheel-macos-python39-x86_64:test
+        - wheel-macos-python310-arm64:build
+        - wheel-macos-python310-arm64:test
+        - wheel-macos-python310-x86_64:build
+        - wheel-macos-python310-x86_64:test
+        - wheel-windows-python36-x86_64:build
+        - wheel-windows-python37-x86_64:build
+        - wheel-windows-python37-x86_64:test
+        - wheel-windows-python38-x86_64:build
+        - wheel-windows-python38-x86_64:test
+        - wheel-windows-python39-x86_64:build
+        - wheel-windows-python39-x86_64:test
+        - wheel-windows-python310-x86_64:build
+        - wheel-windows-python310-x86_64:test
+    variables:
+        RSYNC_SOURCE: build/vtk-wheel-sdk-*.tar.xz
+        RSYNC_DESTINATION: wheel-sdks/
+
+## Static analysis builds
+
+fedora34-tidy:build:
+    extends:
+        - .fedora34_tidy
+        - .cmake_build_linux
+        - .linux_qt_builder_tags
+        - .cmake_tidy_artifacts
+        - .run_manually
+    # Move it to the test stage so that the build stage can be required to be
+    # green. `clang-tidy` just takes too long to require for every MR prior to
+    # merging. See https://github.com/ejfitzgerald/clang-tidy-cache/issues/5
+    # which should help performance immensely.
+    stage: test
+    needs: []
+    dependencies: []
+    # clang-tidy really hampers compilation cache improvements, so it takes
+    # longer.
+    timeout: 210 minutes
+
+## Sanitizer builds
+
+# fedora34-asan:build:
+#     extends:
+#         - .fedora34_asan
+#         - .cmake_build_linux
+#         - .linux_qt_builder_tags
+#         - .cmake_build_artifacts
+#         - .run_manually
+#
+# fedora34-asan:test:
+#     extends:
+#         - .fedora34_asan
+#         - .cmake_memcheck_linux
+#         - .linux_qt_tester_priv_tags
+#         - .cmake_test_artifacts
+#         - .run_automatically
+#     dependencies:
+#         - fedora34-asan:build
+#     needs:
+#         - fedora34-asan:build
+#
+# fedora34-tsan:build:
+#     extends:
+#         - .fedora34_tsan
+#         - .cmake_build_linux
+#         - .linux_qt_builder_tags
+#         - .cmake_build_artifacts
+#         - .run_manually
+#
+# fedora34-tsan:test:
+#     extends:
+#         - .fedora34_tsan
+#         - .cmake_memcheck_linux
+#         - .linux_qt_tester_priv_tags
+#         - .cmake_test_artifacts
+#         - .run_automatically
+#     dependencies:
+#         - fedora34-tsan:build
+#     needs:
+#         - fedora34-tsan:build
+#
+# fedora34-ubsan:build:
+#     extends:
+#         - .fedora34_ubsan
+#         - .cmake_build_linux
+#         - .linux_qt_builder_tags
+#         - .cmake_build_artifacts
+#         - .run_manually
+#
+# fedora34-ubsan:test:
+#     extends:
+#         - .fedora34_ubsan
+#         - .cmake_memcheck_linux
+#         - .linux_qt_tester_priv_tags
+#         - .cmake_test_artifacts
+#         - .run_automatically
+#     dependencies:
+#         - fedora34-ubsan:build
+#     needs:
+#         - fedora34-ubsan:build
+
+## Documentation
+
+documentation:build:
+    extends:
+        - .fedora34_doxygen_mpi_python_qt_tbb
+        - .cmake_build_linux
+        - .linux_qt_builder_tags
+        - .cmake_doxygen_artifacts
+        - .run_manually
+
+documentation:upload:
+    extends:
+        - .rsync_upload
+        - .upload_only
+    dependencies:
+        - documentation:build
+    needs:
+        - documentation:build
+    variables:
+        RSYNC_SOURCE: build/install/usr/share/doc/vtk/doxygen/html/
+        RSYNC_DESTINATION: VTKDoxygen/html
+
+source:build:
+    extends:
+        - .cmake_source_tarballs
+        - .cmake_release_artifacts
+        - .tag_only
+
+documentation:release-prep:
+    extends:
+        - .cmake_doc_tarball
+        - .cmake_release_artifacts
+        - .tag_only
+    dependencies:
+        - documentation:build
+    needs:
+        - documentation:build
+
+# macOS
+
+macos-arm64-kits-python-qt:build:
+    extends:
+        - .macos_arm64_kits_python_qt
+        - .cmake_build_macos
+        - .macos_arm64_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+macos-arm64-kits-python-qt:test:
+    extends:
+        - .macos_arm64_kits_python_qt
+        - .cmake_test_macos
+        - .macos_arm64_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - macos-arm64-kits-python-qt:build
+    needs:
+        - macos-arm64-kits-python-qt:build
+
+macos-x86_64-kits-python-qt:build:
+    extends:
+        - .macos_x86_64_kits_python_qt
+        - .cmake_build_macos
+        - .macos_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    # Some of the macOS runners are not very powerful.
+    timeout: 150 minutes
+
+macos-x86_64-kits-python-qt:test:
+    extends:
+        - .macos_x86_64_kits_python_qt
+        - .cmake_test_macos
+        - .macos_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - macos-x86_64-kits-python-qt:build
+    needs:
+        - macos-x86_64-kits-python-qt:build
+    timeout: 2 hours
+
+macos-x86_64-kits-python-qt-stdthread:test:
+    extends:
+        - .macos_x86_64_kits_python_qt_stdthread
+        - .smp_backend_stdthread_env_variable
+        - .ctest_new_cdash_submission
+        - .cmake_test_macos
+        - .macos_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - macos-x86_64-kits-python-qt:build
+    needs:
+        - macos-x86_64-kits-python-qt:build
+    timeout: 2 hours
+
+# FIXME: This is not working because Qt uses @rpath/ for its library
+# references. Since we're using a `nonconcurrent` runner for this, we can't
+# bake in any paths at build time. However, to install Qt next to it, we need
+# to provide the whole thing to avoid building against one Qt and using another
+# at runtime. The external testing framework can't provide the rpath because
+# tests exists that are just Python scripts, so `vtkpython` needs to work
+# standalone.
+#
+# vtk:macos-x86_64-kits-python-qt:test-ext:
+#     extends:
+#         - .macos_x86_64_kits_python_qt_ext_vtk
+#         - .cmake_test_external_macos
+#         - .macos_ext_builder_tags
+#         - .cmake_junit_artifacts
+#         - .run_automatically
+#     dependencies:
+#         - macos-x86_64-kits-python-qt:test
+#     needs:
+#         - macos-x86_64-kits-python-qt:test
+
+## Python wheel builds
+
+wheel-macos-python36-x86_64:build:
+    extends:
+        - .wheel_macos36_x86_64
+        - .cmake_build_wheel_macos
+        - .macos_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+    timeout: 90 minutes
+
+wheel-macos-python36-x86_64:test:
+    extends:
+        - .wheel_macos36_x86_64
+        - .cmake_test_wheel_macos
+        - .macos_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-macos-python36-x86_64:build
+    needs:
+        - wheel-macos-python36-x86_64:build
+
+wheel-macos-python37-x86_64:build:
+    extends:
+        - .wheel_macos37_x86_64
+        - .cmake_build_wheel_macos
+        - .macos_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+    timeout: 90 minutes
+
+wheel-macos-python37-x86_64:test:
+    extends:
+        - .wheel_macos37_x86_64
+        - .cmake_test_wheel_macos
+        - .macos_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-macos-python37-x86_64:build
+    needs:
+        - wheel-macos-python37-x86_64:build
+
+wheel-macos-python38-x86_64:build:
+    extends:
+        - .wheel_macos38_x86_64
+        - .cmake_build_wheel_macos
+        - .macos_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+    timeout: 90 minutes
+
+wheel-macos-python38-x86_64:test:
+    extends:
+        - .wheel_macos38_x86_64
+        - .cmake_test_wheel_macos
+        - .macos_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-macos-python38-x86_64:build
+    needs:
+        - wheel-macos-python38-x86_64:build
+
+wheel-macos-python39-arm64:build:
+    extends:
+        - .wheel_macos39_arm64
+        - .cmake_build_wheel_macos
+        - .macos_arm64_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-macos-python39-arm64:test:
+    extends:
+        - .wheel_macos39_arm64
+        - .cmake_test_wheel_macos
+        - .macos_arm64_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-macos-python39-arm64:build
+    needs:
+        - wheel-macos-python39-arm64:build
+
+wheel-macos-python39-x86_64:build:
+    extends:
+        - .wheel_macos39_x86_64
+        - .cmake_build_wheel_macos
+        - .macos_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+    timeout: 90 minutes
+
+wheel-macos-python39-x86_64:test:
+    extends:
+        - .wheel_macos39_x86_64
+        - .cmake_test_wheel_macos
+        - .macos_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-macos-python39-x86_64:build
+    needs:
+        - wheel-macos-python39-x86_64:build
+
+wheel-macos-python310-arm64:build:
+    extends:
+        - .wheel_macos310_arm64
+        - .cmake_build_wheel_macos
+        - .macos_arm64_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .run_manually
+
+wheel-macos-python310-arm64:test:
+    extends:
+        - .wheel_macos310_arm64
+        - .cmake_test_wheel_macos
+        - .macos_arm64_wheel_builder_tags
+        - .run_automatically
+    dependencies:
+        - wheel-macos-python310-arm64:build
+    needs:
+        - wheel-macos-python310-arm64:build
+
+wheel-macos-python310-x86_64:build:
+    extends:
+        - .wheel_macos310_x86_64
+        - .cmake_build_wheel_macos
+        - .macos_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .run_manually
+    timeout: 90 minutes
+
+wheel-macos-python310-x86_64:test:
+    extends:
+        - .wheel_macos310_x86_64
+        - .cmake_test_wheel_macos
+        - .macos_wheel_builder_tags
+        - .run_automatically
+    dependencies:
+        - wheel-macos-python310-x86_64:build
+    needs:
+        - wheel-macos-python310-x86_64:build
+
+# Windows
+
+windows-vs2019-kits-mpi-python-qt:build:
+    extends:
+        - .windows_vs2019_kits_mpi_python_qt
+        - .cmake_build_windows
+        - .windows_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+windows-vs2019-kits-mpi-python-qt:test:
+    extends:
+        - .windows_vs2019_kits_mpi_python_qt
+        - .cmake_test_windows
+        - .windows_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - windows-vs2019-kits-mpi-python-qt:build
+    needs:
+        - windows-vs2019-kits-mpi-python-qt:build
+
+windows-vs2019-kits-mpi-python-qt-stdthread:test:
+    extends:
+        - .windows_vs2019_kits_mpi_python_qt_stdthread
+        - .smp_backend_stdthread_env_variable
+        - .ctest_new_cdash_submission
+        - .cmake_test_windows
+        - .windows_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - windows-vs2019-kits-mpi-python-qt:build
+    needs:
+        - windows-vs2019-kits-mpi-python-qt:build
+
+# This is disabled because VTK-m doesn't make a relocatable installation of its
+# imported targets (cf. `vtkm::tbb` since it embeds the build-time locations
+# into the install tree. Since the build/install time path is not the same as
+# this `concurrent`-tagged job, it's just not going to work well. See
+# vtk/vtk-m#609 for tracking.
+#
+# Also, the `VTK_DLL_PATHS` ends up making a non-relocatable installation. See
+# `.gitlab/ci/configure_windows.cmake` for the relevant code.
+#
+# vtk:windows-vs2019-kits-mpi-python-qt:test-ext:
+#     extends:
+#         - .windows_vs2019_kits_mpi_python_qt_ext_vtk
+#         - .cmake_test_external_windows
+#         - .windows_ext_builder_tags
+#         - .cmake_junit_artifacts
+#         - .run_automatically
+#     dependencies:
+#         - windows-vs2019-kits-mpi-python-qt:test
+#     needs:
+#         - windows-vs2019-kits-mpi-python-qt:test
+
+windows-vs2019-mpi-python-qt:build:
+    extends:
+        - .windows_vs2019_mpi_python_qt
+        - .cmake_build_windows
+        - .windows_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+windows-vs2019-mpi-python-qt:test:
+    extends:
+        - .windows_vs2019_mpi_python_qt
+        - .cmake_test_windows
+        - .windows_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - windows-vs2019-mpi-python-qt:build
+    needs:
+        - windows-vs2019-mpi-python-qt:build
+
+windows-vs2019-mpi-python-qt-static:build:
+    extends:
+        - .windows_vs2019_mpi_python_qt_static
+        - .cmake_build_windows
+        - .windows_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+windows-vs2019-mpi-python-qt-static:test:
+    extends:
+        - .windows_vs2019_mpi_python_qt_static
+        - .cmake_test_windows
+        - .windows_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - windows-vs2019-mpi-python-qt-static:build
+    needs:
+        - windows-vs2019-mpi-python-qt-static:build
+
+## Python wheel builds
+
+wheel-windows-python36-x86_64:build:
+    extends:
+        - .wheel_windows36_x86_64
+        - .cmake_build_wheel_windows
+        - .windows_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+# XXX(rust): This build ends up needing a Rust compiler to compile the
+# `cryptography` package.
+# wheel-windows-python36-x86_64:test:
+#     extends:
+#         - .wheel_windows36_x86_64
+#         - .cmake_test_wheel_windows
+#         - .windows_wheel_builder_tags
+#         - .merged_only
+#     dependencies:
+#         - wheel-windows-python36-x86_64:build
+#     needs:
+#         - wheel-windows-python36-x86_64:build
+
+wheel-windows-python37-x86_64:build:
+    extends:
+        - .wheel_windows37_x86_64
+        - .cmake_build_wheel_windows
+        - .windows_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-windows-python37-x86_64:test:
+    extends:
+        - .wheel_windows37_x86_64
+        - .cmake_test_wheel_windows
+        - .windows_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-windows-python37-x86_64:build
+    needs:
+        - wheel-windows-python37-x86_64:build
+
+wheel-windows-python38-x86_64:build:
+    extends:
+        - .wheel_windows38_x86_64
+        - .cmake_build_wheel_windows
+        - .windows_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-windows-python38-x86_64:test:
+    extends:
+        - .wheel_windows38_x86_64
+        - .cmake_test_wheel_windows
+        - .windows_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-windows-python38-x86_64:build
+    needs:
+        - wheel-windows-python38-x86_64:build
+
+wheel-windows-python39-x86_64:build:
+    extends:
+        - .wheel_windows39_x86_64
+        - .cmake_build_wheel_windows
+        - .windows_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .merged_only
+
+wheel-windows-python39-x86_64:test:
+    extends:
+        - .wheel_windows39_x86_64
+        - .cmake_test_wheel_windows
+        - .windows_wheel_builder_tags
+        - .merged_only
+    dependencies:
+        - wheel-windows-python39-x86_64:build
+    needs:
+        - wheel-windows-python39-x86_64:build
+
+wheel-windows-python310-x86_64:build:
+    extends:
+        - .wheel_windows310_x86_64
+        - .cmake_build_wheel_windows
+        - .windows_wheel_builder_tags
+        - .cmake_wheel_artifacts
+        - .run_manually
+
+wheel-windows-python310-x86_64:test:
+    extends:
+        - .wheel_windows310_x86_64
+        - .cmake_test_wheel_windows
+        - .windows_wheel_builder_tags
+        - .run_automatically
+    dependencies:
+        - wheel-windows-python310-x86_64:build
+    needs:
+        - wheel-windows-python310-x86_64:build

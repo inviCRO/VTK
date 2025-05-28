@@ -2,9 +2,10 @@
 #  if !defined(MSMPI_VER) && (defined(MPICH2) && defined(MPIAPI))
 #    define MSMPI_VER 0x100
 #  endif
-#  if defined(DEINO_MPI) && !defined(MPICH2)
-#    define MPICH2 1
-#  endif
+#endif
+
+#if defined(MPT_VERSION)
+#  define SGI_MPT
 #endif
 
 #if defined(MPICH_NAME) && (MPICH_NAME==3)
@@ -15,17 +16,15 @@
 #endif
 
 #if !defined(MPIAPI)
-#  if defined(DEINO_MPI) && defined(MPI_CALL)
-#    define MPIAPI MPI_CALL
-#  else
-#    define MPIAPI
-#  endif
+#  define MPIAPI
 #endif
 
 #if defined(HAVE_CONFIG_H)
 #include "config/config.h"
 #elif defined(MSMPI_VER)
 #include "config/msmpi.h"
+#elif defined(SGI_MPT)
+#include "config/sgi-mpt.h"
 #elif defined(MPICH3)
 #include "config/mpich3.h"
 #elif defined(MPICH2)
@@ -54,4 +53,12 @@
 
 #ifdef PyMPI_MISSING_MPI_Status_f2c
 #undef PyMPI_HAVE_MPI_Status_f2c
+#endif
+
+#ifdef PyMPI_MISSING_MPI_LB
+#undef PyMPI_HAVE_MPI_LB
+#endif
+
+#ifdef PyMPI_MISSING_MPI_UB
+#undef PyMPI_HAVE_MPI_UB
 #endif

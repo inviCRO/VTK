@@ -21,20 +21,19 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkTrivialProducer.h"
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkImageIterateFilter::vtkImageIterateFilter()
 {
   // for filters that execute multiple times
   this->Iteration = 0;
   this->NumberOfIterations = 0;
-  this->IterationData = NULL;
+  this->IterationData = nullptr;
   this->SetNumberOfIterations(1);
   this->InputVector = vtkInformationVector::New();
   this->OutputVector = vtkInformationVector::New();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkImageIterateFilter::~vtkImageIterateFilter()
 {
   this->SetNumberOfIterations(0);
@@ -42,10 +41,10 @@ vtkImageIterateFilter::~vtkImageIterateFilter()
   this->OutputVector->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageIterateFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "NumberOfIterations: " << this->NumberOfIterations << "\n";
 
@@ -54,18 +53,15 @@ void vtkImageIterateFilter::PrintSelf(ostream& os, vtkIndent indent)
   // this->Iteration
 }
 
-//----------------------------------------------------------------------------
-int
-vtkImageIterateFilter
-::RequestInformation(vtkInformation* vtkNotUsed(request),
-                     vtkInformationVector** inputVector,
-                     vtkInformationVector* outputVector)
+//------------------------------------------------------------------------------
+int vtkImageIterateFilter ::RequestInformation(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   vtkInformation* in = inInfo;
-  for(int i=0; i < this->NumberOfIterations; ++i)
+  for (int i = 0; i < this->NumberOfIterations; ++i)
   {
     this->Iteration = i;
 
@@ -84,11 +80,8 @@ vtkImageIterateFilter
     out->CopyEntry(in, vtkDataObject::ORIGIN());
     out->CopyEntry(in, vtkDataObject::SPACING());
 
-    vtkInformation* scalarInfo =
-      vtkDataObject::GetActiveFieldInformation(
-        in,
-        vtkDataObject::FIELD_ASSOCIATION_POINTS,
-        vtkDataSetAttributes::SCALARS);
+    vtkInformation* scalarInfo = vtkDataObject::GetActiveFieldInformation(
+      in, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
     if (scalarInfo)
     {
       int scalarType = VTK_DOUBLE;
@@ -101,8 +94,7 @@ vtkImageIterateFilter
       {
         numComp = scalarInfo->Get(vtkDataObject::FIELD_NUMBER_OF_COMPONENTS());
       }
-      vtkDataObject::SetPointDataActiveScalarInfo(
-        out, scalarType, numComp);
+      vtkDataObject::SetPointDataActiveScalarInfo(out, scalarType, numComp);
     }
 
     if (!this->IterativeRequestInformation(in, out))
@@ -116,16 +108,13 @@ vtkImageIterateFilter
   return 1;
 }
 
-//----------------------------------------------------------------------------
-int
-vtkImageIterateFilter
-::RequestUpdateExtent(vtkInformation*,
-                      vtkInformationVector** inputVector,
-                      vtkInformationVector* outputVector)
+//------------------------------------------------------------------------------
+int vtkImageIterateFilter ::RequestUpdateExtent(
+  vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* out = outputVector->GetInformationObject(0);
-  for(int i=this->NumberOfIterations-1; i >= 0; --i)
+  for (int i = this->NumberOfIterations - 1; i >= 0; --i)
   {
     this->Iteration = i;
 
@@ -151,15 +140,14 @@ vtkImageIterateFilter
   return 1;
 }
 
-//----------------------------------------------------------------------------
-int vtkImageIterateFilter::RequestData(vtkInformation* request,
-                                        vtkInformationVector** inputVector,
-                                        vtkInformationVector* outputVector)
+//------------------------------------------------------------------------------
+int vtkImageIterateFilter::RequestData(
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* in = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
-  for(int i=0; i < this->NumberOfIterations; ++i)
+  for (int i = 0; i < this->NumberOfIterations; ++i)
   {
     this->Iteration = i;
 
@@ -176,13 +164,12 @@ int vtkImageIterateFilter::RequestData(vtkInformation* request,
 
     this->InputVector->SetInformationObject(0, in);
     this->OutputVector->SetInformationObject(0, out);
-    if (!this->IterativeRequestData(request, &this->InputVector,
-                                    this->OutputVector))
+    if (!this->IterativeRequestData(request, &this->InputVector, this->OutputVector))
     {
       return 0;
     }
 
-    if(in->Get(vtkDemandDrivenPipeline::RELEASE_DATA()))
+    if (in->Get(vtkDemandDrivenPipeline::RELEASE_DATA()))
     {
       vtkDataObject* inData = in->Get(vtkDataObject::DATA_OBJECT());
       inData->ReleaseData();
@@ -196,36 +183,32 @@ int vtkImageIterateFilter::RequestData(vtkInformation* request,
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Called by the above for each decomposition.  Subclass can modify
 // the defaults by implementing this method.
-int vtkImageIterateFilter::IterativeRequestInformation(vtkInformation*,
-                                                       vtkInformation*)
+int vtkImageIterateFilter::IterativeRequestInformation(vtkInformation*, vtkInformation*)
 {
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Called by the above for each decomposition.  Subclass can modify
 // the defaults by implementing this method.
-int vtkImageIterateFilter::IterativeRequestUpdateExtent(vtkInformation*,
-                                                        vtkInformation*)
+int vtkImageIterateFilter::IterativeRequestUpdateExtent(vtkInformation*, vtkInformation*)
 {
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Called by the above for each decomposition.  Subclass can modify
 // the defaults by implementing this method.
-int
-vtkImageIterateFilter::IterativeRequestData(vtkInformation* request,
-                                            vtkInformationVector** inputVector,
-                                            vtkInformationVector* outputVector)
+int vtkImageIterateFilter::IterativeRequestData(
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   return this->Superclass::RequestData(request, inputVector, outputVector);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Filters that execute multiple times per update use this internal method.
 void vtkImageIterateFilter::SetNumberOfIterations(int num)
 {
@@ -243,10 +226,10 @@ void vtkImageIterateFilter::SetNumberOfIterations(int num)
     for (idx = 1; idx < this->NumberOfIterations; ++idx)
     {
       this->IterationData[idx]->Delete();
-      this->IterationData[idx] = NULL;
+      this->IterationData[idx] = nullptr;
     }
-    delete [] this->IterationData;
-    this->IterationData = NULL;
+    delete[] this->IterationData;
+    this->IterationData = nullptr;
   }
 
   // special case for destructor
@@ -256,9 +239,8 @@ void vtkImageIterateFilter::SetNumberOfIterations(int num)
   }
 
   // create new ones (first and last set later to input and output)
-  this->IterationData =
-    reinterpret_cast<vtkAlgorithm **>( new void *[num + 1]);
-  this->IterationData[0] = this->IterationData[num] = NULL;
+  this->IterationData = reinterpret_cast<vtkAlgorithm**>(new void*[num + 1]);
+  this->IterationData[0] = this->IterationData[num] = nullptr;
   for (idx = 1; idx < num; ++idx)
   {
     vtkImageData* cache = vtkImageData::New();

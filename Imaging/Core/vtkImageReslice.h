@@ -47,11 +47,10 @@
  * This filter is very inefficient if the output X dimension is 1.
  * @sa
  * vtkAbstractTransform vtkMatrix4x4
-*/
+ */
 
 #ifndef vtkImageReslice_h
 #define vtkImageReslice_h
-
 
 #include "vtkImagingCoreModule.h" // For export macro
 #include "vtkThreadedImageAlgorithm.h"
@@ -71,12 +70,12 @@ class vtkAbstractImageInterpolator;
 class VTKIMAGINGCORE_EXPORT vtkImageReslice : public vtkThreadedImageAlgorithm
 {
 public:
-  static vtkImageReslice *New();
+  static vtkImageReslice* New();
   vtkTypeMacro(vtkImageReslice, vtkThreadedImageAlgorithm);
 
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * This method is used to set up the axes for the output voxels.
    * The output Spacing, Origin, and Extent specify the locations
@@ -94,37 +93,39 @@ public:
    */
   virtual void SetResliceAxes(vtkMatrix4x4*);
   vtkGetObjectMacro(ResliceAxes, vtkMatrix4x4);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the direction cosines for the ResliceAxes (i.e. the
    * first three elements of each of the first three columns of
    * the ResliceAxes matrix).  This will modify the current
    * ResliceAxes matrix, or create a new matrix if none exists.
    */
-  void SetResliceAxesDirectionCosines(double x0, double x1, double x2,
-                                      double y0, double y1, double y2,
-                                      double z0, double z1, double z2);
-  void SetResliceAxesDirectionCosines(const double x[3],
-                                      const double y[3],
-                                      const double z[3]) {
-    this->SetResliceAxesDirectionCosines(x[0], x[1], x[2],
-                                         y[0], y[1], y[2],
-                                         z[0], z[1], z[2]); };
-  void SetResliceAxesDirectionCosines(const double xyz[9]) {
-    this->SetResliceAxesDirectionCosines(xyz[0], xyz[1], xyz[2],
-                                         xyz[3], xyz[4], xyz[5],
-                                         xyz[6], xyz[7], xyz[8]); };
+  void SetResliceAxesDirectionCosines(double x0, double x1, double x2, double y0, double y1,
+    double y2, double z0, double z1, double z2);
+  void SetResliceAxesDirectionCosines(const double x[3], const double y[3], const double z[3])
+  {
+    this->SetResliceAxesDirectionCosines(x[0], x[1], x[2], y[0], y[1], y[2], z[0], z[1], z[2]);
+  }
+  void SetResliceAxesDirectionCosines(const double xyz[9])
+  {
+    this->SetResliceAxesDirectionCosines(
+      xyz[0], xyz[1], xyz[2], xyz[3], xyz[4], xyz[5], xyz[6], xyz[7], xyz[8]);
+  }
   void GetResliceAxesDirectionCosines(double x[3], double y[3], double z[3]);
-  void GetResliceAxesDirectionCosines(double xyz[9]) {
-    this->GetResliceAxesDirectionCosines(&xyz[0], &xyz[3], &xyz[6]); };
-  double *GetResliceAxesDirectionCosines() {
+  void GetResliceAxesDirectionCosines(double xyz[9])
+  {
+    this->GetResliceAxesDirectionCosines(&xyz[0], &xyz[3], &xyz[6]);
+  }
+  double* GetResliceAxesDirectionCosines() VTK_SIZEHINT(9)
+  {
     this->GetResliceAxesDirectionCosines(this->ResliceAxesDirectionCosines);
-    return this->ResliceAxesDirectionCosines; };
-  //@}
+    return this->ResliceAxesDirectionCosines;
+  }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the origin for the ResliceAxes (i.e. the first three
    * elements of the final column of the ResliceAxes matrix).
@@ -132,15 +133,19 @@ public:
    * new matrix if none exists.
    */
   void SetResliceAxesOrigin(double x, double y, double z);
-  void SetResliceAxesOrigin(const double xyz[3]) {
-    this->SetResliceAxesOrigin(xyz[0], xyz[1], xyz[2]); };
+  void SetResliceAxesOrigin(const double xyz[3])
+  {
+    this->SetResliceAxesOrigin(xyz[0], xyz[1], xyz[2]);
+  }
   void GetResliceAxesOrigin(double xyz[3]);
-  double *GetResliceAxesOrigin() {
+  double* GetResliceAxesOrigin() VTK_SIZEHINT(3)
+  {
     this->GetResliceAxesOrigin(this->ResliceAxesOrigin);
-    return this->ResliceAxesOrigin; };
-  //@}
+    return this->ResliceAxesOrigin;
+  }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set a transform to be applied to the resampling grid that has
    * been defined via the ResliceAxes and the output Origin, Spacing
@@ -152,9 +157,9 @@ public:
    */
   virtual void SetResliceTransform(vtkAbstractTransform*);
   vtkGetObjectMacro(ResliceTransform, vtkAbstractTransform);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set a vtkImageData from which the default Spacing, Origin,
    * and WholeExtent of the output will be copied.  The spacing,
@@ -166,9 +171,9 @@ public:
    */
   virtual void SetInformationInput(vtkImageData*);
   vtkGetObjectMacro(InformationInput, vtkImageData);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify whether to transform the spacing, origin and extent
    * of the Input (or the InformationInput) according to the
@@ -176,42 +181,42 @@ public:
    * them as the default output spacing, origin and extent
    * (default: On).
    */
-  vtkSetMacro(TransformInputSampling, int);
-  vtkBooleanMacro(TransformInputSampling, int);
-  vtkGetMacro(TransformInputSampling, int);
-  //@}
+  vtkSetMacro(TransformInputSampling, vtkTypeBool);
+  vtkBooleanMacro(TransformInputSampling, vtkTypeBool);
+  vtkGetMacro(TransformInputSampling, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn this on if you want to guarantee that the extent of the
    * output will be large enough to ensure that none of the
    * data will be cropped (default: Off).
    */
-  vtkSetMacro(AutoCropOutput, int);
-  vtkBooleanMacro(AutoCropOutput, int);
-  vtkGetMacro(AutoCropOutput, int);
-  //@}
+  vtkSetMacro(AutoCropOutput, vtkTypeBool);
+  vtkBooleanMacro(AutoCropOutput, vtkTypeBool);
+  vtkGetMacro(AutoCropOutput, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on wrap-pad feature (default: Off).
    */
-  vtkSetMacro(Wrap, int);
-  vtkGetMacro(Wrap, int);
-  vtkBooleanMacro(Wrap, int);
-  //@}
+  vtkSetMacro(Wrap, vtkTypeBool);
+  vtkGetMacro(Wrap, vtkTypeBool);
+  vtkBooleanMacro(Wrap, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on mirror-pad feature (default: Off).
    * This will override the wrap-pad.
    */
-  vtkSetMacro(Mirror, int);
-  vtkGetMacro(Mirror, int);
-  vtkBooleanMacro(Mirror, int);
-  //@}
+  vtkSetMacro(Mirror, vtkTypeBool);
+  vtkGetMacro(Mirror, vtkTypeBool);
+  vtkBooleanMacro(Mirror, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Extend the apparent input border by a half voxel (default: On).
    * This changes how interpolation is handled at the borders of the
@@ -222,37 +227,42 @@ public:
    * the edges of the input.
    * This has no effect if Mirror or Wrap are on.
    */
-  vtkSetMacro(Border, int);
-  vtkGetMacro(Border, int);
-  vtkBooleanMacro(Border, int);
-  //@}
+  vtkSetMacro(Border, vtkTypeBool);
+  vtkGetMacro(Border, vtkTypeBool);
+  vtkBooleanMacro(Border, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
+  /**
+   * Set the border thickness for BorderOn() (default: 0.5).
+   * See SetBorder() for more information.
+   */
+  ///@{
+  vtkSetMacro(BorderThickness, double);
+  vtkGetMacro(BorderThickness, double);
+  ///@}
+
   /**
    * Set interpolation mode (default: nearest neighbor).
    */
-  vtkSetClampMacro(InterpolationMode, int,
-                   VTK_RESLICE_NEAREST, VTK_RESLICE_CUBIC);
+  vtkSetClampMacro(InterpolationMode, int, VTK_RESLICE_NEAREST, VTK_RESLICE_CUBIC);
   vtkGetMacro(InterpolationMode, int);
-  void SetInterpolationModeToNearestNeighbor() {
-    this->SetInterpolationMode(VTK_RESLICE_NEAREST); };
-  void SetInterpolationModeToLinear() {
-    this->SetInterpolationMode(VTK_RESLICE_LINEAR); };
-  void SetInterpolationModeToCubic() {
-    this->SetInterpolationMode(VTK_RESLICE_CUBIC); };
-  virtual const char *GetInterpolationModeAsString();
-  //@}
+  void SetInterpolationModeToNearestNeighbor() { this->SetInterpolationMode(VTK_RESLICE_NEAREST); }
+  void SetInterpolationModeToLinear() { this->SetInterpolationMode(VTK_RESLICE_LINEAR); }
+  void SetInterpolationModeToCubic() { this->SetInterpolationMode(VTK_RESLICE_CUBIC); }
+  virtual const char* GetInterpolationModeAsString();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the interpolator to use.  The default interpolator
    * supports the Nearest, Linear, and Cubic interpolation modes.
    */
-  virtual void SetInterpolator(vtkAbstractImageInterpolator *sampler);
-  virtual vtkAbstractImageInterpolator *GetInterpolator();
-  //@}
+  virtual void SetInterpolator(vtkAbstractImageInterpolator* sampler);
+  virtual vtkAbstractImageInterpolator* GetInterpolator();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the slab mode, for generating thick slices. The default is Mean.
    * If SetSlabNumberOfSlices(N) is called with N greater than one, then
@@ -261,37 +271,33 @@ public:
    */
   vtkSetClampMacro(SlabMode, int, VTK_IMAGE_SLAB_MIN, VTK_IMAGE_SLAB_SUM);
   vtkGetMacro(SlabMode, int);
-  void SetSlabModeToMin() {
-    this->SetSlabMode(VTK_IMAGE_SLAB_MIN); };
-  void SetSlabModeToMax() {
-    this->SetSlabMode(VTK_IMAGE_SLAB_MAX); };
-  void SetSlabModeToMean() {
-    this->SetSlabMode(VTK_IMAGE_SLAB_MEAN); };
-  void SetSlabModeToSum() {
-    this->SetSlabMode(VTK_IMAGE_SLAB_SUM); };
-  virtual const char *GetSlabModeAsString();
-  //@}
+  void SetSlabModeToMin() { this->SetSlabMode(VTK_IMAGE_SLAB_MIN); }
+  void SetSlabModeToMax() { this->SetSlabMode(VTK_IMAGE_SLAB_MAX); }
+  void SetSlabModeToMean() { this->SetSlabMode(VTK_IMAGE_SLAB_MEAN); }
+  void SetSlabModeToSum() { this->SetSlabMode(VTK_IMAGE_SLAB_SUM); }
+  virtual const char* GetSlabModeAsString();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the number of slices that will be combined to create the slab.
    */
   vtkSetMacro(SlabNumberOfSlices, int);
   vtkGetMacro(SlabNumberOfSlices, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Use trapezoid integration for slab computation.  All this does is
    * weigh the first and last slices by half when doing sum and mean.
    * It is off by default.
    */
-  vtkSetMacro(SlabTrapezoidIntegration, int);
-  vtkBooleanMacro(SlabTrapezoidIntegration, int);
-  vtkGetMacro(SlabTrapezoidIntegration, int);
-  //@}
+  vtkSetMacro(SlabTrapezoidIntegration, vtkTypeBool);
+  vtkBooleanMacro(SlabTrapezoidIntegration, vtkTypeBool);
+  vtkGetMacro(SlabTrapezoidIntegration, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The slab spacing as a fraction of the output slice spacing.
    * When one of the various slab modes is chosen, each output slice is
@@ -303,19 +309,19 @@ public:
    */
   vtkSetMacro(SlabSliceSpacingFraction, double);
   vtkGetMacro(SlabSliceSpacingFraction, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on and off optimizations (default on, they should only be
    * turned off for testing purposes).
    */
-  vtkSetMacro(Optimization, int);
-  vtkGetMacro(Optimization, int);
-  vtkBooleanMacro(Optimization, int);
-  //@}
+  vtkSetMacro(Optimization, vtkTypeBool);
+  vtkGetMacro(Optimization, vtkTypeBool);
+  vtkBooleanMacro(Optimization, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set a value to add to all the output voxels.
    * After a sample value has been interpolated from the input image, the
@@ -325,9 +331,9 @@ public:
    */
   vtkSetMacro(ScalarShift, double);
   vtkGetMacro(ScalarShift, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set multiplication factor to apply to all the output voxels.
    * After a sample value has been interpolated from the input image, the
@@ -336,10 +342,10 @@ public:
    * the limits of the output data type.
    */
   vtkSetMacro(ScalarScale, double);
-  vtkGetMacro(ScalarScale, double)
-  //@}
+  vtkGetMacro(ScalarScale, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the scalar type of the output to be different from the input.
    * The default value is -1, which means that the input scalar type will be
@@ -352,61 +358,61 @@ public:
    */
   vtkSetMacro(OutputScalarType, int);
   vtkGetMacro(OutputScalarType, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the background color (for multi-component images).
    */
   vtkSetVector4Macro(BackgroundColor, double);
   vtkGetVector4Macro(BackgroundColor, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set background grey level (for single-component images).
    */
-  void SetBackgroundLevel(double v) { this->SetBackgroundColor(v,v,v,v); };
-  double GetBackgroundLevel() { return this->GetBackgroundColor()[0]; };
-  //@}
+  void SetBackgroundLevel(double v) { this->SetBackgroundColor(v, v, v, v); }
+  double GetBackgroundLevel() { return this->GetBackgroundColor()[0]; }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the voxel spacing for the output data.  The default output
    * spacing is the input spacing permuted through the ResliceAxes.
    */
   virtual void SetOutputSpacing(double x, double y, double z);
-  virtual void SetOutputSpacing(const double a[3]) {
-    this->SetOutputSpacing(a[0], a[1], a[2]); };
+  virtual void SetOutputSpacing(const double a[3]) { this->SetOutputSpacing(a[0], a[1], a[2]); }
   vtkGetVector3Macro(OutputSpacing, double);
   void SetOutputSpacingToDefault();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the origin for the output data.  The default output origin
    * is the input origin permuted through the ResliceAxes.
    */
   virtual void SetOutputOrigin(double x, double y, double z);
-  virtual void SetOutputOrigin(const double a[3]) {
-    this->SetOutputOrigin(a[0], a[1], a[2]); };
+  virtual void SetOutputOrigin(const double a[3]) { this->SetOutputOrigin(a[0], a[1], a[2]); }
   vtkGetVector3Macro(OutputOrigin, double);
   void SetOutputOriginToDefault();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the extent for the output data.  The default output extent
    * is the input extent permuted through the ResliceAxes.
    */
   virtual void SetOutputExtent(int a, int b, int c, int d, int e, int f);
-  virtual void SetOutputExtent(const int a[6]) {
-    this->SetOutputExtent(a[0], a[1], a[2], a[3], a[4], a[5]); };
+  virtual void SetOutputExtent(const int a[6])
+  {
+    this->SetOutputExtent(a[0], a[1], a[2], a[3], a[4], a[5]);
+  }
   vtkGetVector6Macro(OutputExtent, int);
   void SetOutputExtentToDefault();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Force the dimensionality of the output to either 1, 2,
    * 3 or 0 (default: 3).  If the dimensionality is 2D, then
@@ -419,20 +425,20 @@ public:
    */
   vtkSetMacro(OutputDimensionality, int);
   vtkGetMacro(OutputDimensionality, int);
-  //@}
+  ///@}
 
   /**
    * When determining the modified time of the filter,
    * this check the modified time of the transform and matrix.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
   /**
    * Report object referenced by instances of this class.
    */
-  void ReportReferences(vtkGarbageCollector*) VTK_OVERRIDE;
+  void ReportReferences(vtkGarbageCollector*) override;
 
-  //@{
+  ///@{
   /**
    * Convenient methods for switching between nearest-neighbor and linear
    * interpolation.
@@ -441,87 +447,90 @@ public:
    * You should not use these methods if you use the SetInterpolationMode
    * methods.
    */
-  void SetInterpolate(int t) {
-    if (t && !this->GetInterpolate()) {
-      this->SetInterpolationModeToLinear(); }
-    else if (!t && this->GetInterpolate()) {
-      this->SetInterpolationModeToNearestNeighbor(); } };
-  void InterpolateOn() {
-    this->SetInterpolate(1); };
-  void InterpolateOff() {
-    this->SetInterpolate(0); };
-  int GetInterpolate() {
-    return (this->GetInterpolationMode() != VTK_RESLICE_NEAREST); };
-  //@}
+  void SetInterpolate(int t)
+  {
+    if (t && !this->GetInterpolate())
+    {
+      this->SetInterpolationModeToLinear();
+    }
+    else if (!t && this->GetInterpolate())
+    {
+      this->SetInterpolationModeToNearestNeighbor();
+    }
+  }
+  void InterpolateOn() { this->SetInterpolate(1); }
+  void InterpolateOff() { this->SetInterpolate(0); }
+  int GetInterpolate() { return (this->GetInterpolationMode() != VTK_RESLICE_NEAREST); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Use a stencil to limit the calculations to a specific region of
    * the output.  Portions of the output that are 'outside' the stencil
    * will be cleared to the background color.
    */
-  void SetStencilData(vtkImageStencilData *stencil);
-  vtkImageStencilData *GetStencil();
-  //@}
+  void SetStencilData(vtkImageStencilData* stencil);
+  vtkImageStencilData* GetStencil();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Generate an output stencil that defines which pixels were
    * interpolated and which pixels were out-of-bounds of the input.
    */
-  vtkSetMacro(GenerateStencilOutput, int);
-  vtkGetMacro(GenerateStencilOutput, int);
-  vtkBooleanMacro(GenerateStencilOutput, int);
-  //@}
+  vtkSetMacro(GenerateStencilOutput, vtkTypeBool);
+  vtkGetMacro(GenerateStencilOutput, vtkTypeBool);
+  vtkBooleanMacro(GenerateStencilOutput, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the output stencil.
    */
-  vtkAlgorithmOutput *GetStencilOutputPort() {
-    return this->GetOutputPort(1); }
-  vtkImageStencilData *GetStencilOutput();
-  void SetStencilOutput(vtkImageStencilData *stencil);
-  //@}
+  vtkAlgorithmOutput* GetStencilOutputPort() { return this->GetOutputPort(1); }
+  vtkImageStencilData* GetStencilOutput();
+  void SetStencilOutput(vtkImageStencilData* stencil);
+  ///@}
 
 protected:
   vtkImageReslice();
-  ~vtkImageReslice() VTK_OVERRIDE;
+  ~vtkImageReslice() override;
 
-  vtkMatrix4x4 *ResliceAxes;
+  vtkMatrix4x4* ResliceAxes;
   double ResliceAxesDirectionCosines[9];
   double ResliceAxesOrigin[3];
-  vtkAbstractTransform *ResliceTransform;
-  vtkAbstractImageInterpolator *Interpolator;
-  vtkImageData *InformationInput;
-  int Wrap;
-  int Mirror;
-  int Border;
+  vtkAbstractTransform* ResliceTransform;
+  vtkAbstractImageInterpolator* Interpolator;
+  vtkImageData* InformationInput;
+  vtkTypeBool Wrap;
+  vtkTypeBool Mirror;
+  vtkTypeBool Border;
   int InterpolationMode;
-  int Optimization;
+  vtkTypeBool Optimization;
   int SlabMode;
   int SlabNumberOfSlices;
-  int SlabTrapezoidIntegration;
+  vtkTypeBool SlabTrapezoidIntegration;
   double SlabSliceSpacingFraction;
   double ScalarShift;
   double ScalarScale;
+  double BorderThickness;
   double BackgroundColor[4];
   double OutputOrigin[3];
   double OutputSpacing[3];
   int OutputExtent[6];
   int OutputScalarType;
   int OutputDimensionality;
-  int TransformInputSampling;
-  int AutoCropOutput;
+  vtkTypeBool TransformInputSampling;
+  vtkTypeBool AutoCropOutput;
   int HitInputExtent;
   int UsePermuteExecute;
   int ComputeOutputSpacing;
   int ComputeOutputOrigin;
   int ComputeOutputExtent;
-  int GenerateStencilOutput;
+  vtkTypeBool GenerateStencilOutput;
 
-  vtkMatrix4x4 *IndexMatrix;
-  vtkAbstractTransform *OptimizedTransform;
+  vtkMatrix4x4* IndexMatrix;
+  vtkAbstractTransform* OptimizedTransform;
 
   /**
    * This should be set to 1 by derived classes that override the
@@ -533,7 +542,7 @@ protected:
    * This should be overridden by derived classes that operate on
    * the interpolated data before it is placed in the output.
    */
-  virtual int ConvertScalarInfo(int &scalarType, int &numComponents);
+  virtual int ConvertScalarInfo(int& scalarType, int& numComponents);
 
   /**
    * This should be overridden by derived classes that operate on
@@ -543,42 +552,41 @@ protected:
    * of any type.  This method will be called from multiple threads,
    * so it must be thread-safe in derived classes.
    */
-  virtual void ConvertScalars(void *inPtr, void *outPtr,
-                              int inputType, int inputNumComponents,
-                              int count, int idX, int idY, int idZ,
-                              int threadId);
+  virtual void ConvertScalars(void* inPtr, void* outPtr, int inputType, int inputNumComponents,
+    int count, int idX, int idY, int idZ, int threadId);
 
-  void ConvertScalarsBase(void *inPtr, void *outPtr,
-                          int inputType, int inputNumComponents,
-                          int count, int idX, int idY, int idZ, int threadId) {
-    this->ConvertScalars(inPtr, outPtr, inputType, inputNumComponents,
-                         count, idX, idY, idZ, threadId); }
+  void ConvertScalarsBase(void* inPtr, void* outPtr, int inputType, int inputNumComponents,
+    int count, int idX, int idY, int idZ, int threadId)
+  {
+    this->ConvertScalars(
+      inPtr, outPtr, inputType, inputNumComponents, count, idX, idY, idZ, threadId);
+  }
 
-  void GetAutoCroppedOutputBounds(vtkInformation *inInfo, double bounds[6]);
-  void AllocateOutputData(vtkImageData *output, vtkInformation *outInfo, int *uExtent) VTK_OVERRIDE;
-  vtkImageData *AllocateOutputData(vtkDataObject *, vtkInformation *) VTK_OVERRIDE;
-  int RequestInformation(vtkInformation *, vtkInformationVector **,
-                                 vtkInformationVector *) VTK_OVERRIDE;
-  int RequestUpdateExtent(vtkInformation *, vtkInformationVector **,
-                                  vtkInformationVector *) VTK_OVERRIDE;
-  int RequestData(vtkInformation *, vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
-  void ThreadedRequestData(vtkInformation *request,
-                                   vtkInformationVector **inputVector,
-                                   vtkInformationVector *outputVector,
-                                   vtkImageData ***inData,
-                                   vtkImageData **outData, int ext[6], int id) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
-  int FillOutputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  /**
+   * For derived classes, this should be called at the very end of
+   * RequestInformation() to ensure that various bit and pieces of
+   * state information are correctly set prior to execution.
+   */
+  int RequestInformationBase(vtkInformationVector**, vtkInformationVector*);
 
-  vtkMatrix4x4 *GetIndexMatrix(vtkInformation *inInfo,
-                               vtkInformation *outInfo);
-  vtkAbstractTransform *GetOptimizedTransform() {
-    return this->OptimizedTransform; };
+  void GetAutoCroppedOutputBounds(vtkInformation* inInfo, double bounds[6]);
+  void AllocateOutputData(vtkImageData* output, vtkInformation* outInfo, int* uExtent) override;
+  vtkImageData* AllocateOutputData(vtkDataObject*, vtkInformation*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  void ThreadedRequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector, vtkImageData*** inData, vtkImageData** outData, int ext[6],
+    int id) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
+
+  vtkMatrix4x4* GetIndexMatrix(vtkInformation* inInfo, vtkInformation* outInfo);
+  vtkAbstractTransform* GetOptimizedTransform() { return this->OptimizedTransform; }
 
 private:
-  vtkImageReslice(const vtkImageReslice&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageReslice&) VTK_DELETE_FUNCTION;
+  vtkImageReslice(const vtkImageReslice&) = delete;
+  void operator=(const vtkImageReslice&) = delete;
 };
 
 #endif

@@ -15,20 +15,20 @@
 /**
  * @class   vtkGraphicsFactory
  *
-*/
+ */
 
 #ifndef vtkGraphicsFactory_h
 #define vtkGraphicsFactory_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkObject.h"
+#include "vtkRenderingCoreModule.h" // For export macro
 
 class VTKRENDERINGCORE_EXPORT vtkGraphicsFactory : public vtkObject
 {
 public:
-  static vtkGraphicsFactory *New();
+  static vtkGraphicsFactory* New();
   vtkTypeMacro(vtkGraphicsFactory, vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Create and return an instance of the named vtk object.
@@ -41,35 +41,35 @@ public:
   /**
    * What rendering library has the user requested
    */
-  static const char *GetRenderLibrary();
+  static const char* GetRenderLibrary();
 
-  //@{
+  ///@{
   /**
    * This option enables the creation of Mesa classes
    * instead of the OpenGL classes when using mangled Mesa.
    */
   static void SetUseMesaClasses(int use);
-  static int  GetUseMesaClasses();
-  //@}
+  static int GetUseMesaClasses();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * This option enables the off-screen only mode. In this mode no X calls will
    * be made even when interactor is used.
    */
   static void SetOffScreenOnlyMode(int use);
-  static int  GetOffScreenOnlyMode();
-  //@}
+  static int GetOffScreenOnlyMode();
+  ///@}
 
 protected:
-  vtkGraphicsFactory() {}
+  vtkGraphicsFactory() = default;
 
   static int UseMesaClasses;
   static int OffScreenOnlyMode;
 
 private:
-  vtkGraphicsFactory(const vtkGraphicsFactory&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkGraphicsFactory&) VTK_DELETE_FUNCTION;
+  vtkGraphicsFactory(const vtkGraphicsFactory&) = delete;
+  void operator=(const vtkGraphicsFactory&) = delete;
 };
 
 #endif

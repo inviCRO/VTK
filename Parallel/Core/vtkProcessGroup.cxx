@@ -27,24 +27,24 @@
 
 #include <algorithm>
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkProcessGroup);
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkProcessGroup::vtkProcessGroup()
 {
-  this->Communicator = NULL;
+  this->Communicator = nullptr;
 
-  this->ProcessIds = NULL;
+  this->ProcessIds = nullptr;
   this->NumberOfProcessIds = 0;
 }
 
 vtkProcessGroup::~vtkProcessGroup()
 {
-  this->SetCommunicator(NULL);
+  this->SetCommunicator(nullptr);
 }
 
-void vtkProcessGroup::PrintSelf(ostream &os, vtkIndent indent)
+void vtkProcessGroup::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
@@ -57,13 +57,13 @@ void vtkProcessGroup::PrintSelf(ostream &os, vtkIndent indent)
   os << endl;
 }
 
-//-----------------------------------------------------------------------------
-void vtkProcessGroup::Initialize(vtkMultiProcessController *controller)
+//------------------------------------------------------------------------------
+void vtkProcessGroup::Initialize(vtkMultiProcessController* controller)
 {
   this->Initialize(controller->GetCommunicator());
 }
 
-void vtkProcessGroup::Initialize(vtkCommunicator *communicator)
+void vtkProcessGroup::Initialize(vtkCommunicator* communicator)
 {
   this->SetCommunicator(communicator);
 
@@ -74,11 +74,11 @@ void vtkProcessGroup::Initialize(vtkCommunicator *communicator)
   }
 }
 
-//-----------------------------------------------------------------------------
-void vtkProcessGroup::SetCommunicator(vtkCommunicator *communicator)
+//------------------------------------------------------------------------------
+void vtkProcessGroup::SetCommunicator(vtkCommunicator* communicator)
 {
   // Adjust ProcessIds array.
-  int *newProcessIds = NULL;
+  int* newProcessIds = nullptr;
   int newNumberOfProcessIds = 0;
   if (communicator)
   {
@@ -91,17 +91,17 @@ void vtkProcessGroup::SetCommunicator(vtkCommunicator *communicator)
   }
   if (this->ProcessIds)
   {
-    std::copy(newProcessIds, newProcessIds+newNumberOfProcessIds,
-               this->ProcessIds);
+    std::copy(newProcessIds, newProcessIds + newNumberOfProcessIds, this->ProcessIds);
   }
-  if (this->Communicator) delete[] this->ProcessIds;
+  if (this->Communicator)
+    delete[] this->ProcessIds;
   this->ProcessIds = newProcessIds;
   this->NumberOfProcessIds = newNumberOfProcessIds;
 
   vtkSetObjectBodyMacro(Communicator, vtkCommunicator, communicator);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkProcessGroup::GetLocalProcessId()
 {
   if (this->Communicator)
@@ -114,17 +114,18 @@ int vtkProcessGroup::GetLocalProcessId()
   }
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkProcessGroup::FindProcessId(int processId)
 {
   for (int i = 0; i < this->NumberOfProcessIds; i++)
   {
-    if (this->ProcessIds[i] == processId) return i;
+    if (this->ProcessIds[i] == processId)
+      return i;
   }
   return -1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkProcessGroup::AddProcessId(int processId)
 {
   int loc = this->FindProcessId(processId);
@@ -137,22 +138,23 @@ int vtkProcessGroup::AddProcessId(int processId)
   return loc;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkProcessGroup::RemoveProcessId(int processId)
 {
   int loc = this->FindProcessId(processId);
-  if (loc < 0) return 0;
+  if (loc < 0)
+    return 0;
 
   this->NumberOfProcessIds--;
   for (int i = loc; i < this->NumberOfProcessIds; i++)
   {
-    this->ProcessIds[i] = this->ProcessIds[i+1];
+    this->ProcessIds[i] = this->ProcessIds[i + 1];
   }
   this->Modified();
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProcessGroup::RemoveAllProcessIds()
 {
   if (this->NumberOfProcessIds > 0)
@@ -162,8 +164,8 @@ void vtkProcessGroup::RemoveAllProcessIds()
   }
 }
 
-//-----------------------------------------------------------------------------
-void vtkProcessGroup::Copy(vtkProcessGroup *group)
+//------------------------------------------------------------------------------
+void vtkProcessGroup::Copy(vtkProcessGroup* group)
 {
   this->SetCommunicator(group->Communicator);
   this->NumberOfProcessIds = group->NumberOfProcessIds;

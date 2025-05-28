@@ -31,7 +31,7 @@
 
 vtkStandardNewMacro(vtkExtractFunctionalBagPlot);
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkExtractFunctionalBagPlot::vtkExtractFunctionalBagPlot()
 {
   this->SetNumberOfInputPorts(2);
@@ -40,34 +40,32 @@ vtkExtractFunctionalBagPlot::vtkExtractFunctionalBagPlot()
   this->PUser = 95;
 }
 
-//-----------------------------------------------------------------------------
-vtkExtractFunctionalBagPlot::~vtkExtractFunctionalBagPlot()
-{
-}
+//------------------------------------------------------------------------------
+vtkExtractFunctionalBagPlot::~vtkExtractFunctionalBagPlot() = default;
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkExtractFunctionalBagPlot::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 class DensityVal
 {
 public:
-  DensityVal(double d, vtkAbstractArray* arr) : Density(d), Array(arr) {}
-  bool operator<(const DensityVal& b) const
+  DensityVal(double d, vtkAbstractArray* arr)
+    : Density(d)
+    , Array(arr)
   {
-    return this->Density > b.Density;
   }
+  bool operator<(const DensityVal& b) const { return this->Density > b.Density; }
   double Density;
   vtkAbstractArray* Array;
 };
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkExtractFunctionalBagPlot::RequestData(vtkInformation* /*request*/,
-                                   vtkInformationVector** inputVector,
-                                   vtkInformationVector* outputVector)
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
 
   vtkTable* inTable = vtkTable::GetData(inputVector[0]);
@@ -88,16 +86,16 @@ int vtkExtractFunctionalBagPlot::RequestData(vtkInformation* /*request*/,
     return false;
   }
 
-  vtkDoubleArray *density = vtkArrayDownCast<vtkDoubleArray>(
-    this->GetInputAbstractArrayToProcess(0, inTableDensity));
+  vtkDoubleArray* density =
+    vtkArrayDownCast<vtkDoubleArray>(this->GetInputAbstractArrayToProcess(0, inTableDensity));
   if (!density)
   {
     vtkDebugMacro(<< "Update event called with non double density array.");
     return false;
   }
 
-  vtkStringArray *varName = vtkArrayDownCast<vtkStringArray>(
-    this->GetInputAbstractArrayToProcess(1, inTableDensity));
+  vtkStringArray* varName =
+    vtkArrayDownCast<vtkStringArray>(this->GetInputAbstractArrayToProcess(1, inTableDensity));
   if (!varName)
   {
     vtkDebugMacro(<< "Update event called with no variable name array.");
@@ -113,7 +111,7 @@ int vtkExtractFunctionalBagPlot::RequestData(vtkInformation* /*request*/,
   for (vtkIdType i = 0; i < nbPoints; i++)
   {
     double d = density->GetValue(i);
-    vtkAbstractArray* c = inTable->GetColumnByName(varName->GetValue(i));
+    vtkAbstractArray* c = inTable->GetColumnByName(varName->GetValue(i).c_str());
     if (d < this->DensityForPUser)
     {
       outliersSeries.insert(i);
@@ -174,8 +172,14 @@ int vtkExtractFunctionalBagPlot::RequestData(vtkInformation* /*request*/,
     for (size_t j = 0; j < medianCount; j++)
     {
       double v = medianLines[j]->GetVariantValue(i).ToDouble();
-      if (v < vMin) { vMin = v; }
-      if (v > vMax) { vMax = v; }
+      if (v < vMin)
+      {
+        vMin = v;
+      }
+      if (v > vMax)
+      {
+        vMax = v;
+      }
     }
     q2Points->SetTuple2(i, vMin, vMax);
 
@@ -184,8 +188,14 @@ int vtkExtractFunctionalBagPlot::RequestData(vtkInformation* /*request*/,
     for (size_t j = 0; j < q3Count; j++)
     {
       double v = q3Lines[j]->GetVariantValue(i).ToDouble();
-      if (v < vMin) { vMin = v; }
-      if (v > vMax) { vMax = v; }
+      if (v < vMin)
+      {
+        vMin = v;
+      }
+      if (v > vMax)
+      {
+        vMax = v;
+      }
     }
     q3Points->SetTuple2(i, vMin, vMax);
   }
@@ -210,15 +220,15 @@ int vtkExtractFunctionalBagPlot::RequestData(vtkInformation* /*request*/,
   }
 
   // Then add the 2 "bag" columns into the output table
-  if (q3Lines.size() > 0)
+  if (!q3Lines.empty())
   {
-    outTable->AddColumn(q3Points.GetPointer());
+    outTable->AddColumn(q3Points);
   }
-  if (medianLines.size() > 0)
+  if (!medianLines.empty())
   {
-    outTable->AddColumn(q2Points.GetPointer());
+    outTable->AddColumn(q2Points);
   }
-  outTable->AddColumn(qMedPoints.GetPointer());
+  outTable->AddColumn(qMedPoints);
 
   return 1;
 }

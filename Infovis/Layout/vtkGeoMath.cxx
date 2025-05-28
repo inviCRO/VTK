@@ -19,31 +19,25 @@
   the U.S. Government retains certain rights in this software.
 -------------------------------------------------------------------------*/
 
-#include "vtkObjectFactory.h"
 #include "vtkGeoMath.h"
 #include "vtkMath.h"
+#include "vtkObjectFactory.h"
 
 vtkStandardNewMacro(vtkGeoMath);
 
+//------------------------------------------------------------------------------
+vtkGeoMath::vtkGeoMath() = default;
 
-//----------------------------------------------------------------------------
-vtkGeoMath::vtkGeoMath()
-{
-}
+//------------------------------------------------------------------------------
+vtkGeoMath::~vtkGeoMath() = default;
 
-//-----------------------------------------------------------------------------
-vtkGeoMath::~vtkGeoMath()
-{
-}
-
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGeoMath::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
 
-
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkGeoMath::DistanceSquared(double pt0[3], double pt1[3])
 {
   double tmp;
@@ -59,16 +53,15 @@ double vtkGeoMath::DistanceSquared(double pt0[3], double pt1[3])
   return d2;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGeoMath::LongLatAltToRect(double longLatAlt[3], double rect[3])
 {
-  double theta = vtkMath::RadiansFromDegrees( longLatAlt[0] );
-  double phi   = vtkMath::RadiansFromDegrees( longLatAlt[1] );
+  double theta = vtkMath::RadiansFromDegrees(longLatAlt[0]);
+  double phi = vtkMath::RadiansFromDegrees(longLatAlt[1]);
   double cosPhi = cos(phi);
-  double radius = vtkGeoMath::EarthRadiusMeters()+ longLatAlt[2];
+  double radius = vtkGeoMath::EarthRadiusMeters() + longLatAlt[2];
 
   rect[2] = sin(phi) * radius;
   rect[1] = cos(theta) * cosPhi * radius;
   rect[0] = -sin(theta) * cosPhi * radius;
 }
-

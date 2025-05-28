@@ -31,7 +31,7 @@
  *
  * @sa
  * vtkMySQLQuery
-*/
+ */
 
 #ifndef vtkMySQLDatabase_h
 #define vtkMySQLDatabase_h
@@ -51,120 +51,117 @@ class VTKIOMYSQL_EXPORT vtkMySQLDatabase : public vtkSQLDatabase
 
 public:
   vtkTypeMacro(vtkMySQLDatabase, vtkSQLDatabase);
-  void PrintSelf(ostream& os, vtkIndent indent);
-  static vtkMySQLDatabase *New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  static vtkMySQLDatabase* New();
 
   /**
    * Open a new connection to the database.  You need to set the
    * filename before calling this function.  Returns true if the
    * database was opened successfully; false otherwise.
    */
-  bool Open( const char* password = 0 );
+  bool Open(const char* password = nullptr) override;
 
   /**
    * Close the connection to the database.
    */
-  void Close();
+  void Close() override;
 
   /**
    * Return whether the database has an open connection
    */
-  bool IsOpen();
+  bool IsOpen() override;
 
   /**
    * Return an empty query on this database.
    */
-  vtkSQLQuery* GetQueryInstance();
+  vtkSQLQuery* GetQueryInstance() override;
 
   /**
    * Get the list of tables from the database
    */
-  vtkStringArray* GetTables();
+  vtkStringArray* GetTables() override;
 
   /**
    * Get the list of fields for a particular table
    */
-  vtkStringArray* GetRecord(const char *table);
+  vtkStringArray* GetRecord(const char* table) override;
 
   /**
    * Return whether a feature is supported by the database.
    */
-  bool IsSupported(int feature);
+  bool IsSupported(int feature) override;
 
   /**
    * Did the last operation generate an error
    */
-  bool HasError();
+  bool HasError() override;
 
   /**
    * Get the last error text from the database
    */
-  const char* GetLastErrorText();
+  const char* GetLastErrorText() override;
 
-  //@{
+  ///@{
   /**
    * String representing database type (e.g. "mysql").
    */
-  const char* GetDatabaseType() VTK_OVERRIDE
-  {
-    return this->DatabaseType;
-  }
-  //@}
+  const char* GetDatabaseType() override { return this->DatabaseType; }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The database server host name.
    */
   vtkSetStringMacro(HostName);
   vtkGetStringMacro(HostName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The user name for connecting to the database server.
    */
   vtkSetStringMacro(User);
   vtkGetStringMacro(User);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The user's password for connecting to the database server.
    */
   vtkSetStringMacro(Password);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the database to connect to.
    */
   vtkSetStringMacro(DatabaseName);
   vtkGetStringMacro(DatabaseName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Should automatic reconnection be enabled?
    * This defaults to true.
    * If you change its value, you must do so before any call to Open().
    */
-  vtkSetMacro(Reconnect,int);
-  vtkGetMacro(Reconnect,int);
-  vtkBooleanMacro(Reconnect,int);
-  //@}
+  vtkSetMacro(Reconnect, int);
+  vtkGetMacro(Reconnect, int);
+  vtkBooleanMacro(Reconnect, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The port used for connecting to the database.
    */
   vtkSetClampMacro(ServerPort, int, 0, VTK_INT_MAX);
   vtkGetMacro(ServerPort, int);
-  //@}
+  ///@}
 
   /**
    * Get the URL of the database.
    */
-  virtual vtkStdString GetURL();
+  vtkStdString GetURL() override;
 
   /**
    * Return the SQL string with the syntax of the preamble following a
@@ -172,7 +169,7 @@ public:
    * NB: this method implements the MySQL-specific IF NOT EXISTS syntax,
    * used when b = false.
    */
-  virtual vtkStdString GetTablePreamble( bool b ) { return b ? vtkStdString() :"IF NOT EXISTS "; }
+  vtkStdString GetTablePreamble(bool b) override { return b ? vtkStdString() : "IF NOT EXISTS "; }
 
   /**
    * Return the SQL string with the syntax to create a column inside a
@@ -182,12 +179,11 @@ public:
    * `<column name>` <column type> <column attributes>
    * \endverbatim
    * NB2: if a column has type SERIAL in the schema, this will be turned
-   * into INT NOT NULL AUTO_INCREMENT. Therefore, one should not pass
-   * NOT NULL as an attribute of a column whose type is SERIAL.
+   * into INT NOT nullptr AUTO_INCREMENT. Therefore, one should not pass
+   * NOT nullptr as an attribute of a column whose type is SERIAL.
    */
-  virtual vtkStdString GetColumnSpecification( vtkSQLDatabaseSchema* schema,
-                                               int tblHandle,
-                                               int colHandle );
+  vtkStdString GetColumnSpecification(
+    vtkSQLDatabaseSchema* schema, int tblHandle, int colHandle) override;
 
   /**
    * Return the SQL string with the syntax to create an index inside a
@@ -199,41 +195,39 @@ public:
    * NB2: since MySQL supports INDEX creation within a CREATE TABLE statement,
    * skipped is always returned false.
    */
-  virtual vtkStdString GetIndexSpecification( vtkSQLDatabaseSchema* schema,
-                                              int tblHandle,
-                                              int idxHandle,
-                                              bool& skipped );
+  vtkStdString GetIndexSpecification(
+    vtkSQLDatabaseSchema* schema, int tblHandle, int idxHandle, bool& skipped) override;
 
   /**
    * Create a new database, optionally dropping any existing database of the same name.
    * Returns true when the database is properly created and false on failure.
    */
-  bool CreateDatabase( const char* dbName, bool dropExisting );
+  bool CreateDatabase(const char* dbName, bool dropExisting);
 
   /**
    * Drop a database if it exists.
    * Returns true on success and false on failure.
    */
-  bool DropDatabase( const char* dbName );
+  bool DropDatabase(const char* dbName);
 
   /**
    * Overridden to determine connection parameters given the URL.
    * This is called by CreateFromURL() to initialize the instance.
    * Look at CreateFromURL() for details about the URL format.
    */
-  virtual bool ParseURL(const char* url);
+  bool ParseURL(const char* url) override;
 
 protected:
   vtkMySQLDatabase();
-  ~vtkMySQLDatabase();
+  ~vtkMySQLDatabase() override;
 
 private:
   // We want this to be private, a user of this class
   // should not be setting this for any reason
   vtkSetStringMacro(DatabaseType);
 
-  vtkStringArray *Tables;
-  vtkStringArray *Record;
+  vtkStringArray* Tables;
+  vtkStringArray* Record;
 
   char* DatabaseType;
   char* HostName;
@@ -245,9 +239,8 @@ private:
 
   vtkMySQLDatabasePrivate* const Private;
 
-  vtkMySQLDatabase(const vtkMySQLDatabase &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMySQLDatabase &) VTK_DELETE_FUNCTION;
+  vtkMySQLDatabase(const vtkMySQLDatabase&) = delete;
+  void operator=(const vtkMySQLDatabase&) = delete;
 };
 
 #endif // vtkMySQLDatabase_h
-

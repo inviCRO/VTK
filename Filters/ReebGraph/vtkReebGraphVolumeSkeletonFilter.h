@@ -22,7 +22,7 @@
  * vtkReebGraph (port 1).
  * The filter samples each arc of the Reeb graph and embeds the samples on the
  * barycenter of the corresponding field contour.
- * The number of (evenly distributed) arc samples  can be defined with
+ * The number of (evenly distributed) arc samples can be defined with
  * SetNumberOfSamples() (default value: 10).
  * The skeleton can be optionally smoothed with SetNumberOfSmoothingIterations()
  * (default value: 10).
@@ -39,71 +39,69 @@
  * primitives (for instance, spheres at critical nodes and cylinders between
  * intermediary samples, see Graphics/Testing/Cxx/TestReebGraph.cxx).
  *
-*/
+ */
 
 #ifndef vtkReebGraphVolumeSkeletonFilter_h
 #define vtkReebGraphVolumeSkeletonFilter_h
 
+#include "vtkDataObjectAlgorithm.h"
 #include "vtkFiltersReebGraphModule.h" // For export macro
-#include  "vtkDataObjectAlgorithm.h"
 
 class vtkReebGraph;
 class vtkTable;
 
-class VTKFILTERSREEBGRAPH_EXPORT vtkReebGraphVolumeSkeletonFilter :
-  public vtkDataObjectAlgorithm
+class VTKFILTERSREEBGRAPH_EXPORT vtkReebGraphVolumeSkeletonFilter : public vtkDataObjectAlgorithm
 {
 public:
   static vtkReebGraphVolumeSkeletonFilter* New();
-  vtkTypeMacro(vtkReebGraphVolumeSkeletonFilter,
-    vtkDataObjectAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  vtkTypeMacro(vtkReebGraphVolumeSkeletonFilter, vtkDataObjectAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set the number of samples along each arc of the Reeb graph
    * Default value: 5
    */
   vtkSetMacro(NumberOfSamples, int);
   vtkGetMacro(NumberOfSamples, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the number of optional smoothing iterations
    * Default value: 30
    */
   vtkSetMacro(NumberOfSmoothingIterations, int);
   vtkGetMacro(NumberOfSmoothingIterations, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the scalar field Id
    * Default value: 0
    */
   vtkSetMacro(FieldId, vtkIdType);
   vtkGetMacro(FieldId, vtkIdType);
-  //@}
+  ///@}
 
   vtkTable* GetOutput();
 
 protected:
   vtkReebGraphVolumeSkeletonFilter();
-  ~vtkReebGraphVolumeSkeletonFilter();
+  ~vtkReebGraphVolumeSkeletonFilter() override;
 
   vtkIdType FieldId;
   int NumberOfSamples, NumberOfSmoothingIterations;
 
-  int FillInputPortInformation(int portNumber, vtkInformation *);
-  int FillOutputPortInformation(int portNumber, vtkInformation *info);
+  int FillInputPortInformation(int portNumber, vtkInformation*) override;
+  int FillOutputPortInformation(int portNumber, vtkInformation* info) override;
 
-  int RequestData(vtkInformation *request,
-    vtkInformationVector **inputVector, vtkInformationVector *outputVector);
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
 private:
-  vtkReebGraphVolumeSkeletonFilter(const vtkReebGraphVolumeSkeletonFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkReebGraphVolumeSkeletonFilter&) VTK_DELETE_FUNCTION;
+  vtkReebGraphVolumeSkeletonFilter(const vtkReebGraphVolumeSkeletonFilter&) = delete;
+  void operator=(const vtkReebGraphVolumeSkeletonFilter&) = delete;
 };
 
 #endif

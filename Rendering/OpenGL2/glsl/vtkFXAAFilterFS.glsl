@@ -257,7 +257,7 @@ int nvidiaEndpointSearch(vec2 posC, float lumC, float lumHC, float lengthSign,
    * bool shadeIfNearP = lumCLessThanAve != lumPLessThanAve;                  *
    *                                                                          *
    * If shadeIfNearN is true, N is changing contrast relative to C. The same  *
-   * is true for P. Thus, the change in the average contrast of the the       *
+   * is true for P. Thus, the change in the average contrast of the           *
    * endpoint relative to lumAveHC must be opposite to the change in contrast *
    * from C to lumAveHC.                                                      *
    *                                                                          *
@@ -548,7 +548,7 @@ void main()
   /****************************************************************************
    * Compute Local Contrast Range And Early Abort                             *
    *==========================================================================*
-   * Determine the contrast range for the current pixel and its neightbors    *
+   * Determine the contrast range for the current pixel and its neighbors     *
    * to the North, South, West, and East. If the range is less than both of:  *
    *                                                                          *
    * a) RelativeContrastThreshold * lumMax                                    *
@@ -568,7 +568,8 @@ void main()
   vec2 tcE = texCoord + vec2( tcPixel.x,  0.f);
 
   // Extract the rgb values of these pixels:
-  vec3 rgbC = texture2D(Input, tcC).rgb;
+  vec4 centerSample = texture2D(Input, tcC);
+  vec3 rgbC = centerSample.rgb;
   vec3 rgbN = texture2D(Input, tcN).rgb;
   vec3 rgbS = texture2D(Input, tcS).rgb;
   vec3 rgbW = texture2D(Input, tcW).rgb;
@@ -592,7 +593,7 @@ void main()
   // the current pixel:
   if (lumRange < lumThresh)
     {
-    gl_FragData[0] = vec4(rgbC, 1.f); // original color
+    gl_FragData[0] = vec4(rgbC, centerSample.a); // original color
     return;
     }
 
@@ -784,5 +785,5 @@ void main()
 #endif // FXAA_DEBUG_ONLY_EDGE_AA
 
   // Blend the edgeAA and subpixelAA results together:
-  gl_FragData[0] = vec4(mix(rgbEdgeAA, rgbSub, blendSub), 1.f);
+  gl_FragData[0] = vec4(mix(rgbEdgeAA, rgbSub, blendSub), centerSample.a);
 }

@@ -121,6 +121,13 @@ HPDF_HasDoc  (HPDF_Doc  pdf)
         return HPDF_TRUE;
 }
 
+HPDF_EXPORT(HPDF_MMgr)
+HPDF_GetDocMMgr  (HPDF_Doc doc)
+{
+    HPDF_PTRACE ((" HPDF_GetDocMMgr\n"));
+
+    return doc->mmgr;
+}
 
 HPDF_EXPORT(HPDF_Doc)
 HPDF_New  (HPDF_Error_Handler    user_error_fn,
@@ -497,6 +504,7 @@ HPDF_SetEncryptionMode  (HPDF_Doc           pdf,
             /* if encryption mode is specified revision-3, the version of
              * pdf file is set to 1.4
              */
+            if (pdf->pdf_version < HPDF_VER_14)
             pdf->pdf_version = HPDF_VER_14;
 
             if (key_len >= 5 && key_len <= 16)
@@ -611,7 +619,7 @@ InternalSaveToStream  (HPDF_Doc      pdf,
     if ((ret = PrepareTrailer (pdf)) != HPDF_OK)
         return ret;
 
-    /* prepare encription */
+    /* prepare encryption */
     if (pdf->encrypt_on) {
         HPDF_Encrypt e= HPDF_EncryptDict_GetAttr (pdf->encrypt_dict);
 
@@ -1784,7 +1792,7 @@ HPDF_SetPageLayout  (HPDF_Doc          pdf,
     if (!HPDF_HasDoc (pdf))
         return HPDF_INVALID_DOCUMENT;
 
-    if (layout < 0 || layout >= HPDF_PAGE_LAYOUT_EOF)
+    if (layout < HPDF_PAGE_LAYOUT_SINGLE || layout >= HPDF_PAGE_LAYOUT_EOF)
         return HPDF_RaiseError (&pdf->error, HPDF_PAGE_LAYOUT_OUT_OF_RANGE,
                 (HPDF_STATUS)layout);
 
@@ -1821,7 +1829,7 @@ HPDF_SetPageMode  (HPDF_Doc        pdf,
     if (!HPDF_HasDoc (pdf))
         return HPDF_INVALID_DOCUMENT;
 
-    if (mode < 0 || mode >= HPDF_PAGE_MODE_EOF)
+    if (mode < HPDF_PAGE_MODE_USE_NONE || mode >= HPDF_PAGE_MODE_EOF)
         return HPDF_RaiseError (&pdf->error, HPDF_PAGE_MODE_OUT_OF_RANGE,
                 (HPDF_STATUS)mode);
 
@@ -1908,7 +1916,7 @@ HPDF_AddPageLabel  (HPDF_Doc             pdf,
     if (!page_label)
         return HPDF_CheckError (&pdf->error);
 
-    if (style < 0 || style >= HPDF_PAGE_NUM_STYLE_EOF)
+    if (style < HPDF_PAGE_NUM_STYLE_DECIMAL || style >= HPDF_PAGE_NUM_STYLE_EOF)
         return HPDF_RaiseError (&pdf->error, HPDF_PAGE_NUM_STYLE_OUT_OF_RANGE,
                     (HPDF_STATUS)style);
 
@@ -2126,16 +2134,16 @@ HPDF_SetCompressionMode  (HPDF_Doc    pdf,
     if (mode != (mode & HPDF_COMP_MASK))
         return HPDF_RaiseError (&pdf->error, HPDF_INVALID_COMPRESSION_MODE, 0);
 
-#ifndef LIBHPDF_HAVE_NOZLIB
+#ifdef LIBHPDF_HAVE_ZLIB
     pdf->compression_mode = mode;
 
     return HPDF_OK;
 
-#else /* LIBHPDF_HAVE_NOZLIB */
+#else /* LIBHPDF_HAVE_ZLIB */
 
     return HPDF_INVALID_COMPRESSION_MODE;
 
-#endif /* LIBHPDF_HAVE_NOZLIB */
+#endif /* LIBHPDF_HAVE_ZLIB */
 }
 
 

@@ -42,7 +42,7 @@
  *
  * @sa
  * vtkLocator vtkPointLocator vtkCellLocator vtkOBBTree
-*/
+ */
 
 #ifndef vtkSpatialRepresentationFilter_h
 #define vtkSpatialRepresentationFilter_h
@@ -57,25 +57,25 @@ class vtkSpatialRepresentationFilterInternal;
 class VTKFILTERSGENERAL_EXPORT vtkSpatialRepresentationFilter : public vtkMultiBlockDataSetAlgorithm
 {
 public:
-  static vtkSpatialRepresentationFilter *New();
-  vtkTypeMacro(vtkSpatialRepresentationFilter,vtkMultiBlockDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkSpatialRepresentationFilter* New();
+  vtkTypeMacro(vtkSpatialRepresentationFilter, vtkMultiBlockDataSetAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set/Get the locator that will be used to generate the representation.
    */
   virtual void SetSpatialRepresentation(vtkLocator*);
-  vtkGetObjectMacro(SpatialRepresentation,vtkLocator);
-  //@}
+  vtkGetObjectMacro(SpatialRepresentation, vtkLocator);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the maximum level that is available. Populated during
    * RequestData().
    */
-  vtkGetMacro(MaximumLevel,int);
-  //@}
+  vtkGetMacro(MaximumLevel, int);
+  ///@}
 
   /**
    * Add a level to be computed.
@@ -87,33 +87,32 @@ public:
    */
   void ResetLevels();
 
-  //@{
+  ///@{
   /**
    * Turn on/off the generation of leaf nodes. Off by default.
    */
   vtkSetMacro(GenerateLeaves, bool);
   vtkGetMacro(GenerateLeaves, bool);
   vtkBooleanMacro(GenerateLeaves, bool);
-  //@}
+  ///@}
 
 protected:
   vtkSpatialRepresentationFilter();
-  ~vtkSpatialRepresentationFilter() VTK_OVERRIDE;
+  ~vtkSpatialRepresentationFilter() override;
 
-  int RequestData(vtkInformation*,
-                  vtkInformationVector**,
-                  vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int MaximumLevel;
   bool GenerateLeaves;
 
-  vtkLocator *SpatialRepresentation;
+  vtkLocator* SpatialRepresentation;
 
-  void ReportReferences(vtkGarbageCollector*) VTK_OVERRIDE;
-  int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  void ReportReferences(vtkGarbageCollector*) override;
+  int FillInputPortInformation(int, vtkInformation*) override;
+
 private:
-  vtkSpatialRepresentationFilter(const vtkSpatialRepresentationFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSpatialRepresentationFilter&) VTK_DELETE_FUNCTION;
+  vtkSpatialRepresentationFilter(const vtkSpatialRepresentationFilter&) = delete;
+  void operator=(const vtkSpatialRepresentationFilter&) = delete;
 
   vtkSpatialRepresentationFilterInternal* Internal;
 };

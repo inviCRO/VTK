@@ -17,9 +17,9 @@
 #include "vtkXdmf3SILBuilder.h"
 
 #include "vtkDataSetAttributes.h"
+#include "vtkMutableDirectedGraph.h"
 #include "vtkStringArray.h"
 #include "vtkUnsignedCharArray.h"
-#include "vtkMutableDirectedGraph.h"
 
 // As soon as num-grids (sub-grids and all) grows beyond this number, we assume
 // that the grids are too numerous for the user to select individually and
@@ -29,9 +29,9 @@
 //------------------------------------------------------------------------------
 vtkXdmf3SILBuilder::vtkXdmf3SILBuilder()
 {
-  this->SIL = NULL;
-  this->NamesArray = NULL;
-  this->CrossEdgesArray = NULL;
+  this->SIL = nullptr;
+  this->NamesArray = nullptr;
+  this->CrossEdgesArray = nullptr;
   this->RootVertex = -1;
   this->BlocksRoot = -1;
   this->HierarchyRoot = -1;

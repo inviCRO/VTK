@@ -25,7 +25,7 @@
  * introductory reference is Hoppe's "Surface reconstruction from
  * unorganized points."
  *
- * To use this filter, sepcify a neighborhood size. This may have to be set
+ * To use this filter, specify a neighborhood size. This may have to be set
  * via experimentation. Optionally a point locator can be specified (instead
  * of the default locator), which is used to accelerate searches around a
  * sample point. Finally, the user should specify how to generate
@@ -46,7 +46,7 @@
  *
  * @sa
  * vtkPCANormalEstimation
-*/
+ */
 
 #ifndef vtkPCACurvatureEstimation_h
 #define vtkPCACurvatureEstimation_h
@@ -56,57 +56,54 @@
 
 class vtkAbstractPointLocator;
 
-
 class VTKFILTERSPOINTS_EXPORT vtkPCACurvatureEstimation : public vtkPolyDataAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard methods for instantiating, obtaining type information, and
    * printing information.
    */
-  static vtkPCACurvatureEstimation *New();
-  vtkTypeMacro(vtkPCACurvatureEstimation,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkPCACurvatureEstimation* New();
+  vtkTypeMacro(vtkPCACurvatureEstimation, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * For each sampled point, specify the number of the closest, surrounding
    * points used to estimate the normal (the so called k-neighborhood). By
    * default 25 points are used. Smaller numbers may speed performance at the
    * cost of accuracy.
    */
-  vtkSetClampMacro(SampleSize,int,1,VTK_INT_MAX);
-  vtkGetMacro(SampleSize,int);
-  //@}
+  vtkSetClampMacro(SampleSize, int, 1, VTK_INT_MAX);
+  vtkGetMacro(SampleSize, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify a point locator. By default a vtkStaticPointLocator is
    * used. The locator performs efficient searches to locate points
    * around a sample point.
    */
-  void SetLocator(vtkAbstractPointLocator *locator);
-  vtkGetObjectMacro(Locator,vtkAbstractPointLocator);
-  //@}
+  void SetLocator(vtkAbstractPointLocator* locator);
+  vtkGetObjectMacro(Locator, vtkAbstractPointLocator);
+  ///@}
 
 protected:
   vtkPCACurvatureEstimation();
-  ~vtkPCACurvatureEstimation() VTK_OVERRIDE;
+  ~vtkPCACurvatureEstimation() override;
 
   // IVars
   int SampleSize;
-  vtkAbstractPointLocator *Locator;
+  vtkAbstractPointLocator* Locator;
 
-  int RequestData(vtkInformation *, vtkInformationVector **,
-    vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkPCACurvatureEstimation(const vtkPCACurvatureEstimation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPCACurvatureEstimation&) VTK_DELETE_FUNCTION;
-
+  vtkPCACurvatureEstimation(const vtkPCACurvatureEstimation&) = delete;
+  void operator=(const vtkPCACurvatureEstimation&) = delete;
 };
 
 #endif

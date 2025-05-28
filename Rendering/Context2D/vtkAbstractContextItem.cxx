@@ -14,122 +14,126 @@
 =========================================================================*/
 
 #include "vtkAbstractContextItem.h"
-#include "vtkObjectFactory.h"
 #include "vtkContextMouseEvent.h"
 #include "vtkContextScenePrivate.h"
+#include "vtkObjectFactory.h"
 
 // STL headers
 #include <algorithm>
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAbstractContextItem::vtkAbstractContextItem()
 {
-  this->Scene = NULL;
-  this->Parent = NULL;
+  this->Scene = nullptr;
+  this->Parent = nullptr;
   this->Children = new vtkContextScenePrivate(this);
   this->Visible = true;
   this->Interactive = true;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAbstractContextItem::~vtkAbstractContextItem()
 {
   delete this->Children;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::Paint(vtkContext2D *painter)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::Paint(vtkContext2D* painter)
 {
   this->Children->PaintItems(painter);
   return true;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::PaintChildren(vtkContext2D *painter)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::PaintChildren(vtkContext2D* painter)
 {
   this->Children->PaintItems(painter);
   return true;
 }
 
-//-----------------------------------------------------------------------------
-void vtkAbstractContextItem::Update()
-{
-}
+//------------------------------------------------------------------------------
+void vtkAbstractContextItem::Update() {}
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::AddItem(vtkAbstractContextItem* item)
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::AddItem(vtkAbstractContextItem* item)
 {
   return this->Children->AddItem(item);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkAbstractContextItem::RemoveItem(vtkAbstractContextItem* item)
 {
   return this->Children->RemoveItem(item);
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::RemoveItem(unsigned int index)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::RemoveItem(vtkIdType index)
 {
-  return this->Children->RemoveItem(index);
+  if (index >= 0 && index < static_cast<vtkIdType>(this->Children->size()))
+  {
+    return this->Children->RemoveItem(index);
+  }
+  else
+  {
+    return false;
+  }
 }
 
-//-----------------------------------------------------------------------------
-vtkAbstractContextItem* vtkAbstractContextItem::GetItem(unsigned int index)
+//------------------------------------------------------------------------------
+vtkAbstractContextItem* vtkAbstractContextItem::GetItem(vtkIdType index)
 {
-  if (index < this->Children->size())
+  if (index >= 0 && index < static_cast<vtkIdType>(this->Children->size()))
   {
     return this->Children->at(index);
   }
   else
   {
-    return 0;
+    return nullptr;
   }
 }
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::GetItemIndex(vtkAbstractContextItem* item)
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::GetItemIndex(vtkAbstractContextItem* item)
 {
   vtkContextScenePrivate::const_iterator it =
     std::find(this->Children->begin(), this->Children->end(), item);
   if (it == this->Children->end())
   {
-    return static_cast<unsigned int>(-1);
+    return -1;
   }
   return it - this->Children->begin();
 }
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::GetNumberOfItems()
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::GetNumberOfItems()
 {
-  return static_cast<unsigned int>(this->Children->size());
+  return static_cast<vtkIdType>(this->Children->size());
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAbstractContextItem::ClearItems()
 {
   this->Children->Clear();
 }
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::Raise(unsigned int index)
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::Raise(vtkIdType index)
 {
   return this->StackAbove(index, this->GetNumberOfItems() - 1);
 }
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::StackAbove(unsigned int index,
-                                                unsigned int under)
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::StackAbove(vtkIdType index, vtkIdType under)
 {
-  unsigned int res = index;
-  if (index == under)
+  vtkIdType res = index;
+  if (index == under || index < 0)
   {
     return res;
   }
-  unsigned int start = 0;
-  unsigned int middle = 0;
-  unsigned int end = 0;
-  if (under == static_cast<unsigned int>(-1))
+  vtkIdType start = 0;
+  vtkIdType middle = 0;
+  vtkIdType end = 0;
+  if (under == -1)
   {
     start = 0;
     middle = index;
@@ -150,94 +154,91 @@ unsigned int vtkAbstractContextItem::StackAbove(unsigned int index,
     end = under + 1;
     res = end - 1;
   }
-  std::rotate(this->Children->begin() + start,
-              this->Children->begin() + middle,
-              this->Children->begin() + end);
+  std::rotate(this->Children->begin() + start, this->Children->begin() + middle,
+    this->Children->begin() + end);
   return res;
 }
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::Lower(unsigned int index)
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::Lower(vtkIdType index)
 {
   return this->StackUnder(index, 0);
 }
 
-//-----------------------------------------------------------------------------
-unsigned int vtkAbstractContextItem::StackUnder(unsigned int child,
-                                                unsigned int above)
+//------------------------------------------------------------------------------
+vtkIdType vtkAbstractContextItem::StackUnder(vtkIdType child, vtkIdType above)
 {
   return this->StackAbove(child, above - 1);
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::Hit(const vtkContextMouseEvent &)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::Hit(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::MouseEnterEvent(const vtkContextMouseEvent &)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::MouseEnterEvent(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::MouseMoveEvent(const vtkContextMouseEvent &)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::MouseMoveEvent(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::MouseLeaveEvent(const vtkContextMouseEvent &)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::MouseLeaveEvent(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::MouseButtonPressEvent(const vtkContextMouseEvent &)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::MouseButtonPressEvent(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkAbstractContextItem::MouseButtonReleaseEvent(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkAbstractContextItem::MouseDoubleClickEvent(const vtkContextMouseEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
-bool vtkAbstractContextItem::MouseWheelEvent(const vtkContextMouseEvent &, int)
+//------------------------------------------------------------------------------
+bool vtkAbstractContextItem::MouseWheelEvent(const vtkContextMouseEvent&, int)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkAbstractContextItem::KeyPressEvent(const vtkContextKeyEvent&)
 {
   return false;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkAbstractContextItem::KeyReleaseEvent(const vtkContextKeyEvent&)
 {
   return false;
 }
 
-// ----------------------------------------------------------------------------
-vtkAbstractContextItem* vtkAbstractContextItem::GetPickedItem(
-  const vtkContextMouseEvent &mouse)
+//------------------------------------------------------------------------------
+vtkAbstractContextItem* vtkAbstractContextItem::GetPickedItem(const vtkContextMouseEvent& mouse)
 {
   vtkContextMouseEvent childMouse = mouse;
   childMouse.SetPos(this->MapFromParent(mouse.GetPos()));
   childMouse.SetLastPos(this->MapFromParent(mouse.GetLastPos()));
-  for(vtkContextScenePrivate::const_reverse_iterator it =
-      this->Children->rbegin(); it != this->Children->rend(); ++it)
+  for (vtkContextScenePrivate::const_reverse_iterator it = this->Children->rbegin();
+       it != this->Children->rend(); ++it)
   {
     vtkAbstractContextItem* item = (*it)->GetPickedItem(childMouse);
     if (item)
@@ -245,45 +246,45 @@ vtkAbstractContextItem* vtkAbstractContextItem::GetPickedItem(
       return item;
     }
   }
-  return this->Hit(mouse) ? this : NULL;
+  return this->Hit(mouse) ? this : nullptr;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAbstractContextItem::ReleaseGraphicsResources()
 {
-  for(vtkContextScenePrivate::const_iterator it = this->Children->begin();
-    it != this->Children->end(); ++it)
+  for (vtkContextScenePrivate::const_iterator it = this->Children->begin();
+       it != this->Children->end(); ++it)
   {
     (*it)->ReleaseGraphicsResources();
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAbstractContextItem::SetScene(vtkContextScene* scene)
 {
   this->Scene = scene;
   this->Children->SetScene(scene);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAbstractContextItem::SetParent(vtkAbstractContextItem* parent)
 {
   this->Parent = parent;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkVector2f vtkAbstractContextItem::MapToParent(const vtkVector2f& point)
 {
   return point;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkVector2f vtkAbstractContextItem::MapFromParent(const vtkVector2f& point)
 {
   return point;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkVector2f vtkAbstractContextItem::MapToScene(const vtkVector2f& point)
 {
   if (this->Parent)
@@ -298,7 +299,7 @@ vtkVector2f vtkAbstractContextItem::MapToScene(const vtkVector2f& point)
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkVector2f vtkAbstractContextItem::MapFromScene(const vtkVector2f& point)
 {
   if (this->Parent)
@@ -313,8 +314,8 @@ vtkVector2f vtkAbstractContextItem::MapFromScene(const vtkVector2f& point)
   }
 }
 
-//-----------------------------------------------------------------------------
-void vtkAbstractContextItem::PrintSelf(ostream &os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkAbstractContextItem::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }

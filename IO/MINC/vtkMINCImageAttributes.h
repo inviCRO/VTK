@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGES.
  * @par Thanks:
  * Thanks to David Gobbi for writing this class and Atamai Inc. for
  * contributing it to VTK.
-*/
+ */
 
 #ifndef vtkMINCImageAttributes_h
 #define vtkMINCImageAttributes_h
@@ -83,10 +83,10 @@ class vtkMINCImageAttributeMap;
 class VTKIOMINC_EXPORT vtkMINCImageAttributes : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkMINCImageAttributes,vtkObject);
+  vtkTypeMacro(vtkMINCImageAttributes, vtkObject);
 
-  static vtkMINCImageAttributes *New();
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkMINCImageAttributes* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Reset all the attributes in preparation for loading
@@ -94,7 +94,7 @@ public:
    */
   virtual void Reset();
 
-  //@{
+  ///@{
   /**
    * Get the name of the image, not including the path or
    * the extension.  This is only needed for printing the
@@ -102,9 +102,9 @@ public:
    */
   vtkSetStringMacro(Name);
   vtkGetStringMacro(Name);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the image data type, as stored on disk.  This information
    * is useful if the file was converted to floating-point when it
@@ -113,19 +113,18 @@ public:
    */
   vtkSetMacro(DataType, int);
   vtkGetMacro(DataType, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Add the names of up to five dimensions. The ordering of these
    * dimensions will determine the dimension order of the file.  If
    * no DimensionNames are set, the writer will set the dimension
    * order of the file to be the same as the dimension order in memory.
    */
-  virtual void AddDimension(const char *dimension) {
-    this->AddDimension(dimension, 0); };
-  virtual void AddDimension(const char *dimension, vtkIdType length);
-  //@}
+  virtual void AddDimension(const char* dimension) { this->AddDimension(dimension, 0); }
+  virtual void AddDimension(const char* dimension, vtkIdType length);
+  ///@}
 
   /**
    * Get the dimension names.  The dimension names are same order
@@ -134,108 +133,94 @@ public:
    * change "space" dimensions to "frequency" after performing a
    * Fourier transform.
    */
-  virtual vtkStringArray *GetDimensionNames() {
-    return this->DimensionNames; };
+  virtual vtkStringArray* GetDimensionNames() { return this->DimensionNames; }
 
   /**
    * Get the lengths of all the dimensions.  The dimension lengths
    * are informative, the vtkMINCImageWriter does not look at these values
    * but instead uses the dimension sizes of its input.
    */
-  virtual vtkIdTypeArray *GetDimensionLengths() {
-    return this->DimensionLengths; };
+  virtual vtkIdTypeArray* GetDimensionLengths() { return this->DimensionLengths; }
 
   /**
    * Get the names of all the variables.
    */
-  virtual vtkStringArray *GetVariableNames() {
-    return this->VariableNames; };
+  virtual vtkStringArray* GetVariableNames() { return this->VariableNames; }
 
   /**
    * List the attribute names for a variable.  Set the variable
    * to the empty string to get a list of the global attributes.
    */
-  virtual vtkStringArray *GetAttributeNames(const char *variable);
+  virtual vtkStringArray* GetAttributeNames(const char* variable);
 
-  //@{
+  ///@{
   /**
    * Get the image min and max arrays. These are set by the reader,
    * but they aren't used by the writer except to compute the full
    * real data range of the original file.
    */
-  virtual void SetImageMin(vtkDoubleArray *imageMin);
-  virtual void SetImageMax(vtkDoubleArray *imageMax);
-  virtual vtkDoubleArray *GetImageMin() { return this->ImageMin; };
-  virtual vtkDoubleArray *GetImageMax() { return this->ImageMax; };
-  //@}
+  virtual void SetImageMin(vtkDoubleArray* imageMin);
+  virtual void SetImageMax(vtkDoubleArray* imageMax);
+  virtual vtkDoubleArray* GetImageMin() { return this->ImageMin; }
+  virtual vtkDoubleArray* GetImageMax() { return this->ImageMax; }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the number of ImageMinMax dimensions.
    */
   vtkGetMacro(NumberOfImageMinMaxDimensions, int);
   vtkSetMacro(NumberOfImageMinMaxDimensions, int);
-  //@}
+  ///@}
 
   /**
    * Check to see if a particular attribute exists.
    */
-  virtual int HasAttribute(const char *variable, const char *attribute);
+  virtual int HasAttribute(const char* variable, const char* attribute);
 
-  //@{
+  ///@{
   /**
    * Set attribute values for a variable as a vtkDataArray.
    * Set the variable to the empty string to access global attributes.
    */
-  virtual void SetAttributeValueAsArray(const char *variable,
-                                        const char *attribute,
-                                        vtkDataArray *array);
-  virtual vtkDataArray *GetAttributeValueAsArray(const char *variable,
-                                                 const char *attribute);
-  //@}
+  virtual void SetAttributeValueAsArray(
+    const char* variable, const char* attribute, vtkDataArray* array);
+  virtual vtkDataArray* GetAttributeValueAsArray(const char* variable, const char* attribute);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set an attribute value as a string.  Set the variable
    * to the empty string to access global attributes.
    * If you specify a variable that does not exist, it will be
    * created.
    */
-  virtual void SetAttributeValueAsString(const char *variable,
-                                         const char *attribute,
-                                         const char *value);
-  virtual const char *GetAttributeValueAsString(const char *variable,
-                                                const char *attribute);
-  //@}
+  virtual void SetAttributeValueAsString(
+    const char* variable, const char* attribute, const char* value);
+  virtual const char* GetAttributeValueAsString(const char* variable, const char* attribute);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set an attribute value as an int. Set the variable
    * to the empty string to access global attributes.
    * If you specify a variable that does not exist, it will be
    * created.
    */
-  virtual void SetAttributeValueAsInt(const char *variable,
-                                      const char *attribute,
-                                      int value);
-  virtual int GetAttributeValueAsInt(const char *variable,
-                                     const char *attribute);
-  //@}
+  virtual void SetAttributeValueAsInt(const char* variable, const char* attribute, int value);
+  virtual int GetAttributeValueAsInt(const char* variable, const char* attribute);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set an attribute value as a double.  Set the variable
    * to the empty string to access global attributes.
    * If you specify a variable that does not exist, it will be
    * created.
    */
-  virtual void SetAttributeValueAsDouble(const char *variable,
-                                         const char *attribute,
-                                         double value);
-  virtual double GetAttributeValueAsDouble(const char *variable,
-                                           const char *attribute);
-  //@}
-
+  virtual void SetAttributeValueAsDouble(const char* variable, const char* attribute, double value);
+  virtual double GetAttributeValueAsDouble(const char* variable, const char* attribute);
+  ///@}
 
   /**
    * Validate a particular attribute.  This involves checking
@@ -246,19 +231,17 @@ public:
    * be copied from here, 1 if this attribute is valid and should
    * be set, and 2 if the attribute is non-standard.
    */
-  virtual int ValidateAttribute(const char *varname,
-                                const char *attname,
-                                vtkDataArray *array);
+  virtual int ValidateAttribute(const char* varname, const char* attname, vtkDataArray* array);
 
-  //@{
+  ///@{
   /**
    * Set this to Off if you do not want to automatically validate
    * every attribute that is set.
    */
-  vtkSetMacro(ValidateAttributes, int);
-  vtkBooleanMacro(ValidateAttributes, int);
-  vtkGetMacro(ValidateAttributes, int);
-  //@}
+  vtkSetMacro(ValidateAttributes, vtkTypeBool);
+  vtkBooleanMacro(ValidateAttributes, vtkTypeBool);
+  vtkGetMacro(ValidateAttributes, vtkTypeBool);
+  ///@}
 
   /**
    * Do a shallow copy.  This will copy all the attributes
@@ -268,7 +251,7 @@ public:
    * method to make a copy if you want to modify any MINC attributes
    * from a MINCReader before you pass them to a MINCWriter.
    */
-  virtual void ShallowCopy(vtkMINCImageAttributes *source);
+  virtual void ShallowCopy(vtkMINCImageAttributes* source);
 
   /**
    * Find the valid range of the data from the information stored
@@ -282,67 +265,56 @@ public:
    */
   virtual void FindImageRange(double range[2]);
 
-  //@{
+  ///@{
   /**
    * A diagnostic function.  Print the header of the file in
    * the same format as ncdump or mincheader.
    */
   virtual void PrintFileHeader();
-  virtual void PrintFileHeader(ostream &os);
-  //@}
+  virtual void PrintFileHeader(ostream& os);
+  ///@}
 
 protected:
   vtkMINCImageAttributes();
-  ~vtkMINCImageAttributes() VTK_OVERRIDE;
+  ~vtkMINCImageAttributes() override;
 
-  const char *ConvertDataArrayToString(vtkDataArray *array);
+  const char* ConvertDataArrayToString(vtkDataArray* array);
 
-  virtual int ValidateGlobalAttribute(const char *attrib,
-                                      vtkDataArray *array);
-  virtual int ValidateGeneralAttribute(const char *varname,
-                                       const char *attname,
-                                       vtkDataArray *array);
-  virtual int ValidateDimensionAttribute(const char *varname,
-                                         const char *attname,
-                                         vtkDataArray *array);
-  virtual int ValidateImageAttribute(const char *varname,
-                                     const char *attname,
-                                     vtkDataArray *array);
-  virtual int ValidateImageMinMaxAttribute(const char *varname,
-                                           const char *attname,
-                                           vtkDataArray *array);
-  virtual int ValidatePatientAttribute(const char *varname,
-                                       const char *attname,
-                                       vtkDataArray *array);
-  virtual int ValidateStudyAttribute(const char *varname,
-                                     const char *attname,
-                                     vtkDataArray *array);
-  virtual int ValidateAcquisitionAttribute(const char *varname,
-                                           const char *attname,
-                                           vtkDataArray *array);
+  virtual int ValidateGlobalAttribute(const char* attrib, vtkDataArray* array);
+  virtual int ValidateGeneralAttribute(
+    const char* varname, const char* attname, vtkDataArray* array);
+  virtual int ValidateDimensionAttribute(
+    const char* varname, const char* attname, vtkDataArray* array);
+  virtual int ValidateImageAttribute(const char* varname, const char* attname, vtkDataArray* array);
+  virtual int ValidateImageMinMaxAttribute(
+    const char* varname, const char* attname, vtkDataArray* array);
+  virtual int ValidatePatientAttribute(
+    const char* varname, const char* attname, vtkDataArray* array);
+  virtual int ValidateStudyAttribute(const char* varname, const char* attname, vtkDataArray* array);
+  virtual int ValidateAcquisitionAttribute(
+    const char* varname, const char* attname, vtkDataArray* array);
 
-  vtkStringArray *DimensionNames;
-  vtkIdTypeArray *DimensionLengths;
+  vtkStringArray* DimensionNames;
+  vtkIdTypeArray* DimensionLengths;
 
-  vtkStringArray *VariableNames;
-  vtkMINCImageAttributeMap *AttributeNames;
-  vtkMINCImageAttributeMap *AttributeValues;
+  vtkStringArray* VariableNames;
+  vtkMINCImageAttributeMap* AttributeNames;
+  vtkMINCImageAttributeMap* AttributeValues;
 
-  vtkStringArray *StringStore;
+  vtkStringArray* StringStore;
 
-  vtkDoubleArray *ImageMin;
-  vtkDoubleArray *ImageMax;
+  vtkDoubleArray* ImageMin;
+  vtkDoubleArray* ImageMax;
   int NumberOfImageMinMaxDimensions;
 
   int DataType;
-  char *Name;
+  char* Name;
 
-  int ValidateAttributes;
+  vtkTypeBool ValidateAttributes;
 
 private:
-  vtkMINCImageAttributes(const vtkMINCImageAttributes&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMINCImageAttributes&) VTK_DELETE_FUNCTION;
-
+  vtkMINCImageAttributes(const vtkMINCImageAttributes&) = delete;
+  void operator=(const vtkMINCImageAttributes&) = delete;
 };
 
 #endif /* vtkMINCImageAttributes_h */

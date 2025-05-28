@@ -21,9 +21,9 @@
  * to create vtk objects from the list of registered vtkObjectFactory
  * sub-classes.   The first time CreateInstance is called, all dll's or shared
  * libraries in the environment variable VTK_AUTOLOAD_PATH are loaded into
- * the current process.   The C functions vtkLoad, vtkGetFactoryCompilerUsed,
- * and vtkGetFactoryVersion are called on each dll.  To implement these
- * functions in a shared library or dll, use the macro:
+ * the current process.   The C functions vtkLoad, and vtkGetFactoryVersion are
+ * called on each dll.  To implement these functions in a shared library or
+ * dll, use the macro:
  * VTK_FACTORY_INTERFACE_IMPLEMENT.
  * VTK_AUTOLOAD_PATH is an environment variable
  * containing a colon separated (semi-colon on win32) list of paths.
@@ -33,14 +33,17 @@
  * either at run time with the VTK_AUTOLOAD_PATH, or at compile time
  * with the vtkObjectFactory::RegisterFactory method.
  *
-*/
+ */
 
 #ifndef vtkObjectFactory_h
 #define vtkObjectFactory_h
 
+#include "vtkCommonCoreModule.h"  // For export macro
 #include "vtkDebugLeaksManager.h" // Must be included before singletons
-#include "vtkCommonCoreModule.h" // For export macro
+#include "vtkFeatures.h"          // For VTK_ALL_NEW_OBJECT_FACTORY
 #include "vtkObject.h"
+
+#include <string> // for std::string
 
 class vtkObjectFactoryCollection;
 class vtkOverrideInformationCollection;
@@ -58,19 +61,10 @@ public:
    * first factory returns the object no other factories are asked.
    * isAbstract is no longer used. This method calls
    * vtkObjectBase::InitializeObjectBase() on the instance when the
-   * return value is non-NULL.
+   * return value is non-nullptr.
    */
   VTK_NEWINSTANCE
-  static vtkObject* CreateInstance(const char* vtkclassname,
-                                   bool isAbstract = false);
-
-  /**
-   * No longer used. Call vtkObjectBase::InitializeObjectBase() from the
-   * New() implementation instead.
-   * @deprecated because this method relies on taking an arbitrary string,
-   * which may not match the GetClassName() string (especially for templates).
-   */
-  VTK_LEGACY(static void ConstructInstance(const char* vtkclassname));
+  static vtkObject* CreateInstance(const char* vtkclassname, bool isAbstract = false);
 
   /**
    * Create all possible instances of the named vtk object.
@@ -78,8 +72,7 @@ public:
    * result will be stored in the user allocated vtkCollection
    * passed in to the function.
    */
-  static void CreateAllInstance(const char* vtkclassname,
-                                vtkCollection* retList);
+  static void CreateAllInstance(const char* vtkclassname, vtkCollection* retList);
   /**
    * Re-check the VTK_AUTOLOAD_PATH for new factory libraries.
    * This calls UnRegisterAll before re-loading
@@ -88,7 +81,7 @@ public:
   /**
    * Register a factory so it can be used to create vtk objects
    */
-  static void RegisterFactory(vtkObjectFactory* );
+  static void RegisterFactory(vtkObjectFactory*);
   /**
    * Remove a factory from the list of registered factories
    */
@@ -114,31 +107,27 @@ public:
    * Fill the given collection with all the overrides for
    * the class with the given name.
    */
-  static void GetOverrideInformation(const char* name,
-                                     vtkOverrideInformationCollection*);
+  static void GetOverrideInformation(const char* name, vtkOverrideInformationCollection*);
 
   /**
    * Set the enable flag for a given named class for all registered
    * factories.
    */
-  static void SetAllEnableFlags(vtkTypeBool flag,
-                                const char* className);
+  static void SetAllEnableFlags(vtkTypeBool flag, const char* className);
   /**
    * Set the enable flag for a given named class subclass pair
    * for all registered factories.
    */
-  static void SetAllEnableFlags(vtkTypeBool flag,
-                                const char* className,
-                                const char* subclassName);
+  static void SetAllEnableFlags(vtkTypeBool flag, const char* className, const char* subclassName);
 
   // Instance methods to be used on individual instances of vtkObjectFactory
 
   // Methods from vtkObject
-  vtkTypeMacro(vtkObjectFactory,vtkObject);
+  vtkTypeMacro(vtkObjectFactory, vtkObject);
   /**
    * Print ObjectFactory to stream.
    */
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * All sub-classes of vtkObjectFactory should must return the version of
@@ -181,17 +170,14 @@ public:
    */
   virtual const char* GetOverrideDescription(int index);
 
-  //@{
+  ///@{
   /**
    * Set and Get the Enable flag for the specific override of className.
    * if subclassName is null, then it is ignored.
    */
-  virtual void SetEnableFlag(vtkTypeBool flag,
-                             const char* className,
-                             const char* subclassName);
-  virtual vtkTypeBool GetEnableFlag(const char* className,
-                                const char* subclassName);
-  //@}
+  virtual void SetEnableFlag(vtkTypeBool flag, const char* className, const char* subclassName);
+  virtual vtkTypeBool GetEnableFlag(const char* className, const char* subclassName);
+  ///@}
 
   /**
    * Return 1 if this factory overrides the given class name, 0 otherwise.
@@ -209,35 +195,31 @@ public:
    */
   virtual void Disable(const char* className);
 
-  //@{
+  ///@{
   /**
    * This returns the path to a dynamically loaded factory.
    */
-  vtkGetStringMacro(LibraryPath);
-  //@}
+  vtkGetFilePathMacro(LibraryPath);
+  ///@}
 
   typedef vtkObject* (*CreateFunction)();
 
 protected:
-
   /**
    * Register object creation information with the factory.
    */
-  void RegisterOverride(const char* classOverride,
-                        const char* overrideClassName,
-                        const char* description,
-                        int enableFlag,
-                        CreateFunction createFunction);
+  void RegisterOverride(const char* classOverride, const char* overrideClassName,
+    const char* description, int enableFlag, CreateFunction createFunction);
 
   /**
    * This method is provided by sub-classes of vtkObjectFactory.
    * It should create the named vtk object or return 0 if that object
    * is not supported by the factory implementation.
    */
-  virtual vtkObject* CreateObject(const char* vtkclassname );
+  virtual vtkObject* CreateObject(const char* vtkclassname);
 
   vtkObjectFactory();
-  ~vtkObjectFactory() VTK_OVERRIDE;
+  ~vtkObjectFactory() override;
 
   struct OverrideInformation
   {
@@ -271,7 +253,7 @@ private:
   /**
    * Load all dynamic libraries in the given path
    */
-  static void LoadLibrariesInPath( const char*);
+  static void LoadLibrariesInPath(const std::string&);
 
   // list of registered factories
   static vtkObjectFactoryCollection* RegisteredFactories;
@@ -280,14 +262,14 @@ private:
   // at load or register time
   void* LibraryHandle;
   char* LibraryVTKVersion;
-  char* LibraryCompilerUsed;
   char* LibraryPath;
+
 private:
-  vtkObjectFactory(const vtkObjectFactory&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkObjectFactory&) VTK_DELETE_FUNCTION;
+  vtkObjectFactory(const vtkObjectFactory&) = delete;
+  void operator=(const vtkObjectFactory&) = delete;
 };
 
-// Implementation detail for Schwartz counter idiom.
+// Implementation detail for Schwarz counter idiom.
 class VTKCOMMONCORE_EXPORT vtkObjectFactoryRegistryCleanup
 {
 public:
@@ -295,18 +277,16 @@ public:
   ~vtkObjectFactoryRegistryCleanup();
 
 private:
-  vtkObjectFactoryRegistryCleanup(const vtkObjectFactoryRegistryCleanup& other) VTK_DELETE_FUNCTION;
-  vtkObjectFactoryRegistryCleanup& operator=(const vtkObjectFactoryRegistryCleanup& rhs) VTK_DELETE_FUNCTION;
+  vtkObjectFactoryRegistryCleanup(const vtkObjectFactoryRegistryCleanup& other) = delete;
+  vtkObjectFactoryRegistryCleanup& operator=(const vtkObjectFactoryRegistryCleanup& rhs) = delete;
 };
 static vtkObjectFactoryRegistryCleanup vtkObjectFactoryRegistryCleanupInstance;
-
 
 // Macro to create an object creation function.
 // The name of the function will by vtkObjectFactoryCreateclassname
 // where classname is the name of the class being created
-#define VTK_CREATE_CREATE_FUNCTION(classname) \
-static vtkObject* vtkObjectFactoryCreate##classname() \
-{ return classname::New(); }
+#define VTK_CREATE_CREATE_FUNCTION(classname)                                                      \
+  static vtkObject* vtkObjectFactoryCreate##classname() { return classname::New(); }
 
 #endif
 
@@ -317,79 +297,69 @@ static vtkObject* vtkObjectFactoryCreate##classname() \
 // Put this function in the .cxx file of your object factory,
 // and pass in the name of the factory sub-class that you want
 // the dll to create.
-#define VTK_FACTORY_INTERFACE_IMPLEMENT(factoryName)  \
-extern "C"                                      \
-VTK_FACTORY_INTERFACE_EXPORT                    \
-const char* vtkGetFactoryCompilerUsed()         \
-{                                               \
-  return VTK_CXX_COMPILER;                      \
-}                                               \
-extern "C"                                      \
-VTK_FACTORY_INTERFACE_EXPORT                    \
-const char* vtkGetFactoryVersion()              \
-{                                               \
-  return VTK_SOURCE_VERSION;                    \
-}                                               \
-extern "C"                                      \
-VTK_FACTORY_INTERFACE_EXPORT                    \
-vtkObjectFactory* vtkLoad()                     \
-{                                               \
-  return factoryName ::New();                   \
-}
+#define VTK_FACTORY_INTERFACE_IMPLEMENT(factoryName)                                               \
+  extern "C" VTK_FACTORY_INTERFACE_EXPORT const char* vtkGetFactoryVersion()                       \
+  {                                                                                                \
+    return VTK_SOURCE_VERSION;                                                                     \
+  }                                                                                                \
+  extern "C" VTK_FACTORY_INTERFACE_EXPORT vtkObjectFactory* vtkLoad()                              \
+  {                                                                                                \
+    return factoryName ::New();                                                                    \
+  }
 
 // Macro to implement the body of the object factory form of the New() method.
-#define VTK_OBJECT_FACTORY_NEW_BODY(thisClass) \
-  vtkObject* ret = vtkObjectFactory::CreateInstance(#thisClass, false); \
-  if(ret) \
-  { \
-    return static_cast<thisClass*>(ret); \
-  } \
-  thisClass *result = new thisClass; \
-  result->InitializeObjectBase(); \
-  return result;
+#define VTK_OBJECT_FACTORY_NEW_BODY(thisClass)                                                     \
+  vtkObject* ret = vtkObjectFactory::CreateInstance(#thisClass, false);                            \
+  if (ret)                                                                                         \
+  {                                                                                                \
+    return static_cast<thisClass*>(ret);                                                           \
+  }                                                                                                \
+  auto result = new thisClass;                                                                     \
+  result->InitializeObjectBase();                                                                  \
+  return result
 
 // Macro to implement the body of the abstract object factory form of the New()
 // method, i.e. an abstract base class that can only be instantiated if the
 // object factory overrides it.
-#define VTK_ABSTRACT_OBJECT_FACTORY_NEW_BODY(thisClass) \
-  vtkObject* ret = vtkObjectFactory::CreateInstance(#thisClass, true); \
-  if(ret) \
-  { \
-    return static_cast<thisClass*>(ret); \
-  } \
-  vtkGenericWarningMacro("Error: no override found for '" #thisClass "'."); \
-  return NULL;
+#define VTK_ABSTRACT_OBJECT_FACTORY_NEW_BODY(thisClass)                                            \
+  vtkObject* ret = vtkObjectFactory::CreateInstance(#thisClass, true);                             \
+  if (ret)                                                                                         \
+  {                                                                                                \
+    return static_cast<thisClass*>(ret);                                                           \
+  }                                                                                                \
+  vtkGenericWarningMacro("Error: no override found for '" #thisClass "'.");                        \
+  return nullptr
 
 // Macro to implement the body of the standard form of the New() method.
 #if defined(VTK_ALL_NEW_OBJECT_FACTORY)
-# define VTK_STANDARD_NEW_BODY(thisClass) \
-  VTK_OBJECT_FACTORY_NEW_BODY(thisClass)
+#define VTK_STANDARD_NEW_BODY(thisClass) VTK_OBJECT_FACTORY_NEW_BODY(thisClass)
 #else
-# define VTK_STANDARD_NEW_BODY(thisClass) \
-  thisClass *result = new thisClass; \
-  result->InitializeObjectBase(); \
-  return result;
+#define VTK_STANDARD_NEW_BODY(thisClass)                                                           \
+  auto result = new thisClass;                                                                     \
+  result->InitializeObjectBase();                                                                  \
+  return result
 #endif
 
 // Macro to implement the standard form of the New() method.
-#define vtkStandardNewMacro(thisClass) \
-  thisClass* thisClass::New() \
-  { \
-  VTK_STANDARD_NEW_BODY(thisClass) \
+#define vtkStandardNewMacro(thisClass)                                                             \
+  thisClass* thisClass::New() { VTK_STANDARD_NEW_BODY(thisClass); }
+
+// Macro to implement the ExtendedNew() to create an object in a memkind extended memory space. If
+// VTK is not compiled with VTK_USE_MEMKIND this is equivalent to New()
+#define vtkStandardExtendedNewMacro(thisClass)                                                     \
+  thisClass* thisClass::ExtendedNew()                                                              \
+  {                                                                                                \
+    auto mkhold = vtkMemkindRAII(true);                                                            \
+    (void)mkhold;                                                                                  \
+    return thisClass::New();                                                                       \
   }
 
 // Macro to implement the object factory form of the New() method.
-#define vtkObjectFactoryNewMacro(thisClass) \
-  thisClass* thisClass::New() \
-  { \
-  VTK_OBJECT_FACTORY_NEW_BODY(thisClass) \
-  }
+#define vtkObjectFactoryNewMacro(thisClass)                                                        \
+  thisClass* thisClass::New() { VTK_OBJECT_FACTORY_NEW_BODY(thisClass); }
 
 // Macro to implement the abstract object factory form of the New() method.
 // That is an abstract base class that can only be instantiated if the
 // object factory overrides it.
-#define vtkAbstractObjectFactoryNewMacro(thisClass) \
-  thisClass* thisClass::New() \
-  { \
-  VTK_ABSTRACT_OBJECT_FACTORY_NEW_BODY(thisClass) \
-  }
+#define vtkAbstractObjectFactoryNewMacro(thisClass)                                                \
+  thisClass* thisClass::New() { VTK_ABSTRACT_OBJECT_FACTORY_NEW_BODY(thisClass); }

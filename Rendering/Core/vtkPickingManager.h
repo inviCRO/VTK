@@ -52,7 +52,7 @@
  * * at the widget level, the "ManagesPicking" variable can be changed
  * from the widget/representation class to tell
  * whether to use the manager or not.
- * * Directly disable the picking manager itself  with the boolean variable
+ * * Directly disable the picking manager itself with the boolean variable
  * \sa Enabled using vtkPickingManager::EnabledOn(), EnabledOff(),
  * SetEnabled(bool).
  * @par Important:
@@ -64,8 +64,8 @@
  * It is really important to note that a null object is different from one
  * to an other !!
  * This has been done to allow adding multiple times the same picker to the manager
- * by not passing the referenced object to not force the supression of all pickers
-*/
+ * by not passing the referenced object to not force the suppression of all pickers
+ */
 
 #ifndef vtkPickingManager_h
 #define vtkPickingManager_h
@@ -82,11 +82,11 @@ class vtkRenderWindowInteractor;
 class VTKRENDERINGCORE_EXPORT vtkPickingManager : public vtkObject
 {
 public:
-  static vtkPickingManager *New();
-  vtkTypeMacro(vtkPickingManager,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkPickingManager* New();
+  vtkTypeMacro(vtkPickingManager, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Enable/Disable management.
    * When disabled, it redirects every pick on the picker.
@@ -95,9 +95,9 @@ public:
   vtkBooleanMacro(Enabled, bool);
   vtkSetMacro(Enabled, bool);
   vtkGetMacro(Enabled, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable/Disable optimization depending on the renderWindowInteractor events.
    * The mechanism keeps in cache the last selected picker as well as the last
@@ -109,15 +109,15 @@ public:
    */
   void SetOptimizeOnInteractorEvents(bool optimize);
   vtkGetMacro(OptimizeOnInteractorEvents, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the window interactor associated with the manager.
    */
   void SetInteractor(vtkRenderWindowInteractor* iren);
   vtkGetMacro(Interactor, vtkRenderWindowInteractor*);
-  //@}
+  ///@}
 
   /**
    * Register a picker into the picking manager.
@@ -126,13 +126,13 @@ public:
    * Note that a picker can be registered multiple times with different objects.
    * \sa RemovePicker(), RemoveObject().
    */
-  void AddPicker(vtkAbstractPicker* picker, vtkObject* object = 0);
+  void AddPicker(vtkAbstractPicker* picker, vtkObject* object = nullptr);
 
   /**
    * Unregister the \a picker from the picking manager.
    * If \a object is non null, only the pair (\a picker, \a object) is removed.
    */
-  void RemovePicker(vtkAbstractPicker* picker, vtkObject* object = 0);
+  void RemovePicker(vtkAbstractPicker* picker, vtkObject* object = nullptr);
 
   /**
    * Remove all occurrence of the \a object from the registered list.
@@ -170,10 +170,8 @@ public:
    * Otherwise it simply proceeds to a pick using the given renderer and
    * returns the corresponding assembly path.
    */
-  vtkAssemblyPath* GetAssemblyPath(double X, double Y, double Z,
-                                   vtkAbstractPropPicker* picker,
-                                   vtkRenderer* renderer,
-                                   vtkObject* obj);
+  vtkAssemblyPath* GetAssemblyPath(double X, double Y, double Z, vtkAbstractPropPicker* picker,
+    vtkRenderer* renderer, vtkObject* obj);
 
   /**
    * Return the number of pickers registered.
@@ -190,7 +188,7 @@ public:
 
 protected:
   vtkPickingManager();
-  ~vtkPickingManager() VTK_OVERRIDE;
+  ~vtkPickingManager() override;
 
   // Used to associate the manager with the interactor
   vtkRenderWindowInteractor* Interactor;
@@ -198,8 +196,8 @@ protected:
   bool OptimizeOnInteractorEvents;
 
 private:
-  vtkPickingManager(const vtkPickingManager&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPickingManager&) VTK_DELETE_FUNCTION;
+  vtkPickingManager(const vtkPickingManager&) = delete;
+  void operator=(const vtkPickingManager&) = delete;
 
   class vtkInternal;
   vtkInternal* Internal;

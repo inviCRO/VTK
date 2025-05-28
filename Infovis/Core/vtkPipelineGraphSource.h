@@ -17,14 +17,14 @@
  * @brief   a graph constructed from a VTK pipeline
  *
  *
-*/
+ */
 
 #ifndef vtkPipelineGraphSource_h
 #define vtkPipelineGraphSource_h
 
-#include "vtkInfovisCoreModule.h" // For export macro
 #include "vtkDirectedGraphAlgorithm.h"
-#include "vtkStdString.h"
+#include "vtkInfovisCoreModule.h" // For export macro
+#include "vtkStdString.h"         // for vtkStdString
 
 class vtkCollection;
 
@@ -32,40 +32,36 @@ class VTKINFOVISCORE_EXPORT vtkPipelineGraphSource : public vtkDirectedGraphAlgo
 {
 public:
   static vtkPipelineGraphSource* New();
-  vtkTypeMacro(vtkPipelineGraphSource,vtkDirectedGraphAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkPipelineGraphSource, vtkDirectedGraphAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  void AddSink(vtkObject* object);
-  void RemoveSink(vtkObject* object);
+  void AddSink(vtkObject* sink);
+  void RemoveSink(vtkObject* sink);
 
   /**
    * Generates a GraphViz DOT file that describes the VTK pipeline
    * terminating at the given sink.
    */
-  static void PipelineToDot(vtkAlgorithm* sink, ostream& output, const vtkStdString& graph_name = "");
+  static void PipelineToDot(
+    vtkAlgorithm* sink, ostream& output, const vtkStdString& graph_name = "");
   /**
    * Generates a GraphViz DOT file that describes the VTK pipeline
    * terminating at the given sinks.
    */
-  static void PipelineToDot(vtkCollection* sinks, ostream& output, const vtkStdString& graph_name = "");
+  static void PipelineToDot(
+    vtkCollection* sinks, ostream& output, const vtkStdString& graph_name = "");
 
 protected:
   vtkPipelineGraphSource();
-  ~vtkPipelineGraphSource() VTK_OVERRIDE;
+  ~vtkPipelineGraphSource() override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   vtkCollection* Sinks;
 
 private:
-  vtkPipelineGraphSource(const vtkPipelineGraphSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPipelineGraphSource&) VTK_DELETE_FUNCTION;
-
+  vtkPipelineGraphSource(const vtkPipelineGraphSource&) = delete;
+  void operator=(const vtkPipelineGraphSource&) = delete;
 };
 
 #endif
-
-// VTK-HeaderTest-Exclude: vtkPipelineGraphSource.h

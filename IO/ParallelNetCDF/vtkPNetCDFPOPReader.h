@@ -26,7 +26,7 @@
  * z coordinates of the vtkRectilinearGrid are negated so that the
  * first slice/plane has the highest z-value and the last slice/plane
  * has the lowest z-value.
-*/
+ */
 
 #ifndef vtkPNetCDFPOPReader_h
 #define vtkPNetCDFPOPReader_h
@@ -42,35 +42,35 @@ class vtkPNetCDFPOPReaderInternal;
 class VTKIOPARALLELNETCDF_EXPORT vtkPNetCDFPOPReader : public vtkRectilinearGridAlgorithm
 {
 public:
-  vtkTypeMacro(vtkPNetCDFPOPReader,vtkRectilinearGridAlgorithm);
-  static vtkPNetCDFPOPReader *New();
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkPNetCDFPOPReader, vtkRectilinearGridAlgorithm);
+  static vtkPNetCDFPOPReader* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * The file to open
    */
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
-  //@}
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable subsampling in i,j and k dimensions in the vtkRectilinearGrid
    */
   vtkSetVector3Macro(Stride, int);
   vtkGetVector3Macro(Stride, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Variable array selection.
    */
   virtual int GetNumberOfVariableArrays();
-  virtual const char *GetVariableArrayName(int idx);
-  virtual int GetVariableArrayStatus(const char *name);
-  virtual void SetVariableArrayStatus(const char *name, int status);
-  //@}
+  virtual const char* GetVariableArrayName(int idx);
+  virtual int GetVariableArrayStatus(const char* name);
+  virtual void SetVariableArrayStatus(const char* name, int status);
+  ///@}
 
   /**
    * Set ranks that will actually open and read the netCDF files.  Pass in
@@ -81,49 +81,46 @@ public:
   // Set/Get the vtkMultiProcessController which will handle communications
   // for the parallel rendering.
   vtkGetObjectMacro(Controller, vtkMPIController);
-  void SetController(vtkMPIController *controller);
+  void SetController(vtkMPIController* controller);
 
 protected:
   vtkPNetCDFPOPReader();
-  ~vtkPNetCDFPOPReader();
+  ~vtkPNetCDFPOPReader() override;
 
-  int RequestData(vtkInformation*,vtkInformationVector**,
-                  vtkInformationVector*) VTK_OVERRIDE;
-  virtual int RequestInformation(vtkInformation* request,
-                                 vtkInformationVector** inputVector,
-                                 vtkInformationVector* outputVector) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  virtual int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   // Helper function for RequestData:  Reads part of the netCDF
   // file and sends sub-arrays to all ranks that need that data
-  int ReadAndSend( vtkInformation* outInfo, int varID);
+  int ReadAndSend(vtkInformation* outInfo, int varID);
 
   // Returns the MPI rank of the process that should read the specified depth
-  int ReaderForDepth( unsigned depth);
+  int ReaderForDepth(unsigned depth);
 
   bool IsReaderRank();
   bool IsFirstReaderRank();
 
-  static void SelectionModifiedCallback(vtkObject *caller, unsigned long eid,
-                                        void *clientdata, void *calldata);
+  static void SelectionModifiedCallback(
+    vtkObject* caller, unsigned long eid, void* clientdata, void* calldata);
 
-  static void EventCallback(vtkObject* caller, unsigned long eid,
-                            void* clientdata, void* calldata);
+  static void EventCallback(vtkObject* caller, unsigned long eid, void* clientdata, void* calldata);
 
   vtkCallbackCommand* SelectionObserver;
 
-  char *FileName;
-  char *OpenedFileName;
-  vtkSetStringMacro(OpenedFileName);
+  char* FileName;
+  char* OpenedFileName;
+  vtkSetFilePathMacro(OpenedFileName);
 
-  int NCDFFD; //netcdf file descriptor
+  int NCDFFD; // netcdf file descriptor
 
   int Stride[3];
 
-  vtkMPIController *Controller;
+  vtkMPIController* Controller;
 
 private:
-  vtkPNetCDFPOPReader(const vtkPNetCDFPOPReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPNetCDFPOPReader&) VTK_DELETE_FUNCTION;
+  vtkPNetCDFPOPReader(const vtkPNetCDFPOPReader&) = delete;
+  void operator=(const vtkPNetCDFPOPReader&) = delete;
 
   vtkPNetCDFPOPReaderInternal* Internals;
 };

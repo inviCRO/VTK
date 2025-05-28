@@ -13,58 +13,57 @@
 
 =========================================================================*/
 #include "vtkTupleInterpolator.h"
-#include "vtkObjectFactory.h"
-#include "vtkSpline.h"
 #include "vtkKochanekSpline.h"
-#include "vtkPiecewiseFunction.h"
 #include "vtkMath.h"
+#include "vtkObjectFactory.h"
+#include "vtkPiecewiseFunction.h"
+#include "vtkSpline.h"
 
 vtkStandardNewMacro(vtkTupleInterpolator);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTupleInterpolator::vtkTupleInterpolator()
 {
   // Set up the interpolation
   this->NumberOfComponents = 0;
   this->InterpolationType = INTERPOLATION_TYPE_SPLINE;
-  this->InterpolatingSpline = NULL;
+  this->InterpolatingSpline = nullptr;
 
-  this->Spline = NULL;
-  this->Linear = NULL;
+  this->Spline = nullptr;
+  this->Linear = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTupleInterpolator::~vtkTupleInterpolator()
 {
   this->Initialize();
-  if ( this->InterpolatingSpline )
+  if (this->InterpolatingSpline)
   {
     this->InterpolatingSpline->Delete();
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::SetNumberOfComponents(int numComp)
 {
   numComp = (numComp < 1 ? 1 : numComp);
-  if ( numComp != this->NumberOfComponents )
+  if (numComp != this->NumberOfComponents)
   {
-    this->Initialize(); //wipe out data
+    this->Initialize(); // wipe out data
     this->NumberOfComponents = numComp;
     this->InitializeInterpolation();
     this->Modified();
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkTupleInterpolator::GetNumberOfTuples()
 {
-  if ( this->Spline )
+  if (this->Spline)
   {
     return this->Spline[0]->GetNumberOfPoints();
   }
-  else if ( this->Linear )
+  else if (this->Linear)
   {
     return this->Linear[0]->GetSize();
   }
@@ -74,17 +73,16 @@ int vtkTupleInterpolator::GetNumberOfTuples()
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkTupleInterpolator::GetMinimumT()
 {
-  if ( this->Spline )
+  if (this->Spline)
   {
     double range[2];
     this->Spline[0]->GetParametricRange(range);
     return range[0];
   }
-  else if ( this->Linear )
+  else if (this->Linear)
   {
     return this->Linear[0]->GetRange()[0];
   }
@@ -94,17 +92,16 @@ double vtkTupleInterpolator::GetMinimumT()
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkTupleInterpolator::GetMaximumT()
 {
-  if ( this->Spline )
+  if (this->Spline)
   {
     double range[2];
     this->Spline[0]->GetParametricRange(range);
     return range[1];
   }
-  else if ( this->Linear )
+  else if (this->Linear)
   {
     return this->Linear[0]->GetRange()[1];
   }
@@ -114,50 +111,48 @@ double vtkTupleInterpolator::GetMaximumT()
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::Initialize()
 {
   int i;
 
   // Wipe out old data
-  if ( this->Spline )
+  if (this->Spline)
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       this->Spline[i]->Delete();
     }
-    delete [] this->Spline;
-    this->Spline = NULL;
+    delete[] this->Spline;
+    this->Spline = nullptr;
   }
-  if ( this->Linear )
+  if (this->Linear)
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       this->Linear[i]->Delete();
     }
-    delete [] this->Linear;
-    this->Linear = NULL;
+    delete[] this->Linear;
+    this->Linear = nullptr;
   }
 
   this->NumberOfComponents = 0;
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::InitializeInterpolation()
 {
   // Prepare for new data
-  if ( this->NumberOfComponents <= 0 )
+  if (this->NumberOfComponents <= 0)
   {
     return;
   }
 
   int i;
-  if ( this->InterpolationType == INTERPOLATION_TYPE_LINEAR )
+  if (this->InterpolationType == INTERPOLATION_TYPE_LINEAR)
   {
-    this->Linear = new vtkPiecewiseFunction* [this->NumberOfComponents];
-    for (i=0; i<this->NumberOfComponents; i++)
+    this->Linear = new vtkPiecewiseFunction*[this->NumberOfComponents];
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       this->Linear[i] = vtkPiecewiseFunction::New();
     }
@@ -165,12 +160,12 @@ void vtkTupleInterpolator::InitializeInterpolation()
 
   else // this->InterpolationType == INTERPOLATION_TYPE_SPLINE
   {
-    this->Spline = new vtkSpline* [this->NumberOfComponents];
-    if ( ! this->InterpolatingSpline )
+    this->Spline = new vtkSpline*[this->NumberOfComponents];
+    if (!this->InterpolatingSpline)
     {
       this->InterpolatingSpline = vtkKochanekSpline::New();
     }
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       this->Spline[i] = this->InterpolatingSpline->NewInstance();
       this->Spline[i]->DeepCopy(this->InterpolatingSpline);
@@ -179,33 +174,34 @@ void vtkTupleInterpolator::InitializeInterpolation()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::SetInterpolationType(int type)
 {
-  type = (type < INTERPOLATION_TYPE_LINEAR ? INTERPOLATION_TYPE_LINEAR :
-         (type > INTERPOLATION_TYPE_SPLINE ? INTERPOLATION_TYPE_SPLINE : type));
-  if ( type != this->InterpolationType )
+  type = (type < INTERPOLATION_TYPE_LINEAR
+      ? INTERPOLATION_TYPE_LINEAR
+      : (type > INTERPOLATION_TYPE_SPLINE ? INTERPOLATION_TYPE_SPLINE : type));
+  if (type != this->InterpolationType)
   {
-    this->Initialize(); //wipe out data
+    this->Initialize(); // wipe out data
     this->InterpolationType = type;
     this->InitializeInterpolation();
     this->Modified();
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkTupleInterpolator::SetInterpolatingSpline(vtkSpline *spline)
+//------------------------------------------------------------------------------
+void vtkTupleInterpolator::SetInterpolatingSpline(vtkSpline* spline)
 {
-  if ( this->InterpolatingSpline == spline )
+  if (this->InterpolatingSpline == spline)
   {
     return;
   }
-  if ( this->InterpolatingSpline )
+  if (this->InterpolatingSpline)
   {
     this->InterpolatingSpline->UnRegister(this);
-    this->InterpolatingSpline = NULL;
+    this->InterpolatingSpline = nullptr;
   }
-  if ( spline )
+  if (spline)
   {
     spline->Register(this);
   }
@@ -213,36 +209,36 @@ void vtkTupleInterpolator::SetInterpolatingSpline(vtkSpline *spline)
   this->Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::AddTuple(double t, double tuple[])
 {
   int i;
-  if ( this->InterpolationType == INTERPOLATION_TYPE_LINEAR )
+  if (this->InterpolationType == INTERPOLATION_TYPE_LINEAR)
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
-      this->Linear[i]->AddPoint(t,tuple[i]);
+      this->Linear[i]->AddPoint(t, tuple[i]);
     }
   }
 
   else // this->InterpolationType == INTERPOLATION_TYPE_SPLINE
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
-      this->Spline[i]->AddPoint(t,tuple[i]);
+      this->Spline[i]->AddPoint(t, tuple[i]);
     }
   }
 
   this->Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::RemoveTuple(double t)
 {
   int i;
-  if ( this->InterpolationType == INTERPOLATION_TYPE_LINEAR )
+  if (this->InterpolationType == INTERPOLATION_TYPE_LINEAR)
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       this->Linear[i]->RemovePoint(t);
     }
@@ -250,7 +246,7 @@ void vtkTupleInterpolator::RemoveTuple(double t)
 
   else // this->InterpolationType == INTERPOLATION_TYPE_SPLINE
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       this->Spline[i]->RemovePoint(t);
     }
@@ -259,20 +255,20 @@ void vtkTupleInterpolator::RemoveTuple(double t)
   this->Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::InterpolateTuple(double t, double tuple[])
 {
-  if ( this->NumberOfComponents <= 0 )
+  if (this->NumberOfComponents <= 0)
   {
     return;
   }
 
   int i;
-  if ( this->InterpolationType == INTERPOLATION_TYPE_LINEAR )
+  if (this->InterpolationType == INTERPOLATION_TYPE_LINEAR)
   {
-    double *range=this->Linear[0]->GetRange();
+    double* range = this->Linear[0]->GetRange();
     t = (t < range[0] ? range[0] : (t > range[1] ? range[1] : t));
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       tuple[i] = this->Linear[i]->GetValue(t);
     }
@@ -280,29 +276,27 @@ void vtkTupleInterpolator::InterpolateTuple(double t, double tuple[])
 
   else // this->InterpolationType == INTERPOLATION_TYPE_SPLINE
   {
-    for (i=0; i<this->NumberOfComponents; i++)
+    for (i = 0; i < this->NumberOfComponents; i++)
     {
       tuple[i] = this->Spline[i]->Evaluate(t);
     }
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTupleInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "There are " << this->GetNumberOfTuples()
-     << " tuples to be interpolated\n";
+  os << indent << "There are " << this->GetNumberOfTuples() << " tuples to be interpolated\n";
 
   os << indent << "Number of Components: " << this->NumberOfComponents << "\n";
 
   os << indent << "Interpolation Type: "
-     << (this->InterpolationType == INTERPOLATION_TYPE_LINEAR ?
-         "Linear\n" : "Spline\n");
+     << (this->InterpolationType == INTERPOLATION_TYPE_LINEAR ? "Linear\n" : "Spline\n");
 
   os << indent << "Interpolating Spline: ";
-  if ( this->InterpolatingSpline )
+  if (this->InterpolatingSpline)
   {
     os << this->InterpolatingSpline << "\n";
   }
@@ -311,6 +305,3 @@ void vtkTupleInterpolator::PrintSelf(ostream& os, vtkIndent indent)
     os << "(null)\n";
   }
 }
-
-
-

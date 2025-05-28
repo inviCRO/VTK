@@ -13,12 +13,10 @@
 
 =========================================================================*/
 #include "vtkAffineRepresentation.h"
-#include "vtkTransform.h"
 #include "vtkObjectFactory.h"
+#include "vtkTransform.h"
 
-
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAffineRepresentation::vtkAffineRepresentation()
 {
   this->InteractionState = vtkAffineRepresentation::Outside;
@@ -26,28 +24,28 @@ vtkAffineRepresentation::vtkAffineRepresentation()
   this->Transform = vtkTransform::New();
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAffineRepresentation::~vtkAffineRepresentation()
 {
   this->Transform->Delete();
 }
 
-//----------------------------------------------------------------------
-void vtkAffineRepresentation::ShallowCopy(vtkProp *prop)
+//------------------------------------------------------------------------------
+void vtkAffineRepresentation::ShallowCopy(vtkProp* prop)
 {
-  vtkAffineRepresentation *rep = vtkAffineRepresentation::SafeDownCast(prop);
-  if ( rep )
+  vtkAffineRepresentation* rep = vtkAffineRepresentation::SafeDownCast(prop);
+  if (rep)
   {
     this->SetTolerance(rep->GetTolerance());
   }
   this->Superclass::ShallowCopy(prop);
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAffineRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
+  // Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Tolerance: " << this->Tolerance << "\n";
 }

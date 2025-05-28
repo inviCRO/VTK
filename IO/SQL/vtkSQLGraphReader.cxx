@@ -25,9 +25,9 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
-#include "vtkSmartPointer.h"
-#include "vtkSQLQuery.h"
 #include "vtkRowQueryToTable.h"
+#include "vtkSQLQuery.h"
+#include "vtkSmartPointer.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkTable.h"
 #include "vtkTableToGraph.h"
@@ -41,8 +41,8 @@ vtkSQLGraphReader::vtkSQLGraphReader()
   this->CollapseEdges = 0;
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(1);
-  this->VertexQuery = NULL;
-  this->EdgeQuery = NULL;
+  this->VertexQuery = nullptr;
+  this->EdgeQuery = nullptr;
   this->SourceField = 0;
   this->TargetField = 0;
   this->VertexIdField = 0;
@@ -53,11 +53,11 @@ vtkSQLGraphReader::vtkSQLGraphReader()
 
 vtkSQLGraphReader::~vtkSQLGraphReader()
 {
-  if (this->VertexQuery != NULL)
+  if (this->VertexQuery != nullptr)
   {
     this->VertexQuery->Delete();
   }
-  if (this->EdgeQuery != NULL)
+  if (this->EdgeQuery != nullptr)
   {
     this->EdgeQuery->Delete();
   }
@@ -77,7 +77,8 @@ void vtkSQLGraphReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "XField: " << (this->XField ? this->XField : "(null)") << endl;
   os << indent << "YField: " << (this->YField ? this->YField : "(null)") << endl;
   os << indent << "ZField: " << (this->ZField ? this->ZField : "(null)") << endl;
-  os << indent << "VertexIdField: " << (this->VertexIdField ? this->VertexIdField : "(null)") << endl;
+  os << indent << "VertexIdField: " << (this->VertexIdField ? this->VertexIdField : "(null)")
+     << endl;
   os << indent << "SourceField: " << (this->SourceField ? this->SourceField : "(null)") << endl;
   os << indent << "TargetField: " << (this->TargetField ? this->TargetField : "(null)") << endl;
   os << indent << "EdgeQuery: " << (this->EdgeQuery ? "" : "(null)") << endl;
@@ -96,34 +97,32 @@ vtkCxxSetObjectMacro(vtkSQLGraphReader, VertexQuery, vtkSQLQuery);
 vtkCxxSetObjectMacro(vtkSQLGraphReader, EdgeQuery, vtkSQLQuery);
 
 int vtkSQLGraphReader::RequestData(
-  vtkInformation*,
-  vtkInformationVector** ,
-  vtkInformationVector* outputVector)
+  vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
   // Check for valid inputs
-  if (this->EdgeQuery == NULL)
+  if (this->EdgeQuery == nullptr)
   {
     vtkErrorMacro("The EdgeQuery must be defined");
     return 0;
   }
-  if (this->SourceField == NULL)
+  if (this->SourceField == nullptr)
   {
     vtkErrorMacro("The SourceField must be defined");
     return 0;
   }
-  if (this->TargetField == NULL)
+  if (this->TargetField == nullptr)
   {
     vtkErrorMacro("The TargetField must be defined");
     return 0;
   }
-  if (this->VertexQuery != NULL)
+  if (this->VertexQuery != nullptr)
   {
-    if (this->VertexIdField == NULL)
+    if (this->VertexIdField == nullptr)
     {
       vtkErrorMacro("The VertexIdField must be defined when using a VertexQuery");
       return 0;
     }
-    if (this->XField != NULL && this->YField == NULL)
+    if (this->XField != nullptr && this->YField == nullptr)
     {
       vtkErrorMacro("The YField must be defined if the XField is defined");
       return 0;
@@ -155,17 +154,17 @@ int vtkSQLGraphReader::RequestData(
   assign->SetInputConnection(filter->GetOutputPort());
 
   // Set up the internal filter to use the vertex table
-  if (this->VertexQuery != NULL)
+  if (this->VertexQuery != nullptr)
   {
     vtkSmartPointer<vtkRowQueryToTable> vertexReader = vtkSmartPointer<vtkRowQueryToTable>::New();
     vertexReader->SetQuery(this->VertexQuery);
     vertexReader->Update();
     filter->SetInputConnection(1, vertexReader->GetOutputPort());
-    if (this->XField != NULL)
+    if (this->XField != nullptr)
     {
       assign->SetXCoordArrayName(this->XField);
       assign->SetYCoordArrayName(this->YField);
-      if (this->ZField != NULL)
+      if (this->ZField != nullptr)
       {
         assign->SetZCoordArrayName(this->ZField);
       }
@@ -173,7 +172,7 @@ int vtkSQLGraphReader::RequestData(
   }
 
   // Get the internal filter output and assign it to the output
-  if (this->XField != NULL)
+  if (this->XField != nullptr)
   {
     assign->Update();
     vtkGraph* assignOutput = vtkGraph::SafeDownCast(assign->GetOutput());
@@ -189,13 +188,10 @@ int vtkSQLGraphReader::RequestData(
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
   int piece = -1;
   int npieces = -1;
-  if (outInfo->Has(
-        vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()))
+  if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()))
   {
-    piece = outInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-    npieces = outInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+    piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+    npieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
   }
   output->GetInformation()->Set(vtkDataObject::DATA_NUMBER_OF_PIECES(), npieces);
   output->GetInformation()->Set(vtkDataObject::DATA_PIECE_NUMBER(), piece);
@@ -207,16 +203,13 @@ int vtkSQLGraphReader::RequestData(
 }
 
 int vtkSQLGraphReader::RequestDataObject(
-  vtkInformation*,
-  vtkInformationVector** ,
-  vtkInformationVector*)
+  vtkInformation*, vtkInformationVector**, vtkInformationVector*)
 {
-  vtkDataObject *current = this->GetExecutive()->GetOutputData(0);
-  if (!current
-    || (this->Directed && !vtkDirectedGraph::SafeDownCast(current))
-    || (!this->Directed && vtkDirectedGraph::SafeDownCast(current)))
+  vtkDataObject* current = this->GetExecutive()->GetOutputData(0);
+  if (!current || (this->Directed && !vtkDirectedGraph::SafeDownCast(current)) ||
+    (!this->Directed && vtkDirectedGraph::SafeDownCast(current)))
   {
-    vtkGraph *output = 0;
+    vtkGraph* output = 0;
     if (this->Directed)
     {
       output = vtkDirectedGraph::New();

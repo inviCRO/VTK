@@ -29,17 +29,13 @@
 
 vtkStandardNewMacro(vtkCompositeDataGeometryFilter);
 
-//-----------------------------------------------------------------------------
-vtkCompositeDataGeometryFilter::vtkCompositeDataGeometryFilter()
-{
-}
+//------------------------------------------------------------------------------
+vtkCompositeDataGeometryFilter::vtkCompositeDataGeometryFilter() = default;
 
-//-----------------------------------------------------------------------------
-vtkCompositeDataGeometryFilter::~vtkCompositeDataGeometryFilter()
-{
-}
+//------------------------------------------------------------------------------
+vtkCompositeDataGeometryFilter::~vtkCompositeDataGeometryFilter() = default;
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkCompositeDataGeometryFilter::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
@@ -48,27 +44,23 @@ int vtkCompositeDataGeometryFilter::FillInputPortInformation(
   return 1;
 }
 
-//-----------------------------------------------------------------------------
-int vtkCompositeDataGeometryFilter::ProcessRequest(
-  vtkInformation* request,
-  vtkInformationVector** inputVector,
-  vtkInformationVector* outputVector)
+//------------------------------------------------------------------------------
+vtkTypeBool vtkCompositeDataGeometryFilter::ProcessRequest(
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // generate the data
-  if(request->Has(vtkCompositeDataPipeline::REQUEST_DATA()))
+  if (request->Has(vtkCompositeDataPipeline::REQUEST_DATA()))
   {
     int retVal = this->RequestCompositeData(request, inputVector, outputVector);
     return retVal;
   }
 
- return this->Superclass::ProcessRequest(request, inputVector, outputVector);
+  return this->Superclass::ProcessRequest(request, inputVector, outputVector);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkCompositeDataGeometryFilter::RequestCompositeData(
-  vtkInformation*,
-  vtkInformationVector** inputVector,
-  vtkInformationVector*  outputVector)
+  vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkCompositeDataSet* input = vtkCompositeDataSet::GetData(inputVector[0], 0);
   if (!input)
@@ -88,7 +80,7 @@ int vtkCompositeDataGeometryFilter::RequestCompositeData(
   vtkSmartPointer<vtkCompositeDataIterator> iter;
   iter.TakeReference(input->NewIterator());
 
-  for(iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+  for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
   {
     vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
     if (ds && ds->GetNumberOfPoints() > 0)
@@ -108,15 +100,14 @@ int vtkCompositeDataGeometryFilter::RequestCompositeData(
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkExecutive* vtkCompositeDataGeometryFilter::CreateDefaultExecutive()
 {
   return vtkCompositeDataPipeline::New();
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkCompositeDataGeometryFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }
-

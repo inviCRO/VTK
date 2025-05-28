@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkTestNewVar.cxx
+  Module:    vtkTestNewVar.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,26 +13,25 @@
 
 =========================================================================*/
 /**
- * @class   Test
- *
- * Tests instantiations of the vtkNew class template.
-*/
+ * @class   vtkTestNewVar
+ * @brief   Tests instantiations of the vtkNew class template.
+ */
 
 #ifndef vtkTestNewVar_h
 #define vtkTestNewVar_h
 
-#include "vtkObject.h"
 #include "vtkNew.h"
+#include "vtkObject.h"
 
 class vtkPoints2D;
 
 class vtkTestNewVar : public vtkObject
 {
 public:
-  static vtkTestNewVar * New();
+  static vtkTestNewVar* New();
 
-  vtkTypeMacro(vtkTestNewVar, vtkObject)
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkTestNewVar, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Get the reference count for the points object.
@@ -44,17 +43,25 @@ public:
    * be assigned to a vtkSmartPointer without including the vtkPoints2D header
    * and defeating part of the point of the test.
    */
-  vtkObject * GetPoints();
+  vtkObject* GetPoints();
+
+  /**
+   * This is just for testing - return the points as a vtkObject so that it can
+   * be assigned to a vtkSmartPointer without including the vtkPoints2D header
+   * and defeating part of the point of the test.
+   * Using implicit conversion to raw pointer.
+   */
+  vtkObject* GetPoints2();
 
 protected:
   vtkTestNewVar();
-  ~vtkTestNewVar();
+  ~vtkTestNewVar() override;
 
   vtkNew<vtkPoints2D> Points;
 
 private:
-  vtkTestNewVar(const vtkTestNewVar&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTestNewVar&) VTK_DELETE_FUNCTION;
+  vtkTestNewVar(const vtkTestNewVar&) = delete;
+  void operator=(const vtkTestNewVar&) = delete;
 };
 
 #endif

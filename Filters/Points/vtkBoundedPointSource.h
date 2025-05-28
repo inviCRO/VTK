@@ -24,7 +24,7 @@
  * vtkPolyVertex cell as well as random scalar values within a specified
  * range. The class is typically used for debugging and testing, as well as
  * seeding streamlines.
-*/
+ */
 
 #ifndef vtkBoundedPointSource_h
 #define vtkBoundedPointSource_h
@@ -35,43 +35,43 @@
 class VTKFILTERSPOINTS_EXPORT vtkBoundedPointSource : public vtkPolyDataAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard methods for instantiation, type information and printing.
    */
-  static vtkBoundedPointSource *New();
-  vtkTypeMacro(vtkBoundedPointSource,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkBoundedPointSource* New();
+  vtkTypeMacro(vtkBoundedPointSource, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the number of points to generate.
    */
-  vtkSetClampMacro(NumberOfPoints,vtkIdType,1,VTK_ID_MAX);
-  vtkGetMacro(NumberOfPoints,vtkIdType);
-  //@}
+  vtkSetClampMacro(NumberOfPoints, vtkIdType, 1, VTK_ID_MAX);
+  vtkGetMacro(NumberOfPoints, vtkIdType);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the bounding box for the point distribution. By default the bounds is
    * (-1,1,-1,1,-1,1).
    */
-  vtkSetVector6Macro(Bounds,double);
-  vtkGetVectorMacro(Bounds,double,6);
-  //@}
+  vtkSetVector6Macro(Bounds, double);
+  vtkGetVectorMacro(Bounds, double, 6);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the desired precision for the output points.
    * vtkAlgorithm::SINGLE_PRECISION - Output single-precision floating point.
    * vtkAlgorithm::DOUBLE_PRECISION - Output double-precision floating point.
    */
-  vtkSetMacro(OutputPointsPrecision,int);
-  vtkGetMacro(OutputPointsPrecision,int);
-  //@}
+  vtkSetMacro(OutputPointsPrecision, int);
+  vtkGetMacro(OutputPointsPrecision, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate whether to produce a vtkPolyVertex cell to go along with the
    * output vtkPoints generated. By default a cell is NOT produced. Some filters
@@ -80,9 +80,9 @@ public:
   vtkSetMacro(ProduceCellOutput, bool);
   vtkGetMacro(ProduceCellOutput, bool);
   vtkBooleanMacro(ProduceCellOutput, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Indicate whether to produce random point scalars in the output. By default
    * this is off.
@@ -90,22 +90,22 @@ public:
   vtkSetMacro(ProduceRandomScalars, bool);
   vtkGetMacro(ProduceRandomScalars, bool);
   vtkBooleanMacro(ProduceRandomScalars, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the range in which the random scalars should be produced. By default the
    * scalar range is (0,1).
    */
-  vtkSetVector2Macro(ScalarRange,double);
-  vtkGetVectorMacro(ScalarRange,double,2);
-  //@}
+  vtkSetVector2Macro(ScalarRange, double);
+  vtkGetVectorMacro(ScalarRange, double, 2);
+  ///@}
 
 protected:
   vtkBoundedPointSource();
-  ~vtkBoundedPointSource() VTK_OVERRIDE {}
+  ~vtkBoundedPointSource() override = default;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   vtkIdType NumberOfPoints;
   double Bounds[6];
@@ -115,8 +115,8 @@ protected:
   double ScalarRange[2];
 
 private:
-  vtkBoundedPointSource(const vtkBoundedPointSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkBoundedPointSource&) VTK_DELETE_FUNCTION;
+  vtkBoundedPointSource(const vtkBoundedPointSource&) = delete;
+  void operator=(const vtkBoundedPointSource&) = delete;
 };
 
 #endif

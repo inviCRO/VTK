@@ -24,17 +24,13 @@
 #include "vtkPolyData.h"
 
 vtkStandardNewMacro(vtkAppendArcLength);
-//----------------------------------------------------------------------------
-vtkAppendArcLength::vtkAppendArcLength()
-{
-}
+//------------------------------------------------------------------------------
+vtkAppendArcLength::vtkAppendArcLength() = default;
 
-//----------------------------------------------------------------------------
-vtkAppendArcLength::~vtkAppendArcLength()
-{
-}
+//------------------------------------------------------------------------------
+vtkAppendArcLength::~vtkAppendArcLength() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkAppendArcLength::RequestData(
   vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -48,7 +44,7 @@ int vtkAppendArcLength::RequestData(
   output->ShallowCopy(input);
 
   // Now add "arc_length" array.
-  vtkDataArray* arc_length = 0;
+  vtkDataArray* arc_length = nullptr;
   vtkPoints* points = output->GetPoints();
   vtkIdType numPoints = points->GetNumberOfPoints();
   if (points->GetDataType() == VTK_DOUBLE)
@@ -66,7 +62,7 @@ int vtkAppendArcLength::RequestData(
 
   vtkCellArray* lines = output->GetLines();
   vtkIdType numCellPoints;
-  vtkIdType* cellPoints;
+  const vtkIdType* cellPoints;
   lines->InitTraversal();
   while (lines->GetNextCell(numCellPoints, cellPoints))
   {
@@ -92,7 +88,7 @@ int vtkAppendArcLength::RequestData(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAppendArcLength::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

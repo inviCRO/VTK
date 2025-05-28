@@ -29,7 +29,7 @@
  *
  *
  *
-*/
+ */
 
 #ifndef vtkAdjacentVertexIterator_h
 #define vtkAdjacentVertexIterator_h
@@ -44,24 +44,24 @@ class vtkGraphEdge;
 class VTKCOMMONDATAMODEL_EXPORT vtkAdjacentVertexIterator : public vtkObject
 {
 public:
-  static vtkAdjacentVertexIterator *New();
+  static vtkAdjacentVertexIterator* New();
   vtkTypeMacro(vtkAdjacentVertexIterator, vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Initialize the iterator with a graph and vertex.
    */
-  void Initialize(vtkGraph *g, vtkIdType v);
+  void Initialize(vtkGraph* g, vtkIdType v);
 
-  //@{
+  ///@{
   /**
    * Get the graph and vertex associated with this iterator.
    */
   vtkGetObjectMacro(Graph, vtkGraph);
   vtkGetMacro(Vertex, vtkIdType);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Returns the next edge in the graph.
    */
@@ -71,34 +71,31 @@ public:
     ++this->Current;
     return e.Target;
   }
-  //@}
+  ///@}
 
   /**
    * Whether this iterator has more edges.
    */
-  bool HasNext()
-  {
-    return this->Current != this->End;
-  }
+  bool HasNext() { return this->Current != this->End; }
 
 protected:
   vtkAdjacentVertexIterator();
-  ~vtkAdjacentVertexIterator() VTK_OVERRIDE;
+  ~vtkAdjacentVertexIterator() override;
 
   /**
    * Protected method for setting the graph used
    * by Initialize().
    */
-  virtual void SetGraph(vtkGraph *graph);
+  virtual void SetGraph(vtkGraph* graph);
 
-  vtkGraph            *Graph;
-  const vtkOutEdgeType *Current;
-  const vtkOutEdgeType *End;
-  vtkIdType             Vertex;
+  vtkGraph* Graph;
+  const vtkOutEdgeType* Current;
+  const vtkOutEdgeType* End;
+  vtkIdType Vertex;
 
 private:
-  vtkAdjacentVertexIterator(const vtkAdjacentVertexIterator&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkAdjacentVertexIterator&) VTK_DELETE_FUNCTION;
+  vtkAdjacentVertexIterator(const vtkAdjacentVertexIterator&) = delete;
+  void operator=(const vtkAdjacentVertexIterator&) = delete;
 };
 
 #endif

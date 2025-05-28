@@ -17,30 +17,26 @@
 #include "vtkFloatArray.h"
 #include "vtkMultiProcessController.h"
 #include "vtkObjectFactory.h"
-#include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
+#include "vtkRenderer.h"
 #include "vtkTimerLog.h"
 #include "vtkUnsignedCharArray.h"
 
 vtkStandardNewMacro(vtkImageRenderManager);
 
-//----------------------------------------------------------------------------
-vtkImageRenderManager::vtkImageRenderManager()
-{
-}
+//------------------------------------------------------------------------------
+vtkImageRenderManager::vtkImageRenderManager() = default;
 
-//----------------------------------------------------------------------------
-vtkImageRenderManager::~vtkImageRenderManager()
-{
-}
+//------------------------------------------------------------------------------
+vtkImageRenderManager::~vtkImageRenderManager() = default;
 
-//----------------------------------------------------------------------------
-void vtkImageRenderManager::PrintSelf(ostream &os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkImageRenderManager::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageRenderManager::PreRenderProcessing()
 {
   // Turn swap buffers off before the render so the end render method has a
@@ -51,7 +47,7 @@ void vtkImageRenderManager::PreRenderProcessing()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageRenderManager::PostRenderProcessing()
 {
   if (!this->UseCompositing || this->CheckForAbortComposite())

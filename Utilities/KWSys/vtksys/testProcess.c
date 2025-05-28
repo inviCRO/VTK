@@ -1,5 +1,9 @@
 /* Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
    file Copyright.txt or https://cmake.org/licensing#kwsys for details.  */
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__OpenBSD__)
+/* NOLINTNEXTLINE(bugprone-reserved-identifier) */
+#  define _XOPEN_SOURCE 600
+#endif
 #include "kwsysPrivate.h"
 #include KWSYS_HEADER(Process.h)
 #include KWSYS_HEADER(Encoding.h)
@@ -7,8 +11,8 @@
 /* Work-around CMake dependency scanning limitation.  This must
    duplicate the above list of headers.  */
 #if 0
-#include "Encoding.h.in"
-#include "Process.h.in"
+#  include "Encoding.h.in"
+#  include "Process.h.in"
 #endif
 
 #include <assert.h>
@@ -18,21 +22,17 @@
 #include <string.h>
 
 #if defined(_WIN32)
-#include <windows.h>
+#  include <windows.h>
 #else
-#include <signal.h>
-#include <unistd.h>
-#endif
-
-#if defined(__BORLANDC__)
-#pragma warn - 8060 /* possibly incorrect assignment */
+#  include <signal.h>
+#  include <unistd.h>
 #endif
 
 /* Platform-specific sleep functions. */
 
 #if defined(__BEOS__) && !defined(__ZETA__)
 /* BeOS 5 doesn't have usleep(), but it has snooze(), which is identical. */
-#include <be/kernel/OS.h>
+#  include <be/kernel/OS.h>
 static inline void testProcess_usleep(unsigned int usec)
 {
   snooze(usec);
@@ -44,7 +44,7 @@ static void testProcess_usleep(unsigned int usec)
   Sleep(usec / 1000);
 }
 #else
-#define testProcess_usleep usleep
+#  define testProcess_usleep usleep
 #endif
 
 #if defined(_WIN32)
@@ -107,6 +107,7 @@ static int test3(int argc, const char* argv[])
 
 static int test4(int argc, const char* argv[])
 {
+#ifndef CRASH_USING_ABORT
   /* Prepare a pointer to an invalid address.  Don't use null, because
   dereferencing null is undefined behaviour and compilers are free to
   do whatever they want. ex: Clang will warn at compile time, or even
@@ -114,6 +115,7 @@ static int test4(int argc, const char* argv[])
   'volatile' and a slightly larger address, based on a runtime value. */
   volatile int* invalidAddress = 0;
   invalidAddress += argc ? 1 : 2;
+#endif
 
 #if defined(_WIN32)
   /* Avoid error diagnostic popups since we are crashing on purpose.  */
@@ -128,9 +130,13 @@ static int test4(int argc, const char* argv[])
   fprintf(stderr, "Output before crash on stderr from crash test.\n");
   fflush(stdout);
   fflush(stderr);
+#ifdef CRASH_USING_ABORT
+  abort();
+#else
   assert(invalidAddress); /* Quiet Clang scan-build. */
   /* Provoke deliberate crash by writing to the invalid address. */
   *invalidAddress = 0;
+#endif
   fprintf(stdout, "Output after crash on stdout from crash test.\n");
   fprintf(stderr, "Output after crash on stderr from crash test.\n");
   return 0;
@@ -149,7 +155,12 @@ static int test5(int argc, const char* argv[])
   fprintf(stderr, "Output on stderr before recursive test.\n");
   fflush(stdout);
   fflush(stderr);
-  r = runChild(cmd, kwsysProcess_State_Exception, kwsysProcess_Exception_Fault,
+  r = runChild(cmd, kwsysProcess_State_Exception,
+#ifdef CRASH_USING_ABORT
+               kwsysProcess_Exception_Other,
+#else
+               kwsysProcess_Exception_Fault,
+#endif
                1, 1, 1, 0, 15, 0, 1, 0, 0, 0);
   fprintf(stdout, "Output on stdout after recursive test.\n");
   fprintf(stderr, "Output on stderr after recursive test.\n");
@@ -443,47 +454,51 @@ static int runChild2(kwsysProcess* kp, const char* cmd[], int state,
       printf("The process is still executing.\n");
       break;
     case kwsysProcess_State_Expired:
-      printf("Child was killed when timeout expired.\n");
+      printf("Subprocess was killed when timeout expired.\n");
       break;
     case kwsysProcess_State_Exited:
-      printf("Child exited with value = %d\n", kwsysProcess_GetExitValue(kp));
+      printf("Subprocess exited with value = %d\n",
+             kwsysProcess_GetExitValue(kp));
       result = ((exception != kwsysProcess_GetExitException(kp)) ||
                 (value != kwsysProcess_GetExitValue(kp)));
       break;
     case kwsysProcess_State_Killed:
-      printf("Child was killed by parent.\n");
+      printf("Subprocess was killed by parent.\n");
       break;
     case kwsysProcess_State_Exception:
-      printf("Child terminated abnormally: %s\n",
+      printf("Subprocess terminated abnormally: %s\n",
              kwsysProcess_GetExceptionString(kp));
       result = ((exception != kwsysProcess_GetExitException(kp)) ||
                 (value != kwsysProcess_GetExitValue(kp)));
       break;
     case kwsysProcess_State_Disowned:
-      printf("Child was disowned.\n");
+      printf("Subprocess was disowned.\n");
       break;
     case kwsysProcess_State_Error:
       printf("Error in administrating child process: [%s]\n",
              kwsysProcess_GetErrorString(kp));
       break;
-  };
+  }
 
   if (result) {
     if (exception != kwsysProcess_GetExitException(kp)) {
-      fprintf(stderr, "Mismatch in exit exception.  "
-                      "Should have been %d, was %d.\n",
+      fprintf(stderr,
+              "Mismatch in exit exception.  "
+              "Should have been %d, was %d.\n",
               exception, kwsysProcess_GetExitException(kp));
     }
     if (value != kwsysProcess_GetExitValue(kp)) {
-      fprintf(stderr, "Mismatch in exit value.  "
-                      "Should have been %d, was %d.\n",
+      fprintf(stderr,
+              "Mismatch in exit value.  "
+              "Should have been %d, was %d.\n",
               value, kwsysProcess_GetExitValue(kp));
     }
   }
 
   if (kwsysProcess_GetState(kp) != state) {
-    fprintf(stderr, "Mismatch in state.  "
-                    "Should have been %d, was %d.\n",
+    fprintf(stderr,
+            "Mismatch in state.  "
+            "Should have been %d, was %d.\n",
             state, kwsysProcess_GetState(kp));
     result = 1;
   }
@@ -617,7 +632,8 @@ int main(int argc, const char* argv[])
     }
     fprintf(stderr, "Invalid test number %d.\n", n);
     return 1;
-  } else if (n >= 1 && n <= 10) {
+  }
+  if (n >= 1 && n <= 10) {
     /* This is the parent process for a requested test number.  */
     int states[10] = {
       kwsysProcess_State_Exited,   kwsysProcess_State_Exited,
@@ -628,11 +644,16 @@ int main(int argc, const char* argv[])
       kwsysProcess_State_Exception /* Process group test */
     };
     int exceptions[10] = {
-      kwsysProcess_Exception_None, kwsysProcess_Exception_None,
-      kwsysProcess_Exception_None, kwsysProcess_Exception_Fault,
-      kwsysProcess_Exception_None, kwsysProcess_Exception_None,
-      kwsysProcess_Exception_None, kwsysProcess_Exception_None,
-      kwsysProcess_Exception_None, kwsysProcess_Exception_Interrupt
+      kwsysProcess_Exception_None,  kwsysProcess_Exception_None,
+      kwsysProcess_Exception_None,
+#ifdef CRASH_USING_ABORT
+      kwsysProcess_Exception_Other,
+#else
+      kwsysProcess_Exception_Fault,
+#endif
+      kwsysProcess_Exception_None,  kwsysProcess_Exception_None,
+      kwsysProcess_Exception_None,  kwsysProcess_Exception_None,
+      kwsysProcess_Exception_None,  kwsysProcess_Exception_Interrupt
     };
     int values[10] = { 0, 123, 1, 1, 0, 0, 0, 0, 1, 1 };
     int shares[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 };
@@ -687,12 +708,11 @@ int main(int argc, const char* argv[])
     fflush(stdout);
     fflush(stderr);
 #if defined(_WIN32)
-    if (argv0) {
-      free(argv0);
-    }
+    free(argv0);
 #endif
     return r;
-  } else if (argc > 2 && strcmp(argv[1], "0") == 0) {
+  }
+  if (argc > 2 && strcmp(argv[1], "0") == 0) {
     /* This is the special debugging test to run a given command
        line.  */
     const char** cmd = argv + 2;
@@ -703,9 +723,8 @@ int main(int argc, const char* argv[])
     int r =
       runChild(cmd, state, exception, value, 0, 1, 0, timeout, 0, 1, 0, 0, 0);
     return r;
-  } else {
-    /* Improper usage.  */
-    fprintf(stdout, "Usage: %s <test number>\n", argv[0]);
-    return 1;
   }
+  /* Improper usage.  */
+  fprintf(stdout, "Usage: %s <test number>\n", argv[0]);
+  return 1;
 }

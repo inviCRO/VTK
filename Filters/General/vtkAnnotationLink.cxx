@@ -15,6 +15,7 @@
 
 #include "vtkAnnotationLink.h"
 
+#include "vtkAnnotationLayers.h"
 #include "vtkCommand.h"
 #include "vtkDataObjectCollection.h"
 #include "vtkIdTypeArray.h"
@@ -22,41 +23,36 @@
 #include "vtkInformationVector.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkObjectFactory.h"
-#include "vtkAnnotationLayers.h"
 #include "vtkSelection.h"
 #include "vtkSmartPointer.h"
 #include "vtkTable.h"
 
 vtkStandardNewMacro(vtkAnnotationLink);
-//vtkCxxSetObjectMacro(vtkAnnotationLink, AnnotationLayers, vtkAnnotationLayers);
+// vtkCxxSetObjectMacro(vtkAnnotationLink, AnnotationLayers, vtkAnnotationLayers);
 
-
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // vtkAnnotationLink::Command
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 class vtkAnnotationLink::Command : public vtkCommand
 {
 public:
-  static Command* New() {  return new Command(); }
-  void Execute(vtkObject *caller, unsigned long eventId,
-                       void *callData) VTK_OVERRIDE
+  static Command* New() { return new Command(); }
+  void Execute(vtkObject* caller, unsigned long eventId, void* callData) override
   {
     if (this->Target)
     {
       this->Target->ProcessEvents(caller, eventId, callData);
     }
   }
-  void SetTarget(vtkAnnotationLink* t)
-  {
-    this->Target = t;
-  }
+  void SetTarget(vtkAnnotationLink* t) { this->Target = t; }
+
 private:
-  Command() { this->Target = 0; }
+  Command() { this->Target = nullptr; }
   vtkAnnotationLink* Target;
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAnnotationLink::vtkAnnotationLink()
 {
   this->SetNumberOfInputPorts(2);
@@ -69,7 +65,7 @@ vtkAnnotationLink::vtkAnnotationLink()
   this->AnnotationLayers->AddObserver(vtkCommand::ModifiedEvent, this->Observer);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAnnotationLink::~vtkAnnotationLink()
 {
   this->Observer->Delete();
@@ -84,12 +80,13 @@ vtkAnnotationLink::~vtkAnnotationLink()
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkAnnotationLink::ProcessEvents(vtkObject *caller, unsigned long eventId, void *vtkNotUsed(callData))
+//------------------------------------------------------------------------------
+void vtkAnnotationLink::ProcessEvents(
+  vtkObject* caller, unsigned long eventId, void* vtkNotUsed(callData))
 {
-  if(this->AnnotationLayers)
+  if (this->AnnotationLayers)
   {
-    vtkAnnotationLayers* caller_annotations = vtkAnnotationLayers::SafeDownCast( caller );
+    vtkAnnotationLayers* caller_annotations = vtkAnnotationLayers::SafeDownCast(caller);
     if (caller_annotations == this->AnnotationLayers && eventId == vtkCommand::ModifiedEvent)
     {
       this->InvokeEvent(vtkCommand::AnnotationChangedEvent, this->AnnotationLayers);
@@ -97,26 +94,25 @@ void vtkAnnotationLink::ProcessEvents(vtkObject *caller, unsigned long eventId, 
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::SetAnnotationLayers(vtkAnnotationLayers* layers)
 {
   // This method is a cut and paste of vtkCxxSetObjectMacro
   // except that we listen for modified events from the annotations layers
   if (layers != this->AnnotationLayers)
   {
-    vtkAnnotationLayers *tmp = this->AnnotationLayers;
+    vtkAnnotationLayers* tmp = this->AnnotationLayers;
     if (tmp)
     {
       tmp->RemoveObserver(this->Observer);
     }
     this->AnnotationLayers = layers;
-    if (this->AnnotationLayers != NULL)
+    if (this->AnnotationLayers != nullptr)
     {
       this->AnnotationLayers->Register(this);
-      this->AnnotationLayers->AddObserver(vtkCommand::ModifiedEvent,
-                                        this->Observer);
+      this->AnnotationLayers->AddObserver(vtkCommand::ModifiedEvent, this->Observer);
     }
-    if (tmp != NULL)
+    if (tmp != nullptr)
     {
       tmp->UnRegister(this);
     }
@@ -125,7 +121,7 @@ void vtkAnnotationLink::SetAnnotationLayers(vtkAnnotationLayers* layers)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::AddDomainMap(vtkTable* map)
 {
   if (!this->DomainMaps->IsItemPresent(map))
@@ -134,34 +130,34 @@ void vtkAnnotationLink::AddDomainMap(vtkTable* map)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::RemoveDomainMap(vtkTable* map)
 {
   this->DomainMaps->RemoveItem(map);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::RemoveAllDomainMaps()
 {
-  if(this->DomainMaps->GetNumberOfItems() > 0)
+  if (this->DomainMaps->GetNumberOfItems() > 0)
   {
     this->DomainMaps->RemoveAllItems();
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkAnnotationLink::GetNumberOfDomainMaps()
 {
   return this->DomainMaps->GetNumberOfItems();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTable* vtkAnnotationLink::GetDomainMap(int i)
 {
   return vtkTable::SafeDownCast(this->DomainMaps->GetItem(i));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::SetCurrentSelection(vtkSelection* sel)
 {
   if (this->AnnotationLayers)
@@ -170,43 +166,40 @@ void vtkAnnotationLink::SetCurrentSelection(vtkSelection* sel)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSelection* vtkAnnotationLink::GetCurrentSelection()
 {
   if (this->AnnotationLayers)
   {
     return this->AnnotationLayers->GetCurrentSelection();
   }
-  return 0;
+  return nullptr;
 }
 
-//----------------------------------------------------------------------------
-int vtkAnnotationLink::RequestData(
-  vtkInformation *vtkNotUsed(info),
-  vtkInformationVector **inVector,
-  vtkInformationVector *outVector)
+//------------------------------------------------------------------------------
+int vtkAnnotationLink::RequestData(vtkInformation* vtkNotUsed(info),
+  vtkInformationVector** inVector, vtkInformationVector* outVector)
 {
-  vtkInformation *inInfo = inVector[0]->GetInformationObject(0);
+  vtkInformation* inInfo = inVector[0]->GetInformationObject(0);
   vtkTable* inputMap = vtkTable::GetData(inVector[1]);
-  vtkAnnotationLayers* input = 0;
-  vtkSelection* inputSelection = 0;
+  vtkAnnotationLayers* input = nullptr;
+  vtkSelection* inputSelection = nullptr;
   if (inInfo)
   {
     input = vtkAnnotationLayers::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
     inputSelection = vtkSelection::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
   }
 
-  vtkInformation *outInfo = outVector->GetInformationObject(0);
-  vtkAnnotationLayers* output = vtkAnnotationLayers::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkInformation* outInfo = outVector->GetInformationObject(0);
+  vtkAnnotationLayers* output =
+    vtkAnnotationLayers::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  vtkInformation *mapInfo = outVector->GetInformationObject(1);
-  vtkMultiBlockDataSet* maps = vtkMultiBlockDataSet::SafeDownCast(
-    mapInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkInformation* mapInfo = outVector->GetInformationObject(1);
+  vtkMultiBlockDataSet* maps =
+    vtkMultiBlockDataSet::SafeDownCast(mapInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  vtkInformation *selInfo = outVector->GetInformationObject(2);
-  vtkSelection* sel = vtkSelection::SafeDownCast(
-    selInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkInformation* selInfo = outVector->GetInformationObject(2);
+  vtkSelection* sel = vtkSelection::SafeDownCast(selInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   // Give preference to input annotations
   if (input)
@@ -226,7 +219,7 @@ int vtkAnnotationLink::RequestData(
   }
 
   // If there are input domain maps, give preference to them
-  if(inputMap)
+  if (inputMap)
   {
     vtkSmartPointer<vtkTable> outMap = vtkSmartPointer<vtkTable>::New();
     outMap->ShallowCopy(inputMap);
@@ -247,11 +240,9 @@ int vtkAnnotationLink::RequestData(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::ShallowCopyToOutput(
-  vtkAnnotationLayers* input,
-  vtkAnnotationLayers* output,
-  vtkSelection* sel)
+  vtkAnnotationLayers* input, vtkAnnotationLayers* output, vtkSelection* sel)
 {
   output->ShallowCopy(input);
 
@@ -261,7 +252,7 @@ void vtkAnnotationLink::ShallowCopyToOutput(
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkAnnotationLink::FillInputPortInformation(int port, vtkInformation* info)
 {
   if (port == 0)
@@ -274,14 +265,14 @@ int vtkAnnotationLink::FillInputPortInformation(int port, vtkInformation* info)
   else if (port == 1)
   {
     info->Set(vtkAlgorithm::INPUT_IS_OPTIONAL(), 1);
-    //info->Set(vtkAlgorithm::INPUT_IS_REPEATABLE(), 1);
+    // info->Set(vtkAlgorithm::INPUT_IS_REPEATABLE(), 1);
     info->Append(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkTable");
     return 1;
   }
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkAnnotationLink::FillOutputPortInformation(int port, vtkInformation* info)
 {
   if (port == 0)
@@ -302,7 +293,7 @@ int vtkAnnotationLink::FillOutputPortInformation(int port, vtkInformation* info)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkAnnotationLink::GetMTime()
 {
   vtkMTimeType mtime = this->Superclass::GetMTime();
@@ -327,10 +318,10 @@ vtkMTimeType vtkAnnotationLink::GetMTime()
   return mtime;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAnnotationLink::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   os << indent << "AnnotationLayers: ";
   if (this->AnnotationLayers)
   {
@@ -352,4 +343,3 @@ void vtkAnnotationLink::PrintSelf(ostream& os, vtkIndent indent)
     os << "(none)\n";
   }
 }
-

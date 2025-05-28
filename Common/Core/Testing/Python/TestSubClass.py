@@ -48,6 +48,9 @@ class vtkCustomObject(vtk.vtkObject):
             t = max(t, self._ExtraObject.GetMTime())
         return t
 
+class vtkPointsCustom(vtk.vtkPoints):
+    def __init__(self):
+        self.some_attribute = "custom"
 
 class TestSubclass(Testing.vtkTest):
     def testSubclassInstantiate(self):
@@ -63,7 +66,7 @@ class TestSubclass(Testing.vtkTest):
         self.assertEqual(id(o.GetExtraObject()), id(extra))
 
     def testCallUnboundMethods(self):
-        """Test calling an unbound method in an overridded method"""
+        """Test calling an unbound method in an overridden method"""
         o = vtkCustomObject()
         a = vtk.vtkIntArray()
         o.SetExtraObject(a)
@@ -101,6 +104,23 @@ class TestSubclass(Testing.vtkTest):
         # make sure the id has changed, but class the same
         self.assertEqual(o.__class__, vtkCustomObject)
         self.assertNotEqual(i, id(o))
+
+    def testOverride(self):
+        """Make sure that overwriting with a subclass works"""
+        self.assertFalse(isinstance(vtk.vtkPoints(), vtkPointsCustom))
+        # check that object has the correct class
+        vtk.vtkPoints.override(vtkPointsCustom)
+        self.assertTrue(isinstance(vtk.vtkPoints(), vtkPointsCustom))
+        # check object created deep in c++
+        source = vtk.vtkSphereSource()
+        source.Update()
+        points = source.GetOutput().GetPoints()
+        self.assertTrue(isinstance(points, vtkPointsCustom))
+        # check that __init__ is called
+        self.assertEqual(points.some_attribute, "custom")
+        # check that overrides can be removed
+        vtk.vtkPoints.override(None)
+        self.assertTrue(vtk.vtkPoints().__class__ == vtk.vtkPoints)
 
 if __name__ == "__main__":
     Testing.main([(TestSubclass, 'test')])

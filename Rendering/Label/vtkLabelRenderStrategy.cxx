@@ -12,6 +12,7 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
 #include "vtkLabelRenderStrategy.h"
 
 #include "vtkRenderer.h"
@@ -20,24 +21,24 @@
 vtkCxxSetObjectMacro(vtkLabelRenderStrategy, Renderer, vtkRenderer);
 vtkCxxSetObjectMacro(vtkLabelRenderStrategy, DefaultTextProperty, vtkTextProperty);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLabelRenderStrategy::vtkLabelRenderStrategy()
 {
-  this->Renderer = 0;
+  this->Renderer = nullptr;
   this->DefaultTextProperty = vtkTextProperty::New();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLabelRenderStrategy::~vtkLabelRenderStrategy()
 {
-  this->SetRenderer(0);
-  this->SetDefaultTextProperty(0);
+  this->SetRenderer(nullptr);
+  this->SetDefaultTextProperty(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLabelRenderStrategy::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   os << indent << "Renderer: " << this->Renderer << endl;
   os << indent << "DefaultTextProperty: " << this->DefaultTextProperty << endl;
 }

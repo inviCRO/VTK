@@ -624,7 +624,9 @@ renWin.SetSize(300, 150)
 
 renWin.Render()
 
+threshold = 0.18
+
 # render the image
 #
 iren.Initialize()
-#iren.Start()
+iren.Start()

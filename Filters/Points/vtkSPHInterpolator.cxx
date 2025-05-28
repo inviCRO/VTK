@@ -14,52 +14,56 @@
 =========================================================================*/
 #include "vtkSPHInterpolator.h"
 
-#include "vtkObjectFactory.h"
-#include "vtkSPHQuinticKernel.h"
-#include "vtkVoronoiKernel.h"
 #include "vtkAbstractPointLocator.h"
 #include "vtkArrayListTemplate.h"
-#include "vtkStaticPointLocator.h"
-#include "vtkDataSet.h"
-#include "vtkDataArray.h"
-#include "vtkImageData.h"
-#include "vtkPoints.h"
+#include "vtkCellData.h"
 #include "vtkCharArray.h"
+#include "vtkDataArray.h"
+#include "vtkDataSet.h"
 #include "vtkDoubleArray.h"
 #include "vtkFloatArray.h"
-#include "vtkCellData.h"
-#include "vtkPointData.h"
 #include "vtkIdList.h"
+#include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkMath.h"
-#include "vtkSMPTools.h"
+#include "vtkObjectFactory.h"
+#include "vtkPointData.h"
+#include "vtkPoints.h"
 #include "vtkSMPThreadLocalObject.h"
+#include "vtkSMPTools.h"
+#include "vtkSPHQuinticKernel.h"
+#include "vtkSmartPointer.h"
+#include "vtkStaticPointLocator.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkVoronoiKernel.h"
+
+#include <cassert>
 
 vtkStandardNewMacro(vtkSPHInterpolator);
-vtkCxxSetObjectMacro(vtkSPHInterpolator,Locator,vtkAbstractPointLocator);
-vtkCxxSetObjectMacro(vtkSPHInterpolator,Kernel,vtkSPHKernel);
+vtkCxxSetObjectMacro(vtkSPHInterpolator, Locator, vtkAbstractPointLocator);
+vtkCxxSetObjectMacro(vtkSPHInterpolator, Kernel, vtkSPHKernel);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Helper classes to support efficient computing, and threaded execution.
-namespace {
+namespace
+{
 // The threaded core of the algorithm
 struct ProbePoints
 {
-  vtkSPHInterpolator *SPHInterpolator;
-  vtkDataSet *Input;
-  vtkSPHKernel *Kernel;
-  vtkAbstractPointLocator *Locator;
-  vtkPointData *InPD;
-  vtkPointData *OutPD;
+  vtkSPHInterpolator* SPHInterpolator;
+  vtkDataSet* Input;
+  vtkSPHKernel* Kernel;
+  vtkAbstractPointLocator* Locator;
+  vtkPointData* InPD;
+  vtkPointData* OutPD;
   ArrayList Arrays;
   ArrayList DerivArrays;
-  bool ComputeDerivArrays;
-  char *Valid;
+  vtkTypeBool ComputeDerivArrays;
+  char* Valid;
   int Strategy;
-  float *Shepard;
-  bool Promote;
+  float* Shepard;
+  vtkTypeBool Promote;
 
   // Don't want to allocate these working arrays on every thread invocation,
   // so make them thread local.
@@ -67,56 +71,60 @@ struct ProbePoints
   vtkSMPThreadLocalObject<vtkDoubleArray> Weights;
   vtkSMPThreadLocalObject<vtkDoubleArray> DerivWeights;
 
-  ProbePoints(vtkSPHInterpolator *sphInt, vtkDataSet *input,
-              vtkPointData *inPD, vtkPointData *outPD,
-              char *valid, float *shepCoef) :
-    SPHInterpolator(sphInt), Input(input), InPD(inPD), OutPD(outPD),
-    Valid(valid), Shepard(shepCoef)
+  ProbePoints(vtkSPHInterpolator* sphInt, vtkDataSet* input, vtkPointData* inPD,
+    vtkPointData* outPD, char* valid, float* shepCoef)
+    : SPHInterpolator(sphInt)
+    , Input(input)
+    , InPD(inPD)
+    , OutPD(outPD)
+    , Valid(valid)
+    , Shepard(shepCoef)
   {
-      // Gather information from the interpolator
-      this->Kernel = sphInt->GetKernel();
-      this->Locator = sphInt->GetLocator();
-      this->Strategy = sphInt->GetNullPointsStrategy();
-      double nullV = sphInt->GetNullValue();
-      this->Promote = sphInt->GetPromoteOutputArrays();
+    // Gather information from the interpolator
+    this->Kernel = sphInt->GetKernel();
+    this->Locator = sphInt->GetLocator();
+    this->Strategy = sphInt->GetNullPointsStrategy();
+    double nullV = sphInt->GetNullValue();
+    this->Promote = sphInt->GetPromoteOutputArrays();
 
-      // Manage arrays for interpolation
-      for (int i=0; i < sphInt->GetNumberOfExcludedArrays(); ++i)
+    // Manage arrays for interpolation
+    for (int i = 0; i < sphInt->GetNumberOfExcludedArrays(); ++i)
+    {
+      const char* arrayName = sphInt->GetExcludedArray(i);
+      vtkDataArray* array = this->InPD->GetArray(arrayName);
+      if (array != nullptr)
       {
-        const char *arrayName = sphInt->GetExcludedArray(i);
-        vtkDataArray *array = this->InPD->GetArray(arrayName);
-        if ( array != NULL )
+        assert(outPD->GetArray(arrayName) == nullptr);
+        this->Arrays.ExcludeArray(array);
+        this->DerivArrays.ExcludeArray(array);
+      }
+    }
+    this->Arrays.AddArrays(input->GetNumberOfPoints(), inPD, outPD, nullV, this->Promote);
+
+    // Sometimes derivative arrays are requested
+    for (int i = 0; i < sphInt->GetNumberOfDerivativeArrays(); ++i)
+    {
+      const char* arrayName = sphInt->GetDerivativeArray(i);
+      vtkDataArray* array = this->InPD->GetArray(arrayName);
+      if (array != nullptr)
+      {
+        vtkStdString outName = arrayName;
+        outName += "_deriv";
+        if (vtkDataArray* outArray = vtkArrayDownCast<vtkDataArray>(this->DerivArrays.AddArrayPair(
+              array->GetNumberOfTuples(), array, outName, nullV, this->Promote)))
         {
-          outPD->RemoveArray(array->GetName());
-          this->Arrays.ExcludeArray(array);
-          this->DerivArrays.ExcludeArray(array);
+          outPD->AddArray(outArray);
         }
       }
-      this->Arrays.AddArrays(input->GetNumberOfPoints(), inPD, outPD, nullV, this->Promote);
-
-      // Sometimes derivative arrays are requested
-      for (int i=0; i < sphInt->GetNumberOfDerivativeArrays(); ++i)
-      {
-        const char *arrayName = sphInt->GetDerivativeArray(i);
-        vtkDataArray *array = this->InPD->GetArray(arrayName);
-        if ( array != NULL )
-        {
-          vtkStdString outName = arrayName; outName += "_deriv";
-          if (vtkDataArray* outArray = this->DerivArrays.AddArrayPair(
-                array->GetNumberOfTuples(), array, outName, nullV, this->Promote))
-          {
-            outPD->AddArray(outArray);
-          }
-        }
-      }
-      this->ComputeDerivArrays = (this->DerivArrays.Arrays.size() > 0 ? true : false);
+    }
+    this->ComputeDerivArrays = !this->DerivArrays.Arrays.empty();
   }
 
   // Just allocate a little bit of memory to get started.
   void Initialize()
   {
     vtkIdList*& pIds = this->PIds.Local();
-    pIds->Allocate(128); //allocate some memory
+    pIds->Allocate(128); // allocate some memory
     vtkDoubleArray*& weights = this->Weights.Local();
     weights->Allocate(128);
     vtkDoubleArray*& gradWeights = this->DerivWeights.Local();
@@ -124,154 +132,116 @@ struct ProbePoints
   }
 
   // Threaded interpolation method
-  void operator() (vtkIdType ptId, vtkIdType endPtId)
+  void operator()(vtkIdType ptId, vtkIdType endPtId)
   {
-      double x[3];
-      vtkIdList*& pIds = this->PIds.Local();
-      vtkIdType numWeights;
-      vtkDoubleArray*& weights = this->Weights.Local();
-      vtkDoubleArray*& gradWeights = this->DerivWeights.Local();
+    double x[3];
+    vtkIdList*& pIds = this->PIds.Local();
+    vtkIdType numWeights;
+    vtkDoubleArray*& weights = this->Weights.Local();
+    vtkDoubleArray*& gradWeights = this->DerivWeights.Local();
 
-      for ( ; ptId < endPtId; ++ptId)
+    for (; ptId < endPtId; ++ptId)
+    {
+      this->Input->GetPoint(ptId, x);
+
+      if ((numWeights = this->Kernel->ComputeBasis(x, pIds, ptId)) > 0)
       {
-        this->Input->GetPoint(ptId,x);
-
-        if ( (numWeights=this->Kernel->ComputeBasis(x, pIds, ptId)) > 0 )
+        if (!this->ComputeDerivArrays)
         {
-          if ( ! this->ComputeDerivArrays )
-          {
-            this->Kernel->ComputeWeights(x, pIds, weights);
-          }
-          else
-          {
-            this->Kernel->ComputeDerivWeights(x, pIds, weights, gradWeights);
-            this->DerivArrays.Interpolate(numWeights, pIds->GetPointer(0),
-                                          gradWeights->GetPointer(0), ptId);
-          }
-          this->Arrays.Interpolate(numWeights, pIds->GetPointer(0),
-                                   weights->GetPointer(0), ptId);
+          this->Kernel->ComputeWeights(x, pIds, weights);
         }
-        else // no neighborhood points
+        else
         {
-          this->Arrays.AssignNullValue(ptId);
-          if ( this->Strategy == vtkSPHInterpolator::MASK_POINTS)
-          {
-            this->Valid[ptId] = 0;
-          }
-        }// null point
-
-        // Shepard's coefficient if requested
-        if ( this->Shepard )
-        {
-          double sum=0.0, *w=weights->GetPointer(0);
-          for (int i=0; i < numWeights; ++i)
-          {
-            sum += w[i];
-          }
-          this->Shepard[ptId] = sum;
+          this->Kernel->ComputeDerivWeights(x, pIds, weights, gradWeights);
+          this->DerivArrays.Interpolate(
+            numWeights, pIds->GetPointer(0), gradWeights->GetPointer(0), ptId);
         }
-      }//for all dataset points
-  }
-
-  void Reduce()
-  {
-  }
-
-}; //ProbePoints
-
-// Probe points using an image. Uses a more efficient iteration scheme.
-struct ImageProbePoints : public ProbePoints
-{
-  int Dims[3];
-  double Origin[3];
-  double Spacing[3];
-
-  ImageProbePoints(vtkSPHInterpolator *sphInt, vtkImageData *image, int dims[3],
-                   double origin[3], double spacing[3], vtkPointData *inPD,
-                   vtkPointData *outPD, char *valid, float *shep) :
-    ProbePoints(sphInt, image, inPD, outPD, valid, shep)
-  {
-      for (int i=0; i < 3; ++i)
-      {
-        this->Dims[i] = dims[i];
-        this->Origin[i] = origin[i];
-        this->Spacing[i] = spacing[i];
+        this->Arrays.Interpolate(numWeights, pIds->GetPointer(0), weights->GetPointer(0), ptId);
       }
-  }
-
-  // Threaded interpolation method specialized to image traversal
-  void operator() (vtkIdType slice, vtkIdType sliceEnd)
-  {
-      double x[3];
-      vtkIdType numWeights;
-      double *origin=this->Origin;
-      double *spacing=this->Spacing;
-      int *dims=this->Dims;
-      vtkIdType ptId, jOffset, kOffset, sliceSize=dims[0]*dims[1];
-      vtkIdList*& pIds = this->PIds.Local();
-      vtkDoubleArray*& weights = this->Weights.Local();
-      vtkDoubleArray*& gradWeights = this->DerivWeights.Local();
-
-      for ( ; slice < sliceEnd; ++slice)
+      else // no neighborhood points
       {
-        x[2] = origin[2] + slice*spacing[2];
-        kOffset = slice*sliceSize;
-
-        for ( int j=0;  j < dims[1]; ++j)
+        this->Arrays.AssignNullValue(ptId);
+        if (this->Strategy == vtkSPHInterpolator::MASK_POINTS)
         {
-          x[1] = origin[1] + j*spacing[1];
-          jOffset = j*dims[0];
+          this->Valid[ptId] = 0;
+        }
+      } // null point
 
-          for ( int i=0; i < dims[0]; ++i)
-          {
-            x[0] = origin[0] + i*spacing[0];
-            ptId = i + jOffset + kOffset;
-
-            if ( (numWeights=this->Kernel->ComputeBasis(x, pIds, ptId)) > 0 )
-            {
-              if ( ! this->ComputeDerivArrays )
-              {
-                this->Kernel->ComputeWeights(x, pIds, weights);
-              }
-              else
-              {
-                this->Kernel->ComputeDerivWeights(x, pIds, weights, gradWeights);
-                this->DerivArrays.Interpolate(numWeights, pIds->GetPointer(0),
-                                              gradWeights->GetPointer(0), ptId);
-              }
-              this->Arrays.Interpolate(numWeights, pIds->GetPointer(0),
-                                       weights->GetPointer(0), ptId);
-            }
-            else
-            {
-              this->Arrays.AssignNullValue(ptId);
-              if ( this->Strategy == vtkSPHInterpolator::MASK_POINTS)
-              {
-                this->Valid[ptId] = 0;
-              }
-            }// null point
-
-            // Shepard's coefficient if requested
-            if ( this->Shepard )
-            {
-              double sum=0.0, *w=weights->GetPointer(0);
-              for (int ii=0; ii < numWeights; ++ii) //numWieights=0 for null point
-              {
-                sum += w[ii];
-              }
-              this->Shepard[ptId] = sum;
-            }
-
-          }//over i
-        }//over j
-      }//over slices
+      // Shepard's coefficient if requested
+      if (this->Shepard)
+      {
+        double sum = 0.0, *w = weights->GetPointer(0);
+        for (int i = 0; i < numWeights; ++i)
+        {
+          sum += w[i];
+        }
+        this->Shepard[ptId] = sum;
+      }
+    } // for all dataset points
   }
-}; //ImageProbePoints
 
-} //anonymous namespace
+  void Reduce() {}
+
+}; // ProbePoints
+
+// Used when normalizing arrays by the Shepard coefficient
+template <typename T>
+struct NormalizeArray
+{
+  T* Array;
+  int NumComp;
+  float* ShepardSumArray;
+
+  NormalizeArray(T* array, int numComp, float* ssa)
+    : Array(array)
+    , NumComp(numComp)
+    , ShepardSumArray(ssa)
+  {
+  }
+
+  void Initialize() {}
+
+  void operator()(vtkIdType ptId, vtkIdType endPtId)
+  {
+    int i, numComp = this->NumComp;
+    T* array = this->Array + ptId * numComp;
+    T val;
+    const float* ssa = this->ShepardSumArray + ptId;
+
+    // If Shepard coefficient ==0.0 then set values to zero
+    for (; ptId < endPtId; ++ptId, ++ssa)
+    {
+      if (*ssa == 0.0)
+      {
+        for (i = 0; i < numComp; ++i)
+        {
+          *array++ = static_cast<T>(0.0);
+        }
+      }
+      else
+      {
+        for (i = 0; i < numComp; ++i)
+        {
+          val = static_cast<T>(static_cast<double>(*array) / static_cast<double>(*ssa));
+          *array++ = val;
+        }
+      }
+    } // for points in this range
+  }
+
+  void Reduce() {}
+
+  static void Execute(vtkIdType numPts, T* ptr, int numComp, float* ssa)
+  {
+    NormalizeArray normalize(ptr, numComp, ssa);
+    vtkSMPTools::For(0, numPts, normalize);
+  }
+}; // NormalizeArray
+
+} // anonymous namespace
 
 //================= Begin class proper =======================================
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSPHInterpolator::vtkSPHInterpolator()
 {
   this->SetNumberOfInputPorts(2);
@@ -288,7 +258,7 @@ vtkSPHInterpolator::vtkSPHInterpolator()
   this->NullPointsStrategy = vtkSPHInterpolator::NULL_VALUE;
   this->NullValue = 0.0;
 
-  this->ValidPointsMask = NULL;
+  this->ValidPointsMask = nullptr;
   this->ValidPointsMaskArrayName = "vtkValidPointMask";
 
   this->ComputeShepardSum = true;
@@ -299,64 +269,55 @@ vtkSPHInterpolator::vtkSPHInterpolator()
   this->PassPointArrays = true;
   this->PassCellArrays = true;
   this->PassFieldArrays = true;
+
+  this->ShepardNormalization = false;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSPHInterpolator::~vtkSPHInterpolator()
 {
-  this->SetLocator(NULL);
-  this->SetKernel(NULL);
+  this->SetLocator(nullptr);
+  this->SetKernel(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSPHInterpolator::SetSourceConnection(vtkAlgorithmOutput* algOutput)
 {
   this->SetInputConnection(1, algOutput);
 }
 
-//----------------------------------------------------------------------------
-void vtkSPHInterpolator::SetSourceData(vtkDataObject *input)
+//------------------------------------------------------------------------------
+void vtkSPHInterpolator::SetSourceData(vtkDataObject* input)
 {
   this->SetInputData(1, input);
 }
 
-//----------------------------------------------------------------------------
-vtkDataObject *vtkSPHInterpolator::GetSource()
+//------------------------------------------------------------------------------
+vtkDataObject* vtkSPHInterpolator::GetSource()
 {
   if (this->GetNumberOfInputConnections(1) < 1)
   {
-    return NULL;
+    return nullptr;
   }
 
   return this->GetExecutive()->GetInputData(1, 0);
 }
 
-//----------------------------------------------------------------------------
-void vtkSPHInterpolator::
-ExtractImageDescription(vtkImageData *input, int dims[3], double origin[3],
-                        double spacing[3])
-{
-  input->GetDimensions(dims);
-  input->GetOrigin(origin);
-  input->GetSpacing(spacing);
-}
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // The driver of the algorithm
-void vtkSPHInterpolator::
-Probe(vtkDataSet *input, vtkDataSet *source, vtkDataSet *output)
+void vtkSPHInterpolator::Probe(vtkDataSet* input, vtkDataSet* source, vtkDataSet* output)
 {
   // Make sure there is a kernel
-  if ( !this->Kernel )
+  if (!this->Kernel)
   {
-    vtkErrorMacro(<<"Interpolation kernel required\n");
+    vtkErrorMacro(<< "Interpolation kernel required\n");
     return;
   }
 
   // Start by building the locator
-  if ( !this->Locator )
+  if (!this->Locator)
   {
-    vtkErrorMacro(<<"Point locator required\n");
+    vtkErrorMacro(<< "Point locator required\n");
     return;
   }
   this->Locator->SetDataSet(source);
@@ -364,13 +325,20 @@ Probe(vtkDataSet *input, vtkDataSet *source, vtkDataSet *output)
 
   // Set up the interpolation process
   vtkIdType numPts = input->GetNumberOfPoints();
-  vtkPointData *sourcePD = source->GetPointData();
-  vtkPointData *outPD = output->GetPointData();
-  outPD->InterpolateAllocate(sourcePD,numPts);
+  vtkPointData* inputPD = input->GetPointData();
+  vtkPointData* sourcePD = source->GetPointData();
+  vtkPointData* outPD = output->GetPointData();
+
+  for (const auto& excludedArray : this->ExcludedArrays)
+  {
+    outPD->CopyFieldOff(excludedArray.c_str());
+  }
+
+  outPD->InterpolateAllocate(sourcePD, numPts);
 
   // Masking if requested
-  char *mask=NULL;
-  if ( this->NullPointsStrategy == vtkSPHInterpolator::MASK_POINTS )
+  char* mask = nullptr;
+  if (this->NullPointsStrategy == vtkSPHInterpolator::MASK_POINTS)
   {
     this->ValidPointsMask = vtkCharArray::New();
     this->ValidPointsMask->SetNumberOfTuples(numPts);
@@ -379,69 +347,73 @@ Probe(vtkDataSet *input, vtkDataSet *source, vtkDataSet *output)
   }
 
   // Shepard summation if requested
-  float *shepardArray=NULL;
-  if ( this->ComputeShepardSum )
+  vtkSmartPointer<vtkFloatArray> shepardSumArray;
+  float* shepardArray = nullptr;
+  if (this->ComputeShepardSum || this->ShepardNormalization)
   {
-    this->ShepardSumArray = vtkFloatArray::New();
-    this->ShepardSumArray->SetNumberOfTuples(numPts);
-    shepardArray=this->ShepardSumArray->GetPointer(0);
+    shepardSumArray = vtkSmartPointer<vtkFloatArray>::New();
+    shepardSumArray->SetName(this->ShepardSumArrayName.c_str());
+    shepardSumArray->SetNumberOfTuples(numPts);
+    shepardArray = shepardSumArray->GetPointer(0);
   }
 
   // Initialize the SPH kernel
-  if ( this->Kernel->GetRequiresInitialization() )
+  if (this->Kernel->GetRequiresInitialization())
   {
-    this->Kernel->SetCutoffArray(sourcePD->GetArray(this->CutoffArrayName));
-    this->Kernel->SetDensityArray(sourcePD->GetArray(this->DensityArrayName));
-    this->Kernel->SetMassArray(sourcePD->GetArray(this->MassArrayName));
+    this->Kernel->SetCutoffArray(inputPD->GetArray(this->CutoffArrayName.c_str()));
+    this->Kernel->SetDensityArray(sourcePD->GetArray(this->DensityArrayName.c_str()));
+    this->Kernel->SetMassArray(sourcePD->GetArray(this->MassArrayName.c_str()));
     this->Kernel->Initialize(this->Locator, source, sourcePD);
   }
 
   // Now loop over input points, finding closest points and invoking kernel.
-  // If the input is image data then there is a (slightly) faster path.
-  vtkImageData *imgInput = vtkImageData::SafeDownCast(input);
-  if ( imgInput )
+  ProbePoints probe(this, input, sourcePD, outPD, mask, shepardArray);
+  vtkSMPTools::For(0, numPts, probe);
+
+  // If Shepard normalization requested, normalize all arrays except density
+  // array.
+  if (this->ShepardNormalization)
   {
-    int dims[3];
-    double origin[3], spacing[3];
-    this->ExtractImageDescription(imgInput,dims,origin,spacing);
-    ImageProbePoints imageProbe(this, imgInput, dims, origin,
-                                spacing, sourcePD, outPD, mask, shepardArray);
-    vtkSMPTools::For(0, dims[2], imageProbe);//over slices
-  }
-  else
-  {
-    ProbePoints probe(this, input, sourcePD, outPD, mask, shepardArray);
-    vtkSMPTools::For(0, numPts, probe);
-  }
+    vtkDataArray* da;
+    for (int i = 0; i < outPD->GetNumberOfArrays(); ++i)
+    {
+      da = outPD->GetArray(i);
+      if (da != nullptr && da != this->Kernel->GetDensityArray())
+      {
+        void* ptr = da->GetVoidPointer(0);
+        switch (da->GetDataType())
+        {
+          vtkTemplateMacro(NormalizeArray<VTK_TT>::Execute(
+            numPts, (VTK_TT*)ptr, da->GetNumberOfComponents(), shepardArray));
+        }
+      } // not density array
+    }   // for all arrays
+  }     // if Shepard normalization
 
   // Clean up
-  if ( this->ShepardSumArray )
+  if (shepardSumArray)
   {
-    this->ShepardSumArray->SetName(this->ShepardSumArrayName);
-    outPD->AddArray(this->ShepardSumArray);
-    this->ShepardSumArray->Delete();
-    this->ShepardSumArray = NULL;
+    outPD->AddArray(shepardSumArray);
   }
 
-  if ( mask )
+  if (mask)
   {
-    this->ValidPointsMask->SetName(this->ValidPointsMaskArrayName);
+    this->ValidPointsMask->SetName(this->ValidPointsMaskArrayName.c_str());
     outPD->AddArray(this->ValidPointsMask);
     this->ValidPointsMask->Delete();
-    this->ValidPointsMask = NULL;
+    this->ValidPointsMask = nullptr;
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkSPHInterpolator::
-PassAttributeData(vtkDataSet* input, vtkDataObject* vtkNotUsed(source),
-                  vtkDataSet* output)
+//------------------------------------------------------------------------------
+void vtkSPHInterpolator::PassAttributeData(
+  vtkDataSet* input, vtkDataObject* vtkNotUsed(source), vtkDataSet* output)
 {
   // copy point data arrays
   if (this->PassPointArrays)
   {
     int numPtArrays = input->GetPointData()->GetNumberOfArrays();
-    for (int i=0; i<numPtArrays; ++i)
+    for (int i = 0; i < numPtArrays; ++i)
     {
       output->GetPointData()->AddArray(input->GetPointData()->GetArray(i));
     }
@@ -451,7 +423,7 @@ PassAttributeData(vtkDataSet* input, vtkDataObject* vtkNotUsed(source),
   if (this->PassCellArrays)
   {
     int numCellArrays = input->GetCellData()->GetNumberOfArrays();
-    for (int i=0; i<numCellArrays; ++i)
+    for (int i = 0; i < numCellArrays; ++i)
     {
       output->GetCellData()->AddArray(input->GetCellData()->GetArray(i));
     }
@@ -467,30 +439,25 @@ PassAttributeData(vtkDataSet* input, vtkDataObject* vtkNotUsed(source),
   }
 }
 
-//----------------------------------------------------------------------------
-int vtkSPHInterpolator::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkSPHInterpolator::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkDebugMacro(<< "Executing SPH Interpolator");
 
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *sourceInfo = inputVector[1]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* sourceInfo = inputVector[1]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // get the input and output
-  vtkDataSet *input = vtkDataSet::SafeDownCast(
-    inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkDataSet *source = vtkDataSet::SafeDownCast(
-    sourceInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkDataSet *output = vtkDataSet::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkDataSet* input = vtkDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkDataSet* source = vtkDataSet::SafeDownCast(sourceInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkDataSet* output = vtkDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  if (!source || source->GetNumberOfPoints() < 1 )
+  if (!source || source->GetNumberOfPoints() < 1)
   {
-    vtkWarningMacro(<<"No source points to interpolate from");
+    vtkWarningMacro(<< "No source points to interpolate from");
     return 1;
   }
 
@@ -506,98 +473,84 @@ int vtkSPHInterpolator::RequestData(
   return 1;
 }
 
-//----------------------------------------------------------------------------
-int vtkSPHInterpolator::RequestInformation(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkSPHInterpolator::RequestInformation(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *sourceInfo = inputVector[1]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* sourceInfo = inputVector[1]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
-  outInfo->CopyEntry(sourceInfo,
-                     vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-  outInfo->CopyEntry(sourceInfo,
-                     vtkStreamingDemandDrivenPipeline::TIME_RANGE());
+  outInfo->CopyEntry(sourceInfo, vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+  outInfo->CopyEntry(sourceInfo, vtkStreamingDemandDrivenPipeline::TIME_RANGE());
 
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-               inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()),
-               6);
+    inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()), 6);
 
   // Make sure that the scalar type and number of components
   // are propagated from the source not the input.
   if (vtkImageData::HasScalarType(sourceInfo))
   {
-    vtkImageData::SetScalarType(vtkImageData::GetScalarType(sourceInfo),
-                                outInfo);
+    vtkImageData::SetScalarType(vtkImageData::GetScalarType(sourceInfo), outInfo);
   }
   if (vtkImageData::HasNumberOfScalarComponents(sourceInfo))
   {
     vtkImageData::SetNumberOfScalarComponents(
-      vtkImageData::GetNumberOfScalarComponents(sourceInfo),
-      outInfo);
+      vtkImageData::GetNumberOfScalarComponents(sourceInfo), outInfo);
   }
 
   return 1;
 }
 
-//----------------------------------------------------------------------------
-int vtkSPHInterpolator::RequestUpdateExtent(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkSPHInterpolator::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *sourceInfo = inputVector[1]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* sourceInfo = inputVector[1]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(), 0);
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(), 1);
   inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(), 0);
-  sourceInfo->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
+  sourceInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
     outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
-  sourceInfo->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
+  sourceInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
     outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
-  sourceInfo->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
+  sourceInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
     outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
-  sourceInfo->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),
-    sourceInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()),
-    6);
+  sourceInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),
+    sourceInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()), 6);
 
   return 1;
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkSPHInterpolator::GetMTime()
 {
-  vtkMTimeType mTime=this->Superclass::GetMTime();
+  vtkMTimeType mTime = this->Superclass::GetMTime();
   vtkMTimeType mTime2;
-  if ( this->Locator != NULL )
+  if (this->Locator != nullptr)
   {
     mTime2 = this->Locator->GetMTime();
-    mTime = ( mTime2 > mTime ? mTime2 : mTime );
+    mTime = (mTime2 > mTime ? mTime2 : mTime);
   }
-  if ( this->Kernel != NULL )
+  if (this->Kernel != nullptr)
   {
     mTime2 = this->Kernel->GetMTime();
-    mTime = ( mTime2 > mTime ? mTime2 : mTime );
+    mTime = (mTime2 > mTime ? mTime2 : mTime);
   }
   return mTime;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSPHInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 {
-  vtkDataObject *source = this->GetSource();
+  vtkDataObject* source = this->GetSource();
 
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   os << indent << "Source: " << source << "\n";
   os << indent << "Locator: " << this->Locator << "\n";
   os << indent << "Kernel: " << this->Kernel << "\n";
@@ -609,21 +562,16 @@ void vtkSPHInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Null Points Strategy: " << this->NullPointsStrategy << endl;
   os << indent << "Null Value: " << this->NullValue << "\n";
-  os << indent << "Valid Points Mask Array Name: "
-     << (this->ValidPointsMaskArrayName ? this->ValidPointsMaskArrayName : "(none)") << "\n";
+  os << indent << "Valid Points Mask Array Name: " << this->ValidPointsMaskArrayName << "\n";
 
-  os << indent << "Compute Shepard Sum: "
-     << (this->ComputeShepardSum ? "On" : " Off") << "\n";
-  os << indent << "Shepard Sum Array Name: "
-     << (this->ShepardSumArrayName ? this->ShepardSumArrayName : "(none)") << "\n";
+  os << indent << "Compute Shepard Sum: " << (this->ComputeShepardSum ? "On" : " Off") << "\n";
+  os << indent << "Shepard Sum Array Name: " << this->ShepardSumArrayName << "\n";
 
-  os << indent << "Promote Output Arrays: "
-     << (this->PromoteOutputArrays ? "On" : " Off") << "\n";
+  os << indent << "Promote Output Arrays: " << (this->PromoteOutputArrays ? "On" : " Off") << "\n";
 
-  os << indent << "Pass Point Arrays: "
-     << (this->PassPointArrays? "On" : " Off") << "\n";
-  os << indent << "Pass Cell Arrays: "
-     << (this->PassCellArrays? "On" : " Off") << "\n";
-  os << indent << "Pass Field Arrays: "
-     << (this->PassFieldArrays? "On" : " Off") << "\n";
+  os << indent << "Pass Point Arrays: " << (this->PassPointArrays ? "On" : " Off") << "\n";
+  os << indent << "Pass Cell Arrays: " << (this->PassCellArrays ? "On" : " Off") << "\n";
+  os << indent << "Pass Field Arrays: " << (this->PassFieldArrays ? "On" : " Off") << "\n";
+
+  os << indent << "Shepard Normalization: " << (this->ShepardNormalization ? "On" : " Off") << "\n";
 }

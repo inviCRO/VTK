@@ -13,44 +13,43 @@
 
 =========================================================================*/
 #include "vtkOrientedGlyphContourRepresentation.h"
-#include "vtkCleanPolyData.h"
-#include "vtkPolyDataMapper.h"
 #include "vtkActor.h"
-#include "vtkRenderer.h"
-#include "vtkRenderWindow.h"
-#include "vtkObjectFactory.h"
-#include "vtkProperty.h"
 #include "vtkAssemblyPath.h"
-#include "vtkMath.h"
-#include "vtkInteractorObserver.h"
-#include "vtkLine.h"
+#include "vtkBezierContourLineInterpolator.h"
+#include "vtkCamera.h"
+#include "vtkCellArray.h"
+#include "vtkCleanPolyData.h"
 #include "vtkCoordinate.h"
-#include "vtkGlyph3D.h"
 #include "vtkCursor2D.h"
 #include "vtkCylinderSource.h"
-#include "vtkPolyData.h"
-#include "vtkPoints.h"
 #include "vtkDoubleArray.h"
-#include "vtkPointData.h"
-#include "vtkTransformPolyDataFilter.h"
-#include "vtkTransform.h"
-#include "vtkCamera.h"
-#include "vtkPoints.h"
-#include "vtkCellArray.h"
 #include "vtkFocalPlanePointPlacer.h"
-#include "vtkBezierContourLineInterpolator.h"
+#include "vtkGlyph3D.h"
+#include "vtkInteractorObserver.h"
+#include "vtkLine.h"
+#include "vtkMath.h"
+#include "vtkObjectFactory.h"
+#include "vtkPointData.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
+#include "vtkPolyDataMapper.h"
+#include "vtkProperty.h"
+#include "vtkRenderWindow.h"
+#include "vtkRenderer.h"
 #include "vtkSphereSource.h"
+#include "vtkTransform.h"
+#include "vtkTransformPolyDataFilter.h"
 
 vtkStandardNewMacro(vtkOrientedGlyphContourRepresentation);
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
 {
   // Initialize state
   this->InteractionState = vtkContourRepresentation::Outside;
 
-  this->CursorShape = NULL;
-  this->ActiveCursorShape = NULL;
+  this->CursorShape = nullptr;
+  this->ActiveCursorShape = nullptr;
 
   this->HandleSize = 0.01;
 
@@ -63,11 +62,11 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
   this->FocalPoint->SetNumberOfPoints(1);
   this->FocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
 
-  vtkDoubleArray *normals = vtkDoubleArray::New();
+  vtkDoubleArray* normals = vtkDoubleArray::New();
   normals->SetNumberOfComponents(3);
   normals->SetNumberOfTuples(100);
   normals->SetNumberOfTuples(1);
-  double n[3] = {0, 0, 0};
+  double n[3] = { 0, 0, 0 };
   normals->SetTuple(0, n);
 
   // Represent the position of the cursor
@@ -76,7 +75,7 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
   this->ActiveFocalPoint->SetNumberOfPoints(1);
   this->ActiveFocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
 
-  vtkDoubleArray *activeNormals = vtkDoubleArray::New();
+  vtkDoubleArray* activeNormals = vtkDoubleArray::New();
   activeNormals->SetNumberOfComponents(3);
   activeNormals->SetNumberOfTuples(100);
   activeNormals->SetNumberOfTuples(1);
@@ -110,29 +109,29 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
 
   // The transformation of the cursor will be done via vtkGlyph3D
   // By default a vtkCursor2D will be used to define the cursor shape
-  vtkCursor2D *cursor2D = vtkCursor2D::New();
+  vtkCursor2D* cursor2D = vtkCursor2D::New();
   cursor2D->AllOff();
   cursor2D->PointOn();
   cursor2D->Update();
   this->SetCursorShape(cursor2D->GetOutput());
   cursor2D->Delete();
 
-  vtkCylinderSource *cylinder = vtkCylinderSource::New();
+  vtkCylinderSource* cylinder = vtkCylinderSource::New();
   cylinder->SetResolution(64);
   cylinder->SetRadius(0.5);
   cylinder->SetHeight(0.0);
   cylinder->CappingOff();
   cylinder->SetCenter(0, 0, 0);
 
-  vtkCleanPolyData *clean = vtkCleanPolyData::New();
+  vtkCleanPolyData* clean = vtkCleanPolyData::New();
   clean->PointMergingOn();
   clean->CreateDefaultLocator();
   clean->SetInputConnection(cylinder->GetOutputPort());
 
-  vtkTransform *t = vtkTransform::New();
+  vtkTransform* t = vtkTransform::New();
   t->RotateZ(90.0);
 
-  vtkTransformPolyDataFilter *tpd = vtkTransformPolyDataFilter::New();
+  vtkTransformPolyDataFilter* tpd = vtkTransformPolyDataFilter::New();
   tpd->SetInputConnection(clean->GetOutputPort());
   tpd->SetTransform(t);
   clean->Delete();
@@ -151,9 +150,8 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
 
   // This turns on resolve coincident topology for everything
   // as it is a class static on the mapper
-  this->Mapper->SetResolveCoincidentTopologyToPolygonOffset();
+  vtkPolyDataMapper::SetResolveCoincidentTopologyToPolygonOffset();
   this->Mapper->ScalarVisibilityOff();
-  this->Mapper->ImmediateModeRenderingOn();
   // Put this on top of other objects
   this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
   this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
@@ -162,7 +160,6 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
   this->ActiveMapper = vtkPolyDataMapper::New();
   this->ActiveMapper->SetInputConnection(this->ActiveGlypher->GetOutputPort());
   this->ActiveMapper->ScalarVisibilityOff();
-  this->ActiveMapper->ImmediateModeRenderingOn();
   this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
   this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
   this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
@@ -181,9 +178,9 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
   this->Lines = vtkPolyData::New();
   this->LinesMapper = vtkPolyDataMapper::New();
   this->LinesMapper->SetInputData(this->Lines);
-  this->LinesMapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-  this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
+  vtkPolyDataMapper::SetResolveCoincidentTopologyToPolygonOffset();
+  this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
+  this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
   this->LinesMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
 
   this->LinesActor = vtkActor::New();
@@ -195,15 +192,15 @@ vtkOrientedGlyphContourRepresentation::vtkOrientedGlyphContourRepresentation()
 
   this->AlwaysOnTop = 0;
 
-  this->SelectedNodesPoints = NULL;
-  this->SelectedNodesData = NULL;
-  this->SelectedNodesCursorShape = NULL;
-  this->SelectedNodesGlypher = NULL;
-  this->SelectedNodesMapper = NULL;
-  this->SelectedNodesActor = NULL;
+  this->SelectedNodesPoints = nullptr;
+  this->SelectedNodesData = nullptr;
+  this->SelectedNodesCursorShape = nullptr;
+  this->SelectedNodesGlypher = nullptr;
+  this->SelectedNodesMapper = nullptr;
+  this->SelectedNodesActor = nullptr;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOrientedGlyphContourRepresentation::~vtkOrientedGlyphContourRepresentation()
 {
   this->FocalPoint->Delete();
@@ -212,8 +209,8 @@ vtkOrientedGlyphContourRepresentation::~vtkOrientedGlyphContourRepresentation()
   this->ActiveFocalPoint->Delete();
   this->ActiveFocalData->Delete();
 
-  this->SetCursorShape(NULL);
-  this->SetActiveCursorShape(NULL);
+  this->SetCursorShape(nullptr);
+  this->SetActiveCursorShape(nullptr);
 
   this->Glypher->Delete();
   this->Mapper->Delete();
@@ -258,8 +255,8 @@ vtkOrientedGlyphContourRepresentation::~vtkOrientedGlyphContourRepresentation()
   }
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::SetCursorShape(vtkPolyData *shape)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::SetCursorShape(vtkPolyData* shape)
 {
   if (shape != this->CursorShape)
   {
@@ -280,15 +277,14 @@ void vtkOrientedGlyphContourRepresentation::SetCursorShape(vtkPolyData *shape)
   }
 }
 
-//----------------------------------------------------------------------
-vtkPolyData *vtkOrientedGlyphContourRepresentation::GetCursorShape()
+//------------------------------------------------------------------------------
+vtkPolyData* vtkOrientedGlyphContourRepresentation::GetCursorShape()
 {
   return this->CursorShape;
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::SetActiveCursorShape(
-  vtkPolyData *shape)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::SetActiveCursorShape(vtkPolyData* shape)
 {
   if (shape != this->ActiveCursorShape)
   {
@@ -309,20 +305,20 @@ void vtkOrientedGlyphContourRepresentation::SetActiveCursorShape(
   }
 }
 
-//----------------------------------------------------------------------
-vtkPolyData *vtkOrientedGlyphContourRepresentation::GetActiveCursorShape()
+//------------------------------------------------------------------------------
+vtkPolyData* vtkOrientedGlyphContourRepresentation::GetActiveCursorShape()
 {
   return this->ActiveCursorShape;
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::SetRenderer(vtkRenderer *ren)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::SetRenderer(vtkRenderer* ren)
 {
   //  this->WorldPosition->SetViewport(ren);
   this->Superclass::SetRenderer(ren);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOrientedGlyphContourRepresentation::ComputeInteractionState(
   int X, int Y, int vtkNotUsed(modified))
 {
@@ -360,10 +356,9 @@ int vtkOrientedGlyphContourRepresentation::ComputeInteractionState(
   return this->InteractionState;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Record the current event position, and the rectilinear wipe position.
-void vtkOrientedGlyphContourRepresentation::StartWidgetInteraction(
-  double startEventPos[2])
+void vtkOrientedGlyphContourRepresentation::StartWidgetInteraction(double startEventPos[2])
 {
   this->StartEventPosition[0] = startEventPos[0];
   this->StartEventPosition[1] = startEventPos[1];
@@ -382,11 +377,9 @@ void vtkOrientedGlyphContourRepresentation::StartWidgetInteraction(
 
   this->InteractionOffset[0] = pos[0] - startEventPos[0];
   this->InteractionOffset[1] = pos[1] - startEventPos[1];
-
 }
 
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Based on the displacement vector (computed in display coordinates) and
 // the cursor state (which corresponds to which part of the widget has been
 // selected), the widget points are modified.
@@ -413,7 +406,7 @@ void vtkOrientedGlyphContourRepresentation::WidgetInteraction(double eventPos[2]
   this->LastEventPosition[1] = eventPos[1];
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Translate everything
 void vtkOrientedGlyphContourRepresentation::Translate(double eventPos[2])
 {
@@ -429,12 +422,9 @@ void vtkOrientedGlyphContourRepresentation::Translate(double eventPos[2])
   displayPos[1] = eventPos[1] + this->InteractionOffset[1];
 
   double worldPos[3];
-  double worldOrient[9] = {1.0, 0.0, 0.0,
-                           0.0, 1.0, 0.0,
-                           0.0, 0.0, 1.0};
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
-                                               worldOrient))
+  double worldOrient[9] = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 };
+  if (this->PointPlacer->ComputeWorldPosition(
+        this->Renderer, displayPos, ref, worldPos, worldOrient))
   {
     this->SetActiveNodeToWorldPosition(worldPos, worldOrient);
   }
@@ -445,7 +435,7 @@ void vtkOrientedGlyphContourRepresentation::Translate(double eventPos[2])
   }
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::ShiftContour(double eventPos[2])
 {
   double ref[3];
@@ -460,12 +450,9 @@ void vtkOrientedGlyphContourRepresentation::ShiftContour(double eventPos[2])
   displayPos[1] = eventPos[1] + this->InteractionOffset[1];
 
   double worldPos[3];
-  double worldOrient[9] = {1.0, 0.0, 0.0,
-                           0.0, 1.0, 0.0,
-                           0.0, 0.0, 1.0};
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
-                                               worldOrient))
+  double worldOrient[9] = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 };
+  if (this->PointPlacer->ComputeWorldPosition(
+        this->Renderer, displayPos, ref, worldPos, worldOrient))
   {
 
     this->SetActiveNodeToWorldPosition(worldPos, worldOrient);
@@ -489,7 +476,7 @@ void vtkOrientedGlyphContourRepresentation::ShiftContour(double eventPos[2])
   }
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::ScaleContour(double eventPos[2])
 {
   double ref[3];
@@ -509,27 +496,24 @@ void vtkOrientedGlyphContourRepresentation::ScaleContour(double eventPos[2])
   displayPos[1] = eventPos[1] + this->InteractionOffset[1];
 
   double worldPos[3];
-  double worldOrient[9] = {1.0, 0.0, 0.0,
-                           0.0, 1.0, 0.0,
-                           0.0, 0.0, 1.0};
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
-                                               worldOrient))
+  double worldOrient[9] = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 };
+  if (this->PointPlacer->ComputeWorldPosition(
+        this->Renderer, displayPos, ref, worldPos, worldOrient))
   {
     double d2 = vtkMath::Distance2BetweenPoints(worldPos, centroid);
     if (d2 != 0.0)
     {
       double ratio = sqrt(d2 / r2);
-      //this->SetActiveNodeToWorldPosition(worldPos, worldOrient);
+      // this->SetActiveNodeToWorldPosition(worldPos, worldOrient);
 
       for (int i = 0; i < this->GetNumberOfNodes(); i++)
       {
-        //if (i != this->ActiveNode)
+        // if (i != this->ActiveNode)
         {
           this->GetNthNodeWorldPosition(i, ref);
           worldPos[0] = centroid[0] + ratio * (ref[0] - centroid[0]);
-          worldPos[1] = centroid[0] + ratio * (ref[1] - centroid[1]);
-          worldPos[2] = centroid[0] + ratio * (ref[2] - centroid[2]);
+          worldPos[1] = centroid[1] + ratio * (ref[1] - centroid[1]);
+          worldPos[2] = centroid[2] + ratio * (ref[2] - centroid[2]);
           this->SetNthNodeWorldPosition(i, worldPos, worldOrient);
         }
       }
@@ -537,8 +521,8 @@ void vtkOrientedGlyphContourRepresentation::ScaleContour(double eventPos[2])
   }
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::ComputeCentroid(double *ioCentroid)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::ComputeCentroid(double* ioCentroid)
 {
   double p[3];
   ioCentroid[0] = 0.;
@@ -552,22 +536,22 @@ void vtkOrientedGlyphContourRepresentation::ComputeCentroid(double *ioCentroid)
     ioCentroid[1] += p[1];
     ioCentroid[2] += p[2];
   }
-  double inv_N = 1. / static_cast< double >(this->GetNumberOfNodes());
+  double inv_N = 1. / static_cast<double>(this->GetNumberOfNodes());
   ioCentroid[0] *= inv_N;
   ioCentroid[1] *= inv_N;
   ioCentroid[2] *= inv_N;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::Scale(double eventPos[2])
 {
   // Get the current scale factor
   double sf = this->Glypher->GetScaleFactor();
 
   // Compute the scale factor
-  int *size = this->Renderer->GetSize();
-  double dPos = static_cast<double>(eventPos[1]-this->LastEventPosition[1]);
-  sf *= (1.0 + 2.0*(dPos / size[1])); //scale factor of 2.0 is arbitrary
+  const int* size = this->Renderer->GetSize();
+  double dPos = static_cast<double>(eventPos[1] - this->LastEventPosition[1]);
+  sf *= (1.0 + 2.0 * (dPos / size[1])); // scale factor of 2.0 is arbitrary
 
   // Scale the handle
   this->Glypher->SetScaleFactor(sf);
@@ -577,7 +561,7 @@ void vtkOrientedGlyphContourRepresentation::Scale(double eventPos[2])
   }
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::CreateDefaultProperties()
 {
   this->Property = vtkProperty::New();
@@ -601,11 +585,11 @@ void vtkOrientedGlyphContourRepresentation::CreateDefaultProperties()
   this->LinesProperty->SetLineWidth(1);
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::BuildLines()
 {
-  vtkPoints *points = vtkPoints::New();
-  vtkCellArray *lines = vtkCellArray::New();
+  vtkPoints* points = vtkPoints::New();
+  vtkCellArray* lines = vtkCellArray::New();
 
   int i, j;
   vtkIdType index = 0;
@@ -621,7 +605,7 @@ void vtkOrientedGlyphContourRepresentation::BuildLines()
 
   if (this->ClosedLoop && count > 0)
   {
-    numLines = count+1;
+    numLines = count + 1;
   }
   else
   {
@@ -630,7 +614,7 @@ void vtkOrientedGlyphContourRepresentation::BuildLines()
 
   if (numLines > 0)
   {
-    vtkIdType *lineIndices = new vtkIdType[numLines];
+    vtkIdType* lineIndices = new vtkIdType[numLines];
 
     double pos[3];
     for (i = 0; i < this->GetNumberOfNodes(); i++)
@@ -658,7 +642,7 @@ void vtkOrientedGlyphContourRepresentation::BuildLines()
     }
 
     lines->InsertNextCell(numLines, lineIndices);
-    delete [] lineIndices;
+    delete[] lineIndices;
   }
 
   this->Lines->SetPoints(points);
@@ -668,15 +652,14 @@ void vtkOrientedGlyphContourRepresentation::BuildLines()
   lines->Delete();
 }
 
-//----------------------------------------------------------------------
-vtkPolyData *
-vtkOrientedGlyphContourRepresentation::GetContourRepresentationAsPolyData()
+//------------------------------------------------------------------------------
+vtkPolyData* vtkOrientedGlyphContourRepresentation::GetContourRepresentationAsPolyData()
 {
   // Get the points in this contour as a vtkPolyData.
   return this->Lines;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
 {
   // Make sure we are up to date with any changes made in the placer
@@ -686,26 +669,26 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
   {
     // max value 65536 so we subtract 66000 to make sure we are
     // zero or negative
-    this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0,-66000);
-    this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0,-66000);
+    this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
+    this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
     this->LinesMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-    this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(0,-66000);
-    this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0,-66000);
+    this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
+    this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
     this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-    this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0,-66000);
-    this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0,-66000);
+    this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
+    this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
     this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
   }
   else
   {
-    this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-    this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
+    this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
+    this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
     this->LinesMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-    this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-    this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
+    this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
+    this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
     this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-    this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-    this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
+    this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
+    this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
     this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
   }
 
@@ -735,20 +718,18 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
   this->Renderer->ViewToWorld();
   this->Renderer->GetWorldPoint(p2);
 
-  double distance =
-    sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
+  double distance = sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
 
-  int *size = this->Renderer->GetRenderWindow()->GetSize();
+  const int* size = this->Renderer->GetRenderWindow()->GetSize();
   double viewport[4];
   this->Renderer->GetViewport(viewport);
 
   double x, y, scale;
 
-  x = size[0] * (viewport[2]-viewport[0]);
-  y = size[1] * (viewport[3]-viewport[1]);
+  x = size[0] * (viewport[2] - viewport[0]);
+  y = size[1] * (viewport[3] - viewport[1]);
 
-  scale = sqrt(x*x + y*y);
-
+  scale = sqrt(x * x + y * y);
 
   distance = 1000 * distance / scale;
 
@@ -776,12 +757,12 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
         if (this->GetNthNodeSelected(i))
         {
           this->SelectedNodesPoints->InsertNextPoint(worldPos);
-          this->SelectedNodesData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient+6);
+          this->SelectedNodesData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
         }
         else
         {
           this->FocalPoint->InsertNextPoint(worldPos);
-          this->FocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient+6);
+          this->FocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
         }
       }
     }
@@ -791,11 +772,10 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
   }
   else
   {
-    if (this->ActiveNode >= 0 &&
-      this->ActiveNode < this->GetNumberOfNodes())
+    if (this->ActiveNode >= 0 && this->ActiveNode < this->GetNumberOfNodes())
     {
-      this->FocalPoint->SetNumberOfPoints(numPoints-1);
-      this->FocalData->GetPointData()->GetNormals()->SetNumberOfTuples(numPoints-1);
+      this->FocalPoint->SetNumberOfPoints(numPoints - 1);
+      this->FocalData->GetPointData()->GetNormals()->SetNumberOfTuples(numPoints - 1);
     }
     else
     {
@@ -812,7 +792,7 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
         this->GetNthNodeWorldPosition(i, worldPos);
         this->GetNthNodeWorldOrientation(i, worldOrient);
         this->FocalPoint->SetPoint(idx, worldPos);
-        this->FocalData->GetPointData()->GetNormals()->SetTuple(idx, worldOrient+6);
+        this->FocalData->GetPointData()->GetNormals()->SetTuple(idx, worldOrient + 6);
         idx++;
       }
     }
@@ -822,15 +802,14 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
   this->FocalData->GetPointData()->GetNormals()->Modified();
   this->FocalData->Modified();
 
-  if (this->ActiveNode >= 0 &&
-       this->ActiveNode < this->GetNumberOfNodes())
+  if (this->ActiveNode >= 0 && this->ActiveNode < this->GetNumberOfNodes())
   {
     double worldPos[3];
     double worldOrient[9];
     this->GetNthNodeWorldPosition(this->ActiveNode, worldPos);
     this->GetNthNodeWorldOrientation(this->ActiveNode, worldOrient);
     this->ActiveFocalPoint->SetPoint(0, worldPos);
-    this->ActiveFocalData->GetPointData()->GetNormals()->SetTuple(0, worldOrient+6);
+    this->ActiveFocalData->GetPointData()->GetNormals()->SetTuple(0, worldOrient + 6);
 
     this->ActiveFocalPoint->Modified();
     this->ActiveFocalData->GetPointData()->GetNormals()->Modified();
@@ -841,11 +820,10 @@ void vtkOrientedGlyphContourRepresentation::BuildRepresentation()
   {
     this->ActiveActor->VisibilityOff();
   }
-
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::GetActors(vtkPropCollection *pc)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::GetActors(vtkPropCollection* pc)
 {
   this->Actor->GetActors(pc);
   this->ActiveActor->GetActors(pc);
@@ -856,40 +834,38 @@ void vtkOrientedGlyphContourRepresentation::GetActors(vtkPropCollection *pc)
   }
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::ReleaseGraphicsResources(
-  vtkWindow *win)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::ReleaseGraphicsResources(vtkWindow* win)
 {
   this->Actor->ReleaseGraphicsResources(win);
   this->ActiveActor->ReleaseGraphicsResources(win);
   this->LinesActor->ReleaseGraphicsResources(win);
 }
 
-//----------------------------------------------------------------------
-int vtkOrientedGlyphContourRepresentation::RenderOverlay(vtkViewport *viewport)
+//------------------------------------------------------------------------------
+int vtkOrientedGlyphContourRepresentation::RenderOverlay(vtkViewport* viewport)
 {
-  int count=0;
+  int count = 0;
   count += this->LinesActor->RenderOverlay(viewport);
   if (this->Actor->GetVisibility())
   {
-    count +=  this->Actor->RenderOverlay(viewport);
+    count += this->Actor->RenderOverlay(viewport);
   }
   if (this->ActiveActor->GetVisibility())
   {
-    count +=  this->ActiveActor->RenderOverlay(viewport);
+    count += this->ActiveActor->RenderOverlay(viewport);
   }
   return count;
 }
 
-//-----------------------------------------------------------------------------
-int vtkOrientedGlyphContourRepresentation::RenderOpaqueGeometry(
-  vtkViewport *viewport)
+//------------------------------------------------------------------------------
+int vtkOrientedGlyphContourRepresentation::RenderOpaqueGeometry(vtkViewport* viewport)
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
   this->BuildRepresentation();
 
-  int count=0;
+  int count = 0;
   count += this->LinesActor->RenderOpaqueGeometry(viewport);
   if (this->Actor->GetVisibility())
   {
@@ -900,7 +876,7 @@ int vtkOrientedGlyphContourRepresentation::RenderOpaqueGeometry(
     count += this->ActiveActor->RenderOpaqueGeometry(viewport);
   }
   if (this->ShowSelectedNodes && this->SelectedNodesActor &&
-      this->SelectedNodesActor->GetVisibility())
+    this->SelectedNodesActor->GetVisibility())
   {
     count += this->SelectedNodesActor->RenderOpaqueGeometry(viewport);
   }
@@ -908,11 +884,10 @@ int vtkOrientedGlyphContourRepresentation::RenderOpaqueGeometry(
   return count;
 }
 
-//-----------------------------------------------------------------------------
-int vtkOrientedGlyphContourRepresentation::RenderTranslucentPolygonalGeometry(
-  vtkViewport *viewport)
+//------------------------------------------------------------------------------
+int vtkOrientedGlyphContourRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* viewport)
 {
-  int count=0;
+  int count = 0;
   count += this->LinesActor->RenderTranslucentPolygonalGeometry(viewport);
   if (this->Actor->GetVisibility())
   {
@@ -925,10 +900,10 @@ int vtkOrientedGlyphContourRepresentation::RenderTranslucentPolygonalGeometry(
   return count;
 }
 
-//-----------------------------------------------------------------------------
-int vtkOrientedGlyphContourRepresentation::HasTranslucentPolygonalGeometry()
+//------------------------------------------------------------------------------
+vtkTypeBool vtkOrientedGlyphContourRepresentation::HasTranslucentPolygonalGeometry()
 {
-  int result=0;
+  int result = 0;
   result |= this->LinesActor->HasTranslucentPolygonalGeometry();
   if (this->Actor->GetVisibility())
   {
@@ -941,9 +916,8 @@ int vtkOrientedGlyphContourRepresentation::HasTranslucentPolygonalGeometry()
   return result;
 }
 
-//----------------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::SetLineColor(
-  double r, double g, double b)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::SetLineColor(double r, double g, double b)
 {
   if (this->GetLinesProperty())
   {
@@ -951,11 +925,11 @@ void vtkOrientedGlyphContourRepresentation::SetLineColor(
   }
 }
 
-//----------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::SetShowSelectedNodes(int flag)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::SetShowSelectedNodes(vtkTypeBool flag)
 {
-  vtkDebugMacro(<< this->GetClassName() << " (" << this
-    << "): setting ShowSelectedNodes to " << flag);
+  vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting ShowSelectedNodes to "
+                << flag);
   if (this->ShowSelectedNodes != flag)
   {
     this->ShowSelectedNodes = flag;
@@ -982,17 +956,16 @@ void vtkOrientedGlyphContourRepresentation::SetShowSelectedNodes(int flag)
   }
 }
 
-//----------------------------------------------------------------------
-double *vtkOrientedGlyphContourRepresentation::GetBounds()
+//------------------------------------------------------------------------------
+double* vtkOrientedGlyphContourRepresentation::GetBounds()
 {
-  return this->Lines->GetPoints() ?
-         this->Lines->GetPoints()->GetBounds() : NULL;
+  return this->Lines->GetPoints() ? this->Lines->GetPoints()->GetBounds() : nullptr;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOrientedGlyphContourRepresentation::CreateSelectedNodesRepresentation()
 {
-  vtkSphereSource *sphere = vtkSphereSource::New();
+  vtkSphereSource* sphere = vtkSphereSource::New();
   sphere->SetThetaResolution(12);
   sphere->SetRadius(0.3);
   this->SelectedNodesCursorShape = sphere->GetOutput();
@@ -1002,14 +975,14 @@ void vtkOrientedGlyphContourRepresentation::CreateSelectedNodesRepresentation()
   // Represent the position of the cursor
   this->SelectedNodesPoints = vtkPoints::New();
   this->SelectedNodesPoints->SetNumberOfPoints(100);
-  //this->SelectedNodesPoints->SetNumberOfPoints(1);
-  //this->SelectedNodesPoints->SetPoint(0, 0.0, 0.0, 0.0);
+  // this->SelectedNodesPoints->SetNumberOfPoints(1);
+  // this->SelectedNodesPoints->SetPoint(0, 0.0, 0.0, 0.0);
 
-  vtkDoubleArray *normals = vtkDoubleArray::New();
+  vtkDoubleArray* normals = vtkDoubleArray::New();
   normals->SetNumberOfComponents(3);
   normals->SetNumberOfTuples(100);
   normals->SetNumberOfTuples(1);
-  double n[3] = {0, 0, 0};
+  double n[3] = { 0, 0, 0 };
   normals->SetTuple(0, n);
 
   this->SelectedNodesData = vtkPolyData::New();
@@ -1029,11 +1002,10 @@ void vtkOrientedGlyphContourRepresentation::CreateSelectedNodesRepresentation()
 
   this->SelectedNodesMapper = vtkPolyDataMapper::New();
   this->SelectedNodesMapper->SetInputData(this->SelectedNodesGlypher->GetOutput());
-  this->SelectedNodesMapper->SetResolveCoincidentTopologyToPolygonOffset();
+  vtkPolyDataMapper::SetResolveCoincidentTopologyToPolygonOffset();
   this->SelectedNodesMapper->ScalarVisibilityOff();
-  this->SelectedNodesMapper->ImmediateModeRenderingOn();
 
-  vtkProperty *selProperty = vtkProperty::New();
+  vtkProperty* selProperty = vtkProperty::New();
   selProperty->SetColor(0.0, 1.0, 0.0);
   selProperty->SetLineWidth(0.5);
   selProperty->SetPointSize(3);
@@ -1044,15 +1016,13 @@ void vtkOrientedGlyphContourRepresentation::CreateSelectedNodesRepresentation()
   selProperty->Delete();
 }
 
-//-----------------------------------------------------------------------------
-void vtkOrientedGlyphContourRepresentation::PrintSelf(ostream& os,
-                                                      vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkOrientedGlyphContourRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
+  // Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
   this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "Always On Top: "
-     << (this->AlwaysOnTop ? "On\n" : "Off\n");
+  os << indent << "Always On Top: " << (this->AlwaysOnTop ? "On\n" : "Off\n");
   os << indent << "ShowSelectedNodes: " << this->ShowSelectedNodes << endl;
 
   if (this->Property)
@@ -1081,5 +1051,4 @@ void vtkOrientedGlyphContourRepresentation::PrintSelf(ostream& os,
   {
     os << indent << "Lines Property: (none)\n";
   }
-
 }

@@ -29,7 +29,7 @@
  *  With respect to binary files, random access into the file to read
  *  pieces is supported.
  *
-*/
+ */
 
 #ifndef vtkParticleReader_h
 #define vtkParticleReader_h
@@ -40,23 +40,22 @@
 #define VTK_FILE_BYTE_ORDER_BIG_ENDIAN 0
 #define VTK_FILE_BYTE_ORDER_LITTLE_ENDIAN 1
 
-
 class VTKIOGEOMETRY_EXPORT vtkParticleReader : public vtkPolyDataAlgorithm
 {
 public:
-  static vtkParticleReader *New();
-  vtkTypeMacro(vtkParticleReader,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkParticleReader* New();
+  vtkTypeMacro(vtkParticleReader, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify file name.
    */
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
-  //@}
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * These methods should be used instead of the SwapBytes methods.
    * They indicate the byte ordering of the file you are trying
@@ -75,29 +74,29 @@ public:
   void SetDataByteOrderToLittleEndian();
   int GetDataByteOrder();
   void SetDataByteOrder(int);
-  const char *GetDataByteOrderAsString();
-  //@}
+  const char* GetDataByteOrderAsString();
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the byte swapping to explicitly swap the bytes of a file.
    * Not used when reading text files.
    */
-  vtkSetMacro(SwapBytes,int);
-  int GetSwapBytes() {return this->SwapBytes;}
-  vtkBooleanMacro(SwapBytes,int);
-  //@}
+  vtkSetMacro(SwapBytes, vtkTypeBool);
+  vtkTypeBool GetSwapBytes() { return this->SwapBytes; }
+  vtkBooleanMacro(SwapBytes, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Default: 1. If 1 then each particle has a value associated with it.
    */
-  vtkSetMacro(HasScalar,int);
-  vtkGetMacro(HasScalar,int);
-  vtkBooleanMacro(HasScalar,int);
-  //@}
+  vtkSetMacro(HasScalar, vtkTypeBool);
+  vtkGetMacro(HasScalar, vtkTypeBool);
+  vtkBooleanMacro(HasScalar, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the file type.  The options are:
    * - FILE_TYPE_IS_UNKNOWN (default) the class
@@ -109,12 +108,12 @@ public:
    */
   vtkSetClampMacro(FileType, int, FILE_TYPE_IS_UNKNOWN, FILE_TYPE_IS_BINARY);
   vtkGetMacro(FileType, int);
-  void SetFileTypeToUnknown() {this->SetFileType(FILE_TYPE_IS_UNKNOWN);}
-  void SetFileTypeToText() {this->SetFileType(FILE_TYPE_IS_TEXT);}
-  void SetFileTypeToBinary() {this->SetFileType(FILE_TYPE_IS_BINARY);}
-  //@}
+  void SetFileTypeToUnknown() { this->SetFileType(FILE_TYPE_IS_UNKNOWN); }
+  void SetFileTypeToText() { this->SetFileType(FILE_TYPE_IS_TEXT); }
+  void SetFileTypeToBinary() { this->SetFileType(FILE_TYPE_IS_BINARY); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the data type.  The options are:
    * - VTK_FLOAT (default) single precision floating point.
@@ -122,24 +121,23 @@ public:
    */
   vtkSetClampMacro(DataType, int, VTK_FLOAT, VTK_DOUBLE);
   vtkGetMacro(DataType, int);
-  void SetDataTypeToFloat() {this->SetDataType(VTK_FLOAT);}
-  void SetDataTypeToDouble() {this->SetDataType(VTK_DOUBLE);}
-  //@}
-
+  void SetDataTypeToFloat() { this->SetDataType(VTK_FLOAT); }
+  void SetDataTypeToDouble() { this->SetDataType(VTK_DOUBLE); }
+  ///@}
 
 protected:
   vtkParticleReader();
-  ~vtkParticleReader() VTK_OVERRIDE;
+  ~vtkParticleReader() override;
 
   void OpenFile();
 
-  char *FileName;
-  ifstream *File;
+  char* FileName;
+  istream* File;
 
-  int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  //@{
+  ///@{
   /**
    * The format that will be read if the file is a text file is:
    * x, y, z, s (where s is some scalar value associated with the particle).
@@ -150,18 +148,18 @@ protected:
    * 2) Lines containing "\/\*" are discarded until a "\*\/" is found. The line
    * following the "\*\/" will be read.
    */
-  int ProduceOutputFromTextFileDouble(vtkInformationVector *outputVector);
-  int ProduceOutputFromTextFileFloat(vtkInformationVector *outputVector);
-  //@}
+  int ProduceOutputFromTextFileDouble(vtkInformationVector* outputVector);
+  int ProduceOutputFromTextFileFloat(vtkInformationVector* outputVector);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * This reader assumes that the file is binary and consists of floating
    * point values by default.
    */
-  int ProduceOutputFromBinaryFileDouble(vtkInformationVector *outputVector);
-  int ProduceOutputFromBinaryFileFloat(vtkInformationVector *outputVector);
-  //@}
+  int ProduceOutputFromBinaryFileDouble(vtkInformationVector* outputVector);
+  int ProduceOutputFromBinaryFileFloat(vtkInformationVector* outputVector);
+  ///@}
 
   /**
    * Determine the type of file based on an analysis of its contents.
@@ -178,20 +176,23 @@ protected:
   /**
    * Update of the progress.
    */
-  void DoProgressUpdate( size_t & bytesRead, size_t & fileLength );
+  void DoProgressUpdate(size_t& bytesRead, size_t& fileLength);
 
   /**
    * Enumerate the supported file types.
-   * <pre>
+   *
    * - FILE_TYPE_IS_UNKNOWN, (default) the class will attempt to determine the file type.
    * - FILE_TYPE_IS_TEXT, the file type is text.
    * - FILE_TYPE_IS_BINARY, the file type is binary.
-   * </pre>
    */
-  enum FILE_TYPE { FILE_TYPE_IS_UNKNOWN = 0,
-    FILE_TYPE_IS_TEXT, FILE_TYPE_IS_BINARY };
+  enum FILE_TYPE
+  {
+    FILE_TYPE_IS_UNKNOWN = 0,
+    FILE_TYPE_IS_TEXT,
+    FILE_TYPE_IS_BINARY
+  };
 
-  int HasScalar;
+  vtkTypeBool HasScalar;
   /**
    * Used to decide which reader should be used.
    */
@@ -210,12 +211,12 @@ protected:
    */
   size_t Count;
 
-  int SwapBytes;
+  vtkTypeBool SwapBytes;
   size_t NumberOfPoints;
 
 private:
-  vtkParticleReader(const vtkParticleReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkParticleReader&) VTK_DELETE_FUNCTION;
+  vtkParticleReader(const vtkParticleReader&) = delete;
+  void operator=(const vtkParticleReader&) = delete;
 };
 
 #endif

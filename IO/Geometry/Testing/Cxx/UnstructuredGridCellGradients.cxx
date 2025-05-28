@@ -28,27 +28,25 @@
 #include "vtkPointDataToCellData.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkRegressionTestImage.h"
-#include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
-#include "vtkStdString.h"
+#include "vtkRenderer.h"
 #include "vtkTubeFilter.h"
 #include "vtkUnstructuredGridReader.h"
 
 #include "vtkSmartPointer.h"
-#define VTK_CREATE(type, var) \
-  vtkSmartPointer<type> var = vtkSmartPointer<type>::New()
+#define VTK_CREATE(type, var) vtkSmartPointer<type> var = vtkSmartPointer<type>::New()
 
-int UnstructuredGridCellGradients(int argc, char *argv[])
+int UnstructuredGridCellGradients(int argc, char* argv[])
 {
   int i;
   // Need to get the data root.
-  const char *data_root = NULL;
-  for (i = 0; i < argc-1; i++)
+  const char* data_root = nullptr;
+  for (i = 0; i < argc - 1; i++)
   {
     if (strcmp("-D", argv[i]) == 0)
     {
-      data_root = argv[i+1];
+      data_root = argv[i + 1];
       break;
     }
   }
@@ -60,10 +58,10 @@ int UnstructuredGridCellGradients(int argc, char *argv[])
 
   // Create the reader for the data.
   // This is the data that will be volume rendered.
-  vtkStdString filename;
+  std::string filename;
   filename = data_root;
   filename += "/Data/uGridEx.vtk";
-  cout << "Loading " << filename.c_str() << endl;
+  cout << "Loading " << filename << endl;
   VTK_CREATE(vtkUnstructuredGridReader, reader);
   reader->SetFileName(filename.c_str());
 
@@ -88,16 +86,14 @@ int UnstructuredGridCellGradients(int argc, char *argv[])
 
   VTK_CREATE(vtkGradientFilter, gradients);
   gradients->SetInputConnection(pd2cd->GetOutputPort());
-  gradients->SetInputScalars(vtkDataObject::FIELD_ASSOCIATION_CELLS,
-                             vtkDataSetAttributes::SCALARS);
+  gradients->SetInputScalars(vtkDataObject::FIELD_ASSOCIATION_CELLS, vtkDataSetAttributes::SCALARS);
 
   VTK_CREATE(vtkCellCenters, cellCenters);
   cellCenters->SetInputConnection(gradients->GetOutputPort());
 
   VTK_CREATE(vtkAssignAttribute, vectors);
   vectors->SetInputConnection(cellCenters->GetOutputPort());
-  vectors->Assign("Gradients", vtkDataSetAttributes::VECTORS,
-                  vtkAssignAttribute::POINT_DATA);
+  vectors->Assign("Gradients", vtkDataSetAttributes::VECTORS, vtkAssignAttribute::POINT_DATA);
 
   VTK_CREATE(vtkArrowSource, arrow);
 
@@ -130,7 +126,7 @@ int UnstructuredGridCellGradients(int argc, char *argv[])
   renwin->SetSize(350, 500);
 
   renderer->ResetCamera();
-  vtkCamera *camera = renderer->GetActiveCamera();
+  vtkCamera* camera = renderer->GetActiveCamera();
   camera->Elevation(-85.0);
   camera->OrthogonalizeViewUp();
   camera->Elevation(-5.0);

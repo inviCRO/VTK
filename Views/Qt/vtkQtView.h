@@ -18,23 +18,24 @@
  * into the VTK view framework. Not much here yet, but in the future there
  * could be methods around selection, event-handling, drag-and-drop, etc.
  *
-*/
+ */
 
 #ifndef vtkQtView_h
 #define vtkQtView_h
 
-#include "vtkViewsQtModule.h" // For export macro
 #include "vtkView.h"
+#include "vtkViewsQtModule.h" // For export macro
 
 #include <QObject> // Needed to hook into Qt
 
-class VTKVIEWSQT_EXPORT vtkQtView : public QObject, public vtkView
+class VTKVIEWSQT_EXPORT vtkQtView
+  : public QObject
+  , public vtkView
 {
-Q_OBJECT
+  Q_OBJECT
 public:
-
   vtkTypeMacro(vtkQtView, vtkView);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Get the main container of this view (a  QWidget).
@@ -42,7 +43,7 @@ public:
    * to GetWidget(): something like this
    * this->ui->box->layout()->addWidget(this->View->GetWidget());
    */
-  virtual QWidget* GetWidget()=0;
+  virtual QWidget* GetWidget() = 0;
 
   /**
    * Calls QApplication::processEvents().  This is useful if you are using QWidgets
@@ -62,16 +63,16 @@ public:
    * be determined from the filename.  Qt's image format support may vary, usually
    * bmp, jpg, ppm, or png is a safe choice.  Returns false if there was a failure.
    */
-  virtual bool SaveImage(const char* fileName);
+  virtual bool SaveImage(VTK_FILEPATH const char* fileName);
 
 protected:
   vtkQtView();
-  ~vtkQtView() VTK_OVERRIDE;
+  ~vtkQtView() override;
 
 private:
-  vtkQtView(const vtkQtView&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkQtView&) VTK_DELETE_FUNCTION;
-
+  vtkQtView(const vtkQtView&) = delete;
+  void operator=(const vtkQtView&) = delete;
 };
 
 #endif
+// VTK-HeaderTest-Exclude: vtkQtView.h

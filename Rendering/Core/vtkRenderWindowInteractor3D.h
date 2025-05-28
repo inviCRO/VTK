@@ -24,15 +24,20 @@
  * locations and orientations. VR systems will subclass this class to
  * provide the code to set these values based on events from their VR
  * controllers.
-*/
+ */
 
 #ifndef vtkRenderWindowInteractor3D_h
 #define vtkRenderWindowInteractor3D_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkRenderWindowInteractor.h"
+#include "vtkRenderingCoreModule.h" // For export macro
+
+#include "vtkNew.h" // ivars
 
 class vtkCamera;
+class vtkMatrix4x4;
+enum class vtkEventDataDevice;
+enum class vtkEventDataDeviceInput;
 
 class VTKRENDERINGCORE_EXPORT vtkRenderWindowInteractor3D : public vtkRenderWindowInteractor
 {
@@ -40,12 +45,12 @@ public:
   /**
    * Construct object so that light follows camera motion.
    */
-  static vtkRenderWindowInteractor3D *New();
+  static vtkRenderWindowInteractor3D* New();
 
-  vtkTypeMacro(vtkRenderWindowInteractor3D,vtkRenderWindowInteractor);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkRenderWindowInteractor3D, vtkRenderWindowInteractor);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Enable/Disable interactions.  By default interactors are enabled when
    * initialized.  Initialize() must be called prior to enabling/disabling
@@ -55,70 +60,57 @@ public:
    * and all other interactors associated with the widget are disabled
    * when their data is not displayed.
    */
-  void Enable() VTK_OVERRIDE;
-  void Disable() VTK_OVERRIDE;
-  //@}
+  void Enable() override;
+  void Disable() override;
+  ///@}
 
+  ///@{
   /**
-   * OpenVR specific application terminate, calls ClassExitMethod then
-   * calls PostQuitMessage(0) to terminate the application. An application can Specify
-   * ExitMethod for alternative behavior (i.e. suppression of keyboard exit)
+   * With VR we know the world coordinate positions and orientations of events.
+   * These methods support querying them instead of going through a display X,Y
+   * coordinate approach as is standard for mouse/touch events
    */
-  void TerminateApp(void) VTK_OVERRIDE;
-
-  /**
-   * Create default picker. Used to create one when none is specified.
-   * Default is an instance of vtkPropPicker.
-   */
-  vtkAbstractPropPicker *CreateDefaultPicker() VTK_OVERRIDE;
-
-  //@{
-  /**
-   * With VR we know the world coordinate positions
-   * and orientations of events. These methods
-   * support querying them instead of going through
-   * a display X,Y coordinate approach as is standard
-   * for mouse/touch events
-   */
-  virtual double *GetWorldEventPosition(int pointerIndex)
+  virtual double* GetWorldEventPosition(int pointerIndex)
   {
     if (pointerIndex >= VTKI_MAX_POINTERS)
     {
-      return NULL;
+      return nullptr;
     }
     return this->WorldEventPositions[pointerIndex];
   }
-  virtual double *GetLastWorldEventPosition(int pointerIndex)
+  virtual double* GetLastWorldEventPosition(int pointerIndex)
   {
     if (pointerIndex >= VTKI_MAX_POINTERS)
     {
-      return NULL;
+      return nullptr;
     }
     return this->LastWorldEventPositions[pointerIndex];
   }
-  virtual double *GetWorldEventOrientation(int pointerIndex)
+  virtual double* GetWorldEventOrientation(int pointerIndex)
   {
     if (pointerIndex >= VTKI_MAX_POINTERS)
     {
-      return NULL;
+      return nullptr;
     }
     return this->WorldEventOrientations[pointerIndex];
   }
-  virtual double *GetLastWorldEventOrientation(int pointerIndex)
+  virtual double* GetLastWorldEventOrientation(int pointerIndex)
   {
     if (pointerIndex >= VTKI_MAX_POINTERS)
     {
-      return NULL;
+      return nullptr;
     }
     return this->LastWorldEventOrientations[pointerIndex];
   }
-  //@}
+  virtual void GetWorldEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  virtual void GetLastWorldEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * With VR we know the physical/room coordinate positions
-   * and orientations of events. These methods
-   * support setting them.
+   * and orientations of events.
+   * These methods support setting them.
    */
   virtual void SetPhysicalEventPosition(double x, double y, double z, int pointerIndex)
   {
@@ -126,30 +118,42 @@ public:
     {
       return;
     }
-    vtkDebugMacro(
-      << this->GetClassName() << " (" << this
-      << "): setting PhysicalEventPosition to ("
-      << x << "," << y << "," << z
-      << ") for pointerIndex number " << pointerIndex);
+    vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting PhysicalEventPosition to ("
+                  << x << "," << y << "," << z << ") for pointerIndex number " << pointerIndex);
     if (this->PhysicalEventPositions[pointerIndex][0] != x ||
-        this->PhysicalEventPositions[pointerIndex][1] != y ||
-        this->PhysicalEventPositions[pointerIndex][2] != z ||
-        this->LastPhysicalEventPositions[pointerIndex][0] != x ||
-        this->LastPhysicalEventPositions[pointerIndex][1] != y ||
-        this->LastPhysicalEventPositions[pointerIndex][2] != z)
+      this->PhysicalEventPositions[pointerIndex][1] != y ||
+      this->PhysicalEventPositions[pointerIndex][2] != z ||
+      this->LastPhysicalEventPositions[pointerIndex][0] != x ||
+      this->LastPhysicalEventPositions[pointerIndex][1] != y ||
+      this->LastPhysicalEventPositions[pointerIndex][2] != z)
     {
-      this->LastPhysicalEventPositions[pointerIndex][0] = this->PhysicalEventPositions[pointerIndex][0];
-      this->LastPhysicalEventPositions[pointerIndex][1] = this->PhysicalEventPositions[pointerIndex][1];
-      this->LastPhysicalEventPositions[pointerIndex][2] = this->PhysicalEventPositions[pointerIndex][2];
+      this->LastPhysicalEventPositions[pointerIndex][0] =
+        this->PhysicalEventPositions[pointerIndex][0];
+      this->LastPhysicalEventPositions[pointerIndex][1] =
+        this->PhysicalEventPositions[pointerIndex][1];
+      this->LastPhysicalEventPositions[pointerIndex][2] =
+        this->PhysicalEventPositions[pointerIndex][2];
       this->PhysicalEventPositions[pointerIndex][0] = x;
       this->PhysicalEventPositions[pointerIndex][1] = y;
       this->PhysicalEventPositions[pointerIndex][2] = z;
       this->Modified();
     }
   }
-  //@}
+  virtual void SetPhysicalEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  ///@}
 
-  //@{
+  ///@{
+  /**
+   * With VR we know the physical/room coordinate positions
+   * and orientations of events.
+   * These methods support getting them.
+   */
+  virtual void GetPhysicalEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  virtual void GetLastPhysicalEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  virtual void GetStartingPhysicalEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  ///@}
+
+  ///@{
   /**
    * With VR we know the world coordinate positions
    * and orientations of events. These methods
@@ -161,17 +165,14 @@ public:
     {
       return;
     }
-    vtkDebugMacro(
-      << this->GetClassName() << " (" << this
-      << "): setting WorldEventPosition to ("
-      << x << "," << y << "," << z
-      << ") for pointerIndex number " << pointerIndex);
+    vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting WorldEventPosition to ("
+                  << x << "," << y << "," << z << ") for pointerIndex number " << pointerIndex);
     if (this->WorldEventPositions[pointerIndex][0] != x ||
-        this->WorldEventPositions[pointerIndex][1] != y ||
-        this->WorldEventPositions[pointerIndex][2] != z ||
-        this->LastWorldEventPositions[pointerIndex][0] != x ||
-        this->LastWorldEventPositions[pointerIndex][1] != y ||
-        this->LastWorldEventPositions[pointerIndex][2] != z)
+      this->WorldEventPositions[pointerIndex][1] != y ||
+      this->WorldEventPositions[pointerIndex][2] != z ||
+      this->LastWorldEventPositions[pointerIndex][0] != x ||
+      this->LastWorldEventPositions[pointerIndex][1] != y ||
+      this->LastWorldEventPositions[pointerIndex][2] != z)
     {
       this->LastWorldEventPositions[pointerIndex][0] = this->WorldEventPositions[pointerIndex][0];
       this->LastWorldEventPositions[pointerIndex][1] = this->WorldEventPositions[pointerIndex][1];
@@ -188,24 +189,26 @@ public:
     {
       return;
     }
-    vtkDebugMacro(
-      << this->GetClassName() << " (" << this
-      << "): setting WorldEventOrientation to ("
-      << w << "," << x << "," << y << "," << z
-      << ") for pointerIndex number " << pointerIndex);
+    vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting WorldEventOrientation to ("
+                  << w << "," << x << "," << y << "," << z << ") for pointerIndex number "
+                  << pointerIndex);
     if (this->WorldEventOrientations[pointerIndex][0] != w ||
-        this->WorldEventOrientations[pointerIndex][1] != x ||
-        this->WorldEventOrientations[pointerIndex][2] != y ||
-        this->WorldEventOrientations[pointerIndex][3] != z ||
-        this->LastWorldEventOrientations[pointerIndex][0] != w ||
-        this->LastWorldEventOrientations[pointerIndex][1] != x ||
-        this->LastWorldEventOrientations[pointerIndex][2] != y ||
-        this->LastWorldEventOrientations[pointerIndex][3] != z)
+      this->WorldEventOrientations[pointerIndex][1] != x ||
+      this->WorldEventOrientations[pointerIndex][2] != y ||
+      this->WorldEventOrientations[pointerIndex][3] != z ||
+      this->LastWorldEventOrientations[pointerIndex][0] != w ||
+      this->LastWorldEventOrientations[pointerIndex][1] != x ||
+      this->LastWorldEventOrientations[pointerIndex][2] != y ||
+      this->LastWorldEventOrientations[pointerIndex][3] != z)
     {
-      this->LastWorldEventOrientations[pointerIndex][0] = this->WorldEventOrientations[pointerIndex][0];
-      this->LastWorldEventOrientations[pointerIndex][1] = this->WorldEventOrientations[pointerIndex][1];
-      this->LastWorldEventOrientations[pointerIndex][2] = this->WorldEventOrientations[pointerIndex][2];
-      this->LastWorldEventOrientations[pointerIndex][3] = this->WorldEventOrientations[pointerIndex][3];
+      this->LastWorldEventOrientations[pointerIndex][0] =
+        this->WorldEventOrientations[pointerIndex][0];
+      this->LastWorldEventOrientations[pointerIndex][1] =
+        this->WorldEventOrientations[pointerIndex][1];
+      this->LastWorldEventOrientations[pointerIndex][2] =
+        this->WorldEventOrientations[pointerIndex][2];
+      this->LastWorldEventOrientations[pointerIndex][3] =
+        this->WorldEventOrientations[pointerIndex][3];
       this->WorldEventOrientations[pointerIndex][0] = w;
       this->WorldEventOrientations[pointerIndex][1] = x;
       this->WorldEventOrientations[pointerIndex][2] = y;
@@ -213,79 +216,99 @@ public:
       this->Modified();
     }
   }
-  //@}
+  virtual void SetWorldEventPose(vtkMatrix4x4* poseMatrix, int pointerIndex);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Override to set pointers down
    */
-  void RightButtonPressEvent() VTK_OVERRIDE;
-  void RightButtonReleaseEvent() VTK_OVERRIDE;
-  //@}
+  void RightButtonPressEvent() override;
+  void RightButtonReleaseEvent() override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Override to set pointers down
    */
-  void MiddleButtonPressEvent() VTK_OVERRIDE;
-  void MiddleButtonReleaseEvent() VTK_OVERRIDE;
-  //@}
+  void MiddleButtonPressEvent() override;
+  void MiddleButtonReleaseEvent() override;
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set/Get the latest touchpad position
+   * Get the latest touchpad or joystick position for a device
    */
-  vtkSetVector2Macro(TouchPadPosition,float);
-  vtkGetVector2Macro(TouchPadPosition,float);
-  //@}
+  virtual void GetTouchPadPosition(vtkEventDataDevice, vtkEventDataDeviceInput, float[3]) {}
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set/Get the optional translation to map world coordinates into the
-   * 3D physical space (meters, 0,0,0).
+   * Set/get the direction of the physical coordinate system -Z axis in world coordinates.
    */
-  virtual void SetPhysicalTranslation(vtkCamera *, double, double, double) {};
-  virtual double *GetPhysicalTranslation(vtkCamera *) { return NULL; };
-  //@}
+  virtual void SetPhysicalViewDirection(double, double, double){};
+  virtual double* GetPhysicalViewDirection() { return nullptr; };
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set/get the tranlation for pan/swipe gestures, update LastTranslation
+   * Set/get the direction of the physical coordinate system +Y axis in world coordinates.
+   */
+  virtual void SetPhysicalViewUp(double, double, double){};
+  virtual double* GetPhysicalViewUp() { return nullptr; };
+  ///@}
+
+  ///@{
+  /**
+   * Set/get position of the physical coordinate system origin in world coordinates.
+   */
+  virtual void SetPhysicalTranslation(vtkCamera*, double, double, double) {}
+  virtual double* GetPhysicalTranslation(vtkCamera*) { return nullptr; }
+  ///@}
+
+  ///@{
+  /**
+   * Set/get the physical scale (world / physical distance ratio)
+   */
+  virtual void SetPhysicalScale(double) {}
+  virtual double GetPhysicalScale() { return 1.0; }
+  ///@}
+
+  ///@{
+  /**
+   * Set/get the translation for pan/swipe gestures, update LastTranslation
    */
   void SetTranslation3D(double val[3]);
   vtkGetVector3Macro(Translation3D, double);
   vtkGetVector3Macro(LastTranslation3D, double);
-  //@}
-
-  /**
-   * Is the interactor loop done
-   */
-  vtkGetMacro(Done, bool);
+  ///@}
 
 protected:
   vtkRenderWindowInteractor3D();
-  ~vtkRenderWindowInteractor3D() VTK_OVERRIDE;
+  ~vtkRenderWindowInteractor3D() override;
 
-  int     MouseInWindow;
-  int     StartedMessageLoop;
-  float TouchPadPosition[2];
+  int MouseInWindow;
+  int StartedMessageLoop;
   double Translation3D[3];
   double LastTranslation3D[3];
 
-  bool Done;  // is the event loop done running
-
-  double   WorldEventPositions[VTKI_MAX_POINTERS][3];
-  double   LastWorldEventPositions[VTKI_MAX_POINTERS][3];
-  double   PhysicalEventPositions[VTKI_MAX_POINTERS][3];
-  double   LastPhysicalEventPositions[VTKI_MAX_POINTERS][3];
-  double   StartingPhysicalEventPositions[VTKI_MAX_POINTERS][3];
-  double   WorldEventOrientations[VTKI_MAX_POINTERS][4];
-  double   LastWorldEventOrientations[VTKI_MAX_POINTERS][4];
-  void RecognizeGesture(vtkCommand::EventIds) VTK_OVERRIDE;
+  double WorldEventPositions[VTKI_MAX_POINTERS][3];
+  double LastWorldEventPositions[VTKI_MAX_POINTERS][3];
+  double PhysicalEventPositions[VTKI_MAX_POINTERS][3];
+  double LastPhysicalEventPositions[VTKI_MAX_POINTERS][3];
+  double StartingPhysicalEventPositions[VTKI_MAX_POINTERS][3];
+  double WorldEventOrientations[VTKI_MAX_POINTERS][4];
+  double LastWorldEventOrientations[VTKI_MAX_POINTERS][4];
+  vtkNew<vtkMatrix4x4> WorldEventPoses[VTKI_MAX_POINTERS];
+  vtkNew<vtkMatrix4x4> LastWorldEventPoses[VTKI_MAX_POINTERS];
+  vtkNew<vtkMatrix4x4> PhysicalEventPoses[VTKI_MAX_POINTERS];
+  vtkNew<vtkMatrix4x4> LastPhysicalEventPoses[VTKI_MAX_POINTERS];
+  vtkNew<vtkMatrix4x4> StartingPhysicalEventPoses[VTKI_MAX_POINTERS];
+  void RecognizeGesture(vtkCommand::EventIds) override;
 
 private:
-  vtkRenderWindowInteractor3D(const vtkRenderWindowInteractor3D&) VTK_DELETE_FUNCTION;  // Not implemented.
-  void operator=(const vtkRenderWindowInteractor3D&) VTK_DELETE_FUNCTION;  // Not implemented.
+  vtkRenderWindowInteractor3D(const vtkRenderWindowInteractor3D&) = delete;
+  void operator=(const vtkRenderWindowInteractor3D&) = delete;
 };
 
 #endif

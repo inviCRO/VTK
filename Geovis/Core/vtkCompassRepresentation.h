@@ -24,16 +24,17 @@
  * @brief   provide a compass
  *
  * This class is used to represent and render a compass.
-*/
+ */
 
 #ifndef vtkCompassRepresentation_h
 #define vtkCompassRepresentation_h
 
-#include "vtkGeovisCoreModule.h" // For export macro
-#include "vtkContinuousValueWidgetRepresentation.h"
-#include "vtkCoordinate.h" // For vtkViewportCoordinateMacro
 #include "vtkCenteredSliderRepresentation.h" // to use in a SP
-#include "vtkSmartPointer.h" // used for SmartPointers
+#include "vtkContinuousValueWidgetRepresentation.h"
+#include "vtkCoordinate.h"       // For vtkViewportCoordinateMacro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
+#include "vtkGeovisCoreModule.h" // For export macro
+#include "vtkSmartPointer.h"     // used for SmartPointers
 
 class vtkActor2D;
 class vtkPoints;
@@ -50,24 +51,21 @@ class vtkTransformPolyDataFilter;
 class vtkTextProperty;
 class vtkTextActor;
 
-
-class VTKGEOVISCORE_EXPORT vtkCompassRepresentation :
-  public vtkContinuousValueWidgetRepresentation
+class VTKGEOVISCORE_EXPORT vtkCompassRepresentation : public vtkContinuousValueWidgetRepresentation
 {
 public:
   /**
    * Instantiate the class.
    */
-  static vtkCompassRepresentation *New();
+  static vtkCompassRepresentation* New();
 
-  //@{
+  ///@{
   /**
    * Standard methods for the class.
    */
-  vtkTypeMacro(vtkCompassRepresentation,
-                       vtkContinuousValueWidgetRepresentation);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkCompassRepresentation, vtkContinuousValueWidgetRepresentation);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Position the first end point of the slider. Note that this point is an
@@ -77,7 +75,7 @@ public:
    * then invoke the necessary methods to put it into the correct coordinate
    * system and set the correct initial value.
    */
-  vtkCoordinate *GetPoint1Coordinate();
+  vtkCoordinate* GetPoint1Coordinate();
 
   /**
    * Position the second end point of the slider. Note that this point is an
@@ -87,56 +85,56 @@ public:
    * then invoke the necessary methods to put it into the correct coordinate
    * system and set the correct initial value.
    */
-  vtkCoordinate *GetPoint2Coordinate();
+  vtkCoordinate* GetPoint2Coordinate();
 
-  //@{
+  ///@{
   /**
    * Get the slider properties. The properties of the slider when selected
    * and unselected can be manipulated.
    */
-  vtkGetObjectMacro(RingProperty,vtkProperty2D);
-  //@}
+  vtkGetObjectMacro(RingProperty, vtkProperty2D);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get the selection property. This property is used to modify the
    * appearance of selected objects (e.g., the slider).
    */
-  vtkGetObjectMacro(SelectedProperty,vtkProperty2D);
-  //@}
+  vtkGetObjectMacro(SelectedProperty, vtkProperty2D);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the properties for the label and title text.
    */
-  vtkGetObjectMacro(LabelProperty,vtkTextProperty);
-  //@}
+  vtkGetObjectMacro(LabelProperty, vtkTextProperty);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Methods to interface with the vtkSliderWidget. The PlaceWidget() method
    * assumes that the parameter bounds[6] specifies the location in display
    * space where the widget should be placed.
    */
-  void PlaceWidget(double bounds[6]) VTK_OVERRIDE;
-  void BuildRepresentation() VTK_OVERRIDE;
-  void StartWidgetInteraction(double eventPos[2]) VTK_OVERRIDE;
-  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE;
+  void PlaceWidget(double bounds[6]) override;
+  void BuildRepresentation() override;
+  void StartWidgetInteraction(double eventPos[2]) override;
+  void WidgetInteraction(double eventPos[2]) override;
   virtual void TiltWidgetInteraction(double eventPos[2]);
   virtual void DistanceWidgetInteraction(double eventPos[2]);
-  int ComputeInteractionState(int X, int Y, int modify=0) VTK_OVERRIDE;
-  void Highlight(int) VTK_OVERRIDE;
-  //@}
+  int ComputeInteractionState(int X, int Y, int modify = 0) override;
+  void Highlight(int) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Methods supporting the rendering process.
    */
-  void GetActors(vtkPropCollection*) VTK_OVERRIDE;
-  void ReleaseGraphicsResources(vtkWindow*) VTK_OVERRIDE;
-  int RenderOverlay(vtkViewport*) VTK_OVERRIDE;
-  int RenderOpaqueGeometry(vtkViewport*) VTK_OVERRIDE;
-  //@}
+  void GetActors(vtkPropCollection*) override;
+  void ReleaseGraphicsResources(vtkWindow*) override;
+  int RenderOverlay(vtkViewport*) override;
+  int RenderOpaqueGeometry(vtkViewport*) override;
+  ///@}
 
   virtual void SetHeading(double value);
   virtual double GetHeading();
@@ -148,12 +146,12 @@ public:
   virtual double GetDistance();
   virtual void UpdateDistance(double time);
   virtual void EndDistance();
-  void SetRenderer(vtkRenderer *ren) VTK_OVERRIDE;
+  void SetRenderer(vtkRenderer* ren) override;
 
   // Enums are used to describe what is selected
-  enum _InteractionState
+  enum InteractionStateType
   {
-    Outside=0,
+    Outside = 0,
     Inside,
     Adjusting,
     TiltDown,
@@ -163,14 +161,18 @@ public:
     DistanceIn,
     DistanceAdjusting
   };
+#if !defined(VTK_LEGACY_REMOVE)
+  VTK_DEPRECATED_IN_9_2_0("because leading underscore is reserved")
+  typedef InteractionStateType _InteractionState;
+#endif
 
 protected:
   vtkCompassRepresentation();
-  ~vtkCompassRepresentation() VTK_OVERRIDE;
+  ~vtkCompassRepresentation() override;
 
   // Positioning the widget
-  vtkCoordinate *Point1Coordinate;
-  vtkCoordinate *Point2Coordinate;
+  vtkCoordinate* Point1Coordinate;
+  vtkCoordinate* Point2Coordinate;
 
   // radius values
   double InnerRadius;
@@ -183,31 +185,31 @@ protected:
 
   // Define the geometry. It is constructed in canaonical position
   // along the x-axis and then rotated into position.
-  vtkTransform        *XForm;
-  vtkPoints           *Points;
+  vtkTransform* XForm;
+  vtkPoints* Points;
 
-  vtkPolyData         *Ring;
-  vtkTransformPolyDataFilter *RingXForm;
-  vtkPolyDataMapper2D *RingMapper;
-  vtkActor2D          *RingActor;
-  vtkProperty2D       *RingProperty;
+  vtkPolyData* Ring;
+  vtkTransformPolyDataFilter* RingXForm;
+  vtkPolyDataMapper2D* RingMapper;
+  vtkActor2D* RingActor;
+  vtkProperty2D* RingProperty;
 
-  vtkPolyDataMapper2D *BackdropMapper;
-  vtkActor2D          *Backdrop;
+  vtkPolyDataMapper2D* BackdropMapper;
+  vtkActor2D* Backdrop;
 
-  vtkTextProperty     *LabelProperty;
-  vtkTextActor        *LabelActor;
-  vtkTextProperty     *StatusProperty;
-  vtkTextActor        *StatusActor;
+  vtkTextProperty* LabelProperty;
+  vtkTextActor* LabelActor;
+  vtkTextProperty* StatusProperty;
+  vtkTextActor* StatusActor;
 
-  vtkProperty2D       *SelectedProperty;
+  vtkProperty2D* SelectedProperty;
 
   // build the tube geometry
   void BuildRing();
   void BuildBackdrop();
 
   // used for positioning etc
-  void GetCenterAndUnitRadius(int center[2], double &radius);
+  void GetCenterAndUnitRadius(int center[2], double& radius);
 
   int HighlightState;
 
@@ -216,8 +218,8 @@ protected:
   double Distance;
 
 private:
-  vtkCompassRepresentation(const vtkCompassRepresentation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCompassRepresentation&) VTK_DELETE_FUNCTION;
+  vtkCompassRepresentation(const vtkCompassRepresentation&) = delete;
+  void operator=(const vtkCompassRepresentation&) = delete;
 };
 
 #endif

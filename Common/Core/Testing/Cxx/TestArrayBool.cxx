@@ -27,22 +27,23 @@
 #include <sstream>
 #include <stdexcept>
 
-#define test_expression(expression) \
-{ \
-  if(!(expression)) \
-  { \
-    std::ostringstream buffer; \
-    buffer << "Expression failed at line " << __LINE__ << ": " << #expression; \
-    throw std::runtime_error(buffer.str()); \
-  } \
-}
+#define test_expression(expression)                                                                \
+  do                                                                                               \
+  {                                                                                                \
+    if (!(expression))                                                                             \
+    {                                                                                              \
+      std::ostringstream buffer;                                                                   \
+      buffer << "Expression failed at line " << __LINE__ << ": " << #expression;                   \
+      throw std::runtime_error(buffer.str());                                                      \
+    }                                                                                              \
+  } while (false)
 
-int TestArrayBool(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
+int TestArrayBool(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   try
   {
     // Confirm that we can work with dense arrays of bool values
-    vtkSmartPointer<vtkDenseArray<char> > dense = vtkSmartPointer<vtkDenseArray<char> >::New();
+    vtkSmartPointer<vtkDenseArray<char>> dense = vtkSmartPointer<vtkDenseArray<char>>::New();
     vtkDenseArray<char>& dense_ref = *dense;
     dense->Resize(2, 2);
     dense->Fill(0);
@@ -58,7 +59,7 @@ int TestArrayBool(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
     test_expression(dense->GetValue(0, 1) == 1);
 
     // Confirm that we can work with sparse arrays of bool values
-    vtkSmartPointer<vtkSparseArray<char> > sparse = vtkSmartPointer<vtkSparseArray<char> >::New();
+    vtkSmartPointer<vtkSparseArray<char>> sparse = vtkSmartPointer<vtkSparseArray<char>>::New();
     sparse->Resize(2, 2);
 
     test_expression(sparse->GetValue(1, 1) == 0);
@@ -67,7 +68,7 @@ int TestArrayBool(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
 
     return 0;
   }
-  catch(std::exception& e)
+  catch (std::exception& e)
   {
     cerr << e.what() << endl;
     return 1;

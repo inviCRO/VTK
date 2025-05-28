@@ -57,7 +57,7 @@
  * @par Acknowledgments:
  * The work was supported by grants, contracts, and gifts from the
  * National Science Foundation, the Department of Energy and IBM.
-*/
+ */
 
 #ifndef vtkUnstructuredGridQuadricDecimation_h
 #define vtkUnstructuredGridQuadricDecimation_h
@@ -65,12 +65,13 @@
 #include "vtkFiltersCoreModule.h" // For export macro
 #include "vtkUnstructuredGridAlgorithm.h"
 
-class VTKFILTERSCORE_EXPORT vtkUnstructuredGridQuadricDecimation : public vtkUnstructuredGridAlgorithm
+class VTKFILTERSCORE_EXPORT vtkUnstructuredGridQuadricDecimation
+  : public vtkUnstructuredGridAlgorithm
 {
 public:
   vtkTypeMacro(vtkUnstructuredGridQuadricDecimation, vtkUnstructuredGridAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  static vtkUnstructuredGridQuadricDecimation *New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  static vtkUnstructuredGridQuadricDecimation* New();
 
   // The following 3 parameters will control the process of simplification in
   // the priority:
@@ -79,32 +80,32 @@ public:
   // NumbersOfTetsOutput is also 0, then TargetReduction will control the
   // output.
 
-  //@{
+  ///@{
   /**
    * Set/Get the desired reduction (expressed as a fraction of the original
    * number of tetrehedra)
    */
   vtkSetMacro(TargetReduction, double);
   vtkGetMacro(TargetReduction, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Set/Get the desired number of tetrahedra to be outputed
+   * Set/Get the desired number of tetrahedra to be outputted
    */
   vtkSetMacro(NumberOfTetsOutput, int);
   vtkGetMacro(NumberOfTetsOutput, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the desired number of edge to collapse
    */
   vtkSetMacro(NumberOfEdgesToDecimate, int);
   vtkGetMacro(NumberOfEdgesToDecimate, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the number of candidates selected for each randomized set before
    * performing an edge collapse. Increasing this number can help producing
@@ -112,9 +113,9 @@ public:
    */
   vtkSetMacro(NumberOfCandidates, int);
   vtkGetMacro(NumberOfCandidates, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable(1)/Disable(0) the feature of temporarily doubling the number of
    * candidates for each randomized set if the quadric error was significantly
@@ -126,48 +127,48 @@ public:
    */
   vtkSetMacro(AutoAddCandidates, int);
   vtkGetMacro(AutoAddCandidates, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the threshold that decides when to double the set size.
    * Default is 0.4.
    */
   vtkSetMacro(AutoAddCandidatesThreshold, double);
   vtkGetMacro(AutoAddCandidatesThreshold, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the weight of the boundary on the quadric metrics. The larger
    * the number, the better the boundary is preserved.
    */
   vtkSetMacro(BoundaryWeight, double);
   vtkGetMacro(BoundaryWeight, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the scalar field name used for simplification
    */
   vtkSetStringMacro(ScalarsName);
   vtkGetStringMacro(ScalarsName);
-  //@}
+  ///@}
 
   enum
   {
-    NO_ERROR=0,
-    NON_TETRAHEDRA=1,
-    NO_SCALARS=2,
-    NO_CELLS=3
+    NON_ERROR = 0,
+    NON_TETRAHEDRA = 1,
+    NO_SCALARS = 2,
+    NO_CELLS = 3
   };
 
 protected:
   vtkUnstructuredGridQuadricDecimation();
-  ~vtkUnstructuredGridQuadricDecimation() VTK_OVERRIDE;
+  ~vtkUnstructuredGridQuadricDecimation() override;
 
   void ReportError(int err);
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int NumberOfTetsOutput;
   int NumberOfEdgesToDecimate;
@@ -177,12 +178,11 @@ protected:
   double TargetReduction;
   double AutoAddCandidatesThreshold;
   double BoundaryWeight;
-  char *ScalarsName;
+  char* ScalarsName;
 
 private:
-  vtkUnstructuredGridQuadricDecimation(const vtkUnstructuredGridQuadricDecimation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkUnstructuredGridQuadricDecimation&) VTK_DELETE_FUNCTION;
-
+  vtkUnstructuredGridQuadricDecimation(const vtkUnstructuredGridQuadricDecimation&) = delete;
+  void operator=(const vtkUnstructuredGridQuadricDecimation&) = delete;
 };
 
 #endif

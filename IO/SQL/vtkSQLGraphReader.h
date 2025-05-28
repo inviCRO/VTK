@@ -51,13 +51,13 @@
  * names of these fields.
  * These arrays must be data arrays.  The z-coordinate array is optional,
  * and if not given the z-coordinates are set to zero.
-*/
+ */
 
 #ifndef vtkSQLGraphReader_h
 #define vtkSQLGraphReader_h
 
-#include "vtkIOSQLModule.h" // For export macro
 #include "vtkGraphAlgorithm.h"
+#include "vtkIOSQLModule.h" // For export macro
 
 class vtkSQLQuery;
 
@@ -65,83 +65,83 @@ class VTKIOSQL_EXPORT vtkSQLGraphReader : public vtkGraphAlgorithm
 {
 public:
   static vtkSQLGraphReader* New();
-  vtkTypeMacro(vtkSQLGraphReader,vtkGraphAlgorithm);
+  vtkTypeMacro(vtkSQLGraphReader, vtkGraphAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  //@{
+  ///@{
   /**
    * When set, creates a directed graph, as opposed to an undirected graph.
    */
   vtkSetMacro(Directed, bool);
   vtkGetMacro(Directed, bool);
   vtkBooleanMacro(Directed, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The query that retrieves the node information.
    */
   virtual void SetVertexQuery(vtkSQLQuery* q);
   vtkGetObjectMacro(VertexQuery, vtkSQLQuery);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The query that retrieves the arc information.
    */
   virtual void SetEdgeQuery(vtkSQLQuery* q);
   vtkGetObjectMacro(EdgeQuery, vtkSQLQuery);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the field in the arc query for the source node of each arc.
    */
   vtkSetStringMacro(SourceField);
   vtkGetStringMacro(SourceField);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the field in the arc query for the target node of each arc.
    */
   vtkSetStringMacro(TargetField);
   vtkGetStringMacro(TargetField);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the field in the node query for the node ID.
    */
   vtkSetStringMacro(VertexIdField);
   vtkGetStringMacro(VertexIdField);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the field in the node query for the node's x coordinate.
    */
   vtkSetStringMacro(XField);
   vtkGetStringMacro(XField);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the field in the node query for the node's y coordinate.
    */
   vtkSetStringMacro(YField);
   vtkGetStringMacro(YField);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the field in the node query for the node's z coordinate.
    */
   vtkSetStringMacro(ZField);
   vtkGetStringMacro(ZField);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * When set, creates a graph with no parallel arcs.
    * Parallel arcs are combined into one arc.
@@ -152,11 +152,11 @@ public:
   vtkSetMacro(CollapseEdges, bool);
   vtkGetMacro(CollapseEdges, bool);
   vtkBooleanMacro(CollapseEdges, bool);
-  //@}
+  ///@}
 
 protected:
   vtkSQLGraphReader();
-  ~vtkSQLGraphReader();
+  ~vtkSQLGraphReader() override;
 
   bool Directed;
   bool CollapseEdges;
@@ -169,20 +169,13 @@ protected:
   char* YField;
   char* ZField;
 
-  virtual int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*);
+  virtual int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*);
 
-  virtual int RequestDataObject(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*);
+  virtual int RequestDataObject(vtkInformation*, vtkInformationVector**, vtkInformationVector*);
 
 private:
-  vtkSQLGraphReader(const vtkSQLGraphReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSQLGraphReader&) VTK_DELETE_FUNCTION;
+  vtkSQLGraphReader(const vtkSQLGraphReader&) = delete;
+  void operator=(const vtkSQLGraphReader&) = delete;
 };
 
 #endif
-

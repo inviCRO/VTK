@@ -21,22 +21,20 @@
 
 vtkStandardNewMacro(vtkReebGraphSimplificationFilter);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkReebGraphSimplificationFilter::vtkReebGraphSimplificationFilter()
 {
   this->SetNumberOfInputPorts(1);
   this->SimplificationThreshold = 0;
-  this->SimplificationMetric = NULL;
+  this->SimplificationMetric = nullptr;
 }
 
-//----------------------------------------------------------------------------
-vtkReebGraphSimplificationFilter::~vtkReebGraphSimplificationFilter()
-{
-}
+//------------------------------------------------------------------------------
+vtkReebGraphSimplificationFilter::~vtkReebGraphSimplificationFilter() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkReebGraphSimplificationFilter::SetSimplificationMetric(
-  vtkReebGraphSimplificationMetric *simplificationMetric)
+  vtkReebGraphSimplificationMetric* simplificationMetric)
 {
   if (simplificationMetric != this->SimplificationMetric)
   {
@@ -45,50 +43,48 @@ void vtkReebGraphSimplificationFilter::SetSimplificationMetric(
   }
 }
 
-//----------------------------------------------------------------------------
-int vtkReebGraphSimplificationFilter::FillInputPortInformation(
-  int portNumber, vtkInformation *info)
+//------------------------------------------------------------------------------
+int vtkReebGraphSimplificationFilter::FillInputPortInformation(int portNumber, vtkInformation* info)
 {
-  if(!portNumber){
+  if (!portNumber)
+  {
     info->Remove(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE());
     info->Append(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkReebGraph");
   }
   return 1;
 }
 
-//----------------------------------------------------------------------------
-int vtkReebGraphSimplificationFilter::FillOutputPortInformation(
-  int, vtkInformation *info)
+//------------------------------------------------------------------------------
+int vtkReebGraphSimplificationFilter::FillOutputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkDirectedGraph::DATA_TYPE_NAME(), "vtkReebGraph");
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkReebGraphSimplificationFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   os << indent << "Simplification Threshold: " << this->SimplificationThreshold << "\n";
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkReebGraph* vtkReebGraphSimplificationFilter::GetOutput()
 {
   return vtkReebGraph::SafeDownCast(this->GetOutputDataObject(0));
 }
 
-//----------------------------------------------------------------------------
-int vtkReebGraphSimplificationFilter::RequestData( vtkInformation* vtkNotUsed(request), vtkInformationVector **inputVector, vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkReebGraphSimplificationFilter::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
 
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
 
-  vtkReebGraph *input = vtkReebGraph::SafeDownCast(
-    inInfo->Get(vtkReebGraph::DATA_OBJECT()));
+  vtkReebGraph* input = vtkReebGraph::SafeDownCast(inInfo->Get(vtkReebGraph::DATA_OBJECT()));
 
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  vtkReebGraph *output = vtkReebGraph::SafeDownCast(
-    outInfo->Get(vtkReebGraph::DATA_OBJECT()));
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkReebGraph* output = vtkReebGraph::SafeDownCast(outInfo->Get(vtkReebGraph::DATA_OBJECT()));
 
   output->DeepCopy(input);
   output->Simplify(this->SimplificationThreshold, this->SimplificationMetric);

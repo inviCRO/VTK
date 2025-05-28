@@ -18,33 +18,32 @@
  *
  * vtkImageFlip will reflect the data along the filtered axis.  This filter is
  * actually a thin wrapper around vtkImageReslice.
-*/
+ */
 
 #ifndef vtkImageFlip_h
 #define vtkImageFlip_h
 
-
-#include "vtkImagingCoreModule.h" // For export macro
 #include "vtkImageReslice.h"
+#include "vtkImagingCoreModule.h" // For export macro
 
 class VTKIMAGINGCORE_EXPORT vtkImageFlip : public vtkImageReslice
 {
 public:
-  static vtkImageFlip *New();
+  static vtkImageFlip* New();
 
-  vtkTypeMacro(vtkImageFlip,vtkImageReslice);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkImageFlip, vtkImageReslice);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify which axis will be flipped.  This must be an integer
    * between 0 (for x) and 2 (for z). Initial value is 0.
    */
   vtkSetMacro(FilteredAxis, int);
   vtkGetMacro(FilteredAxis, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * By default the image will be flipped about its center, and the
    * Origin, Spacing and Extent of the output will be identical to
@@ -61,10 +60,10 @@ public:
    * it does not refer to the Origin ivar that is associated with a
    * vtkImageData.
    */
-  vtkSetMacro(FlipAboutOrigin, int);
-  vtkGetMacro(FlipAboutOrigin, int);
-  vtkBooleanMacro(FlipAboutOrigin, int);
-  //@}
+  vtkSetMacro(FlipAboutOrigin, vtkTypeBool);
+  vtkGetMacro(FlipAboutOrigin, vtkTypeBool);
+  vtkBooleanMacro(FlipAboutOrigin, vtkTypeBool);
+  ///@}
 
   /**
    * Keep the mis-named Axes variations around for compatibility with old
@@ -73,32 +72,30 @@ public:
   void SetFilteredAxes(int axis) { this->SetFilteredAxis(axis); }
   int GetFilteredAxes() { return this->GetFilteredAxis(); }
 
-  //@{
+  ///@{
   /**
    * PreserveImageExtentOff wasn't covered by test scripts and its
    * implementation was broken.  It is deprecated now and it has
    * no effect (i.e. the ImageExtent is always preserved).
    */
-  vtkSetMacro(PreserveImageExtent, int);
-  vtkGetMacro(PreserveImageExtent, int);
-  vtkBooleanMacro(PreserveImageExtent, int);
-  //@}
+  vtkSetMacro(PreserveImageExtent, vtkTypeBool);
+  vtkGetMacro(PreserveImageExtent, vtkTypeBool);
+  vtkBooleanMacro(PreserveImageExtent, vtkTypeBool);
+  ///@}
 
 protected:
   vtkImageFlip();
-  ~vtkImageFlip()VTK_OVERRIDE {}
+  ~vtkImageFlip() override = default;
 
-  int RequestInformation(vtkInformation *,
-                                 vtkInformationVector **,
-                                 vtkInformationVector *) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int FilteredAxis;
-  int FlipAboutOrigin;
-  int PreserveImageExtent;
+  vtkTypeBool FlipAboutOrigin;
+  vtkTypeBool PreserveImageExtent;
 
 private:
-  vtkImageFlip(const vtkImageFlip&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageFlip&) VTK_DELETE_FUNCTION;
+  vtkImageFlip(const vtkImageFlip&) = delete;
+  void operator=(const vtkImageFlip&) = delete;
 };
 
 #endif

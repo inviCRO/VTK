@@ -13,35 +13,32 @@
 
 =========================================================================*/
 #include "vtkLogoWidget.h"
-#include "vtkLogoRepresentation.h"
 #include "vtkCallbackCommand.h"
+#include "vtkLogoRepresentation.h"
 #include "vtkObjectFactory.h"
 
 vtkStandardNewMacro(vtkLogoWidget);
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLogoWidget::vtkLogoWidget()
 {
   this->Selectable = 0;
 }
 
-//-------------------------------------------------------------------------
-vtkLogoWidget::~vtkLogoWidget()
-{
-}
+//------------------------------------------------------------------------------
+vtkLogoWidget::~vtkLogoWidget() = default;
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLogoWidget::CreateDefaultRepresentation()
 {
-  if ( ! this->WidgetRep )
+  if (!this->WidgetRep)
   {
     this->WidgetRep = vtkLogoRepresentation::New();
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLogoWidget::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
-
+  this->Superclass::PrintSelf(os, indent);
 }

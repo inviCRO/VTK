@@ -14,44 +14,48 @@ PURPOSE.  See the above copyright notice for more information.
 =========================================================================*/
 #include "vtkOpenVRInteractorStyle.h"
 
-#include "vtkNew.h"
 #include "vtkObjectFactory.h"
-#include "vtkOpenVRRenderWindow.h"
-#include "vtkRenderWindow.h"
-#include "vtkRenderWindowInteractor.h"
+#include "vtkOpenVRControlsHelper.h"
 #include "vtkOpenVROverlay.h"
+#include "vtkOpenVRRenderWindow.h"
+#include "vtkOpenVRRenderWindowInteractor.h"
 
 vtkStandardNewMacro(vtkOpenVRInteractorStyle);
 
-//----------------------------------------------------------------------------
-vtkOpenVRInteractorStyle::vtkOpenVRInteractorStyle()
+//------------------------------------------------------------------------------
+void vtkOpenVRInteractorStyle::SetupActions(vtkRenderWindowInteractor* iren)
 {
-}
+  vtkOpenVRRenderWindowInteractor* oiren = vtkOpenVRRenderWindowInteractor::SafeDownCast(iren);
 
-//----------------------------------------------------------------------------
-vtkOpenVRInteractorStyle::~vtkOpenVRInteractorStyle()
-{
-}
-
-//----------------------------------------------------------------------------
-void vtkOpenVRInteractorStyle::OnMiddleButtonDown()
-{
-  // do nothing except overriding the default MiddleButtonPressEvent behavior
-}
-
-//----------------------------------------------------------------------------
-void vtkOpenVRInteractorStyle::OnMiddleButtonUp()
-{
-  vtkOpenVRRenderWindow* renWin = vtkOpenVRRenderWindow::SafeDownCast(this->Interactor->GetRenderWindow());
-  if (!renWin)
+  if (oiren)
   {
-    return;
+    oiren->AddAction("/actions/vtk/in/Elevation", vtkCommand::Elevation3DEvent, true);
+    oiren->AddAction("/actions/vtk/in/Movement", vtkCommand::ViewerMovement3DEvent, true);
+    oiren->AddAction("/actions/vtk/in/NextCameraPose", vtkCommand::NextPose3DEvent, false);
+    oiren->AddAction("/actions/vtk/in/PositionProp", vtkCommand::PositionProp3DEvent, false);
+    oiren->AddAction("/actions/vtk/in/ShowMenu", vtkCommand::Menu3DEvent, false);
+    oiren->AddAction("/actions/vtk/in/StartElevation", vtkCommand::Elevation3DEvent, false);
+    oiren->AddAction("/actions/vtk/in/StartMovement", vtkCommand::ViewerMovement3DEvent, false);
+    oiren->AddAction("/actions/vtk/in/TriggerAction", vtkCommand::Select3DEvent, false);
   }
-  vtkOpenVROverlay *ovl = renWin->GetDashboardOverlay();
-  ovl->LoadNextCameraPose();
 }
 
-void vtkOpenVRInteractorStyle::PrintSelf(ostream& os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkOpenVRInteractorStyle::LoadNextCameraPose()
 {
-  this->Superclass::PrintSelf(os,indent);
+  vtkOpenVRRenderWindow* renWin =
+    vtkOpenVRRenderWindow::SafeDownCast(this->Interactor->GetRenderWindow());
+
+  if (renWin)
+  {
+    vtkOpenVROverlay* ovl = renWin->GetDashboardOverlay();
+    ovl->LoadNextCameraPose();
+  }
+}
+
+//------------------------------------------------------------------------------
+vtkVRControlsHelper* vtkOpenVRInteractorStyle::MakeControlsHelper()
+{
+  vtkVRControlsHelper* helper = vtkOpenVRControlsHelper::New();
+  return helper;
 }

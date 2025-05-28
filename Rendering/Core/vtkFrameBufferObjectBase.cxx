@@ -16,17 +16,13 @@
 
 #include "vtkObjectFactory.h"
 
-//----------------------------------------------------------------------------
-vtkFrameBufferObjectBase::vtkFrameBufferObjectBase()
-{
-}
+//------------------------------------------------------------------------------
+vtkFrameBufferObjectBase::vtkFrameBufferObjectBase() = default;
 
-//----------------------------------------------------------------------------
-vtkFrameBufferObjectBase::~vtkFrameBufferObjectBase()
-{
-}
+//------------------------------------------------------------------------------
+vtkFrameBufferObjectBase::~vtkFrameBufferObjectBase() = default;
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkFrameBufferObjectBase::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

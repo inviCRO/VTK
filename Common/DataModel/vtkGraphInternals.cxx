@@ -23,7 +23,7 @@
 
 vtkStandardNewMacro(vtkGraphInternals);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkGraphInternals::vtkGraphInternals()
 {
   this->NumberOfEdges = 0;
@@ -31,12 +31,21 @@ vtkGraphInternals::vtkGraphInternals()
   this->UsingPedigreeIds = false;
 }
 
-//----------------------------------------------------------------------------
-vtkGraphInternals::~vtkGraphInternals()
+//------------------------------------------------------------------------------
+vtkGraphInternals::~vtkGraphInternals() = default;
+
+//------------------------------------------------------------------------------
+void vtkGraphInternals::PrintSelf(ostream& os, vtkIndent indent)
 {
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "NumberOfEdges: " << this->NumberOfEdges << endl;
+  os << indent << "LastRemoteEdgeId: " << this->LastRemoteEdgeId << endl;
+  os << indent << "LastRemoteEdgeSource: " << this->LastRemoteEdgeSource << endl;
+  os << indent << "LastRemoteEdgeTarget: " << this->LastRemoteEdgeTarget << endl;
+  os << indent << "UsingPedigreeIds: " << this->UsingPedigreeIds << endl;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphInternals::RemoveEdgeFromOutList(vtkIdType e, std::vector<vtkOutEdgeType>& outEdges)
 {
   size_t outSize = outEdges.size();
@@ -53,11 +62,11 @@ void vtkGraphInternals::RemoveEdgeFromOutList(vtkIdType e, std::vector<vtkOutEdg
     vtkErrorMacro("Could not find edge in source edge list.");
     return;
   }
-  outEdges[i] = outEdges[outSize-1];
+  outEdges[i] = outEdges[outSize - 1];
   outEdges.pop_back();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGraphInternals::RemoveEdgeFromInList(vtkIdType e, std::vector<vtkInEdgeType>& inEdges)
 {
   size_t inSize = inEdges.size();
@@ -74,12 +83,13 @@ void vtkGraphInternals::RemoveEdgeFromInList(vtkIdType e, std::vector<vtkInEdgeT
     vtkErrorMacro("Could not find edge in source edge list.");
     return;
   }
-  inEdges[i] = inEdges[inSize-1];
+  inEdges[i] = inEdges[inSize - 1];
   inEdges.pop_back();
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphInternals::ReplaceEdgeFromOutList(vtkIdType from, vtkIdType to, std::vector<vtkOutEdgeType>& outEdges)
+//------------------------------------------------------------------------------
+void vtkGraphInternals::ReplaceEdgeFromOutList(
+  vtkIdType from, vtkIdType to, std::vector<vtkOutEdgeType>& outEdges)
 {
   size_t outSize = outEdges.size();
   for (size_t i = 0; i < outSize; ++i)
@@ -91,8 +101,9 @@ void vtkGraphInternals::ReplaceEdgeFromOutList(vtkIdType from, vtkIdType to, std
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkGraphInternals::ReplaceEdgeFromInList(vtkIdType from, vtkIdType to, std::vector<vtkInEdgeType>& inEdges)
+//------------------------------------------------------------------------------
+void vtkGraphInternals::ReplaceEdgeFromInList(
+  vtkIdType from, vtkIdType to, std::vector<vtkInEdgeType>& inEdges)
 {
   size_t inSize = inEdges.size();
   for (size_t i = 0; i < inSize; ++i)

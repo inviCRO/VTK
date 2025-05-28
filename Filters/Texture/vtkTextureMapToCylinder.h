@@ -41,81 +41,79 @@
  * @sa
  * vtkTextureMapToPlane vtkTextureMapToSphere
  * vtkTransformTexture vtkThresholdTextureCoords
-*/
+ */
 
 #ifndef vtkTextureMapToCylinder_h
 #define vtkTextureMapToCylinder_h
 
-#include "vtkFiltersTextureModule.h" // For export macro
 #include "vtkDataSetAlgorithm.h"
+#include "vtkFiltersTextureModule.h" // For export macro
 
 class VTKFILTERSTEXTURE_EXPORT vtkTextureMapToCylinder : public vtkDataSetAlgorithm
 {
 public:
-  vtkTypeMacro(vtkTextureMapToCylinder,vtkDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkTextureMapToCylinder, vtkDataSetAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Create object with cylinder axis parallel to z-axis (points (0,0,-0.5)
    * and (0,0,0.5)). The PreventSeam ivar is set to true. The cylinder is
    * automatically generated.
    */
-  static vtkTextureMapToCylinder *New();
+  static vtkTextureMapToCylinder* New();
 
-  //@{
+  ///@{
   /**
    * Specify the first point defining the cylinder axis,
    */
-  vtkSetVector3Macro(Point1,double);
-  vtkGetVectorMacro(Point1,double,3);
-  //@}
+  vtkSetVector3Macro(Point1, double);
+  vtkGetVectorMacro(Point1, double, 3);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the second point defining the cylinder axis,
    */
-  vtkSetVector3Macro(Point2,double);
-  vtkGetVectorMacro(Point2,double,3);
-  //@}
+  vtkSetVector3Macro(Point2, double);
+  vtkGetVectorMacro(Point2, double, 3);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on/off automatic cylinder generation. This means it automatically
    * finds the cylinder center and axis.
    */
-  vtkSetMacro(AutomaticCylinderGeneration,int);
-  vtkGetMacro(AutomaticCylinderGeneration,int);
-  vtkBooleanMacro(AutomaticCylinderGeneration,int);
-  //@}
+  vtkSetMacro(AutomaticCylinderGeneration, vtkTypeBool);
+  vtkGetMacro(AutomaticCylinderGeneration, vtkTypeBool);
+  vtkBooleanMacro(AutomaticCylinderGeneration, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Control how the texture coordinates are generated. If PreventSeam is
    * set, the s-coordinate ranges from 0->1 and 1->0 corresponding to the
    * angle variation from 0->180 and 180->0. Otherwise, the s-coordinate
    * ranges from 0->1 from 0->360 degrees.
    */
-  vtkSetMacro(PreventSeam,int);
-  vtkGetMacro(PreventSeam,int);
-  vtkBooleanMacro(PreventSeam,int);
-  //@}
+  vtkSetMacro(PreventSeam, vtkTypeBool);
+  vtkGetMacro(PreventSeam, vtkTypeBool);
+  vtkBooleanMacro(PreventSeam, vtkTypeBool);
+  ///@}
 
 protected:
   vtkTextureMapToCylinder();
-  ~vtkTextureMapToCylinder() VTK_OVERRIDE {}
+  ~vtkTextureMapToCylinder() override = default;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   double Point1[3];
   double Point2[3];
-  int AutomaticCylinderGeneration;
-  int PreventSeam;
+  vtkTypeBool AutomaticCylinderGeneration;
+  vtkTypeBool PreventSeam;
 
 private:
-  vtkTextureMapToCylinder(const vtkTextureMapToCylinder&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTextureMapToCylinder&) VTK_DELETE_FUNCTION;
+  vtkTextureMapToCylinder(const vtkTextureMapToCylinder&) = delete;
+  void operator=(const vtkTextureMapToCylinder&) = delete;
 };
 
 #endif
-
-

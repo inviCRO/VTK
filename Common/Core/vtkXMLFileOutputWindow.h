@@ -20,19 +20,19 @@
  * tags for each text display method. The text is processed to replace
  * XML markup characters.
  *
- *   DisplayText - <Text>
+ *   DisplayText - \<Text\>
  *
- *   DisplayErrorText - <Error>
+ *   DisplayErrorText - \<Error\>
  *
- *   DisplayWarningText - <Warning>
+ *   DisplayWarningText - \<Warning\>
  *
- *   DisplayGenericWarningText - <GenericWarning>
+ *   DisplayGenericWarningText - \<GenericWarning\>
  *
- *   DisplayDebugText - <Debug>
+ *   DisplayDebugText - \<Debug\>
  *
  * The method DisplayTag outputs the text unprocessed. To use this
  * class, instantiate it and then call SetInstance(this).
-*/
+ */
 
 #ifndef vtkXMLFileOutputWindow_h
 #define vtkXMLFileOutputWindow_h
@@ -40,26 +40,26 @@
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkFileOutputWindow.h"
 
-
 class VTKCOMMONCORE_EXPORT vtkXMLFileOutputWindow : public vtkFileOutputWindow
 {
 public:
   vtkTypeMacro(vtkXMLFileOutputWindow, vtkFileOutputWindow);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   static vtkXMLFileOutputWindow* New();
 
-  //@{
+  ///@{
   /**
    * Put the text into the log file. The text is processed to
    * replace &, <, > with &amp, &lt, and &gt.
    * Each display method outputs a different XML tag.
    */
-  void DisplayText(const char*) VTK_OVERRIDE;
-  void DisplayErrorText(const char*) VTK_OVERRIDE;
-  void DisplayWarningText(const char*) VTK_OVERRIDE;
-  void DisplayGenericWarningText(const char*) VTK_OVERRIDE;
-  void DisplayDebugText(const char*) VTK_OVERRIDE;
-  //@}
+  void DisplayText(const char*) override;
+  void DisplayErrorText(const char*) override;
+  void DisplayWarningText(const char*) override;
+  void DisplayGenericWarningText(const char*) override;
+  void DisplayDebugText(const char*) override;
+  ///@}
 
   /**
    * Put the text into the log file without processing it.
@@ -67,18 +67,15 @@ public:
   virtual void DisplayTag(const char*);
 
 protected:
-  vtkXMLFileOutputWindow() {}
-  ~vtkXMLFileOutputWindow() VTK_OVERRIDE {}
+  vtkXMLFileOutputWindow() = default;
+  ~vtkXMLFileOutputWindow() override = default;
 
   void Initialize();
   virtual void DisplayXML(const char*, const char*);
 
 private:
-  vtkXMLFileOutputWindow(const vtkXMLFileOutputWindow&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkXMLFileOutputWindow&) VTK_DELETE_FUNCTION;
+  vtkXMLFileOutputWindow(const vtkXMLFileOutputWindow&) = delete;
+  void operator=(const vtkXMLFileOutputWindow&) = delete;
 };
 
-
-
 #endif
-// VTK-HeaderTest-Exclude: vtkXMLFileOutputWindow.h

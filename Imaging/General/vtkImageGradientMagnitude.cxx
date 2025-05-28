@@ -19,40 +19,39 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
-#include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkPointData.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
 
 #include <cmath>
 
 vtkStandardNewMacro(vtkImageGradientMagnitude);
 
-//----------------------------------------------------------------------------
-// Construct an instance of vtkImageGradientMagnitude fitler.
+//------------------------------------------------------------------------------
+// Construct an instance of vtkImageGradientMagnitude filter.
 vtkImageGradientMagnitude::vtkImageGradientMagnitude()
 {
   this->SetNumberOfInputPorts(1);
   this->SetNumberOfOutputPorts(1);
   this->Dimensionality = 2;
   this->HandleBoundaries = 1;
+  this->AspectGradient = 0;
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageGradientMagnitude::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "HandleBoundaries: " << this->HandleBoundaries << "\n";
   os << indent << "Dimensionality: " << this->Dimensionality << "\n";
+  os << indent << "AspectGradient: " << this->AspectGradient << "\n";
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This method is passed a region that holds the image extent of this filters
 // input, and changes the region to hold the image extent of this filters
 // output.
-int vtkImageGradientMagnitude::RequestInformation (
-  vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector,
-  vtkInformationVector* outputVector)
+int vtkImageGradientMagnitude::RequestInformation(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   int extent[6];
   int idx;
@@ -62,61 +61,55 @@ int vtkImageGradientMagnitude::RequestInformation (
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
 
   // invalid setting, it has not been set, so default to whole Extent
-  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-              extent);
+  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), extent);
 
-  if ( ! this->HandleBoundaries)
+  if (!this->HandleBoundaries)
   {
     // shrink output image extent.
     for (idx = 0; idx < this->Dimensionality; ++idx)
     {
-      extent[idx*2] += 1;
-      extent[idx*2 + 1] -= 1;
+      extent[idx * 2] += 1;
+      extent[idx * 2 + 1] -= 1;
     }
   }
 
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-               extent, 6);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), extent, 6);
 
   return 1;
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This method computes the input extent necessary to generate the output.
-int vtkImageGradientMagnitude::RequestUpdateExtent (
-  vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector,
-  vtkInformationVector* outputVector)
+int vtkImageGradientMagnitude::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   int wholeExtent[6];
   int idx;
 
   // get the info objects
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
 
   // invalid setting, it has not been set, so default to whole Extent
-  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-              wholeExtent);
+  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), wholeExtent);
   int inUExt[6];
   outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), inUExt);
 
   // grow input whole extent.
   for (idx = 0; idx < this->Dimensionality; ++idx)
   {
-    inUExt[idx*2] -= 1;
-    inUExt[idx*2+1] += 1;
+    inUExt[idx * 2] -= 1;
+    inUExt[idx * 2 + 1] += 1;
     if (this->HandleBoundaries)
     {
-      // we must clip extent with whole extent is we hanlde boundaries.
-      if (inUExt[idx*2] < wholeExtent[idx*2])
+      // we must clip extent with whole extent is we handle boundaries.
+      if (inUExt[idx * 2] < wholeExtent[idx * 2])
       {
-        inUExt[idx*2] = wholeExtent[idx*2];
+        inUExt[idx * 2] = wholeExtent[idx * 2];
       }
-      if (inUExt[idx*2 + 1] > wholeExtent[idx*2 + 1])
+      if (inUExt[idx * 2 + 1] > wholeExtent[idx * 2 + 1])
       {
-        inUExt[idx*2 + 1] = wholeExtent[idx*2 + 1];
+        inUExt[idx * 2 + 1] = wholeExtent[idx * 2 + 1];
       }
     }
   }
@@ -125,15 +118,13 @@ int vtkImageGradientMagnitude::RequestUpdateExtent (
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This execute method handles boundaries.
 // it handles boundaries. Pixels are just replicated to get values
 // out of extent.
 template <class T>
-void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude *self,
-                                      vtkImageData *inData, T *inPtr,
-                                      vtkImageData *outData, T *outPtr,
-                                      int outExt[6], int id)
+void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude* self, vtkImageData* inData,
+  T* inPtr, vtkImageData* outData, T* outPtr, int outExt[6], int id)
 {
   int idxC, idxX, idxY, idxZ;
   int maxC, maxX, maxY, maxZ;
@@ -142,18 +133,18 @@ void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude *self,
   unsigned long count = 0;
   unsigned long target;
   int axesNum;
-  int *wholeExtent;
+  int* wholeExtent;
   vtkIdType inIncs[3];
   double r[3], d, sum;
   int useZMin, useZMax, useYMin, useYMax, useXMin, useXMax;
-  int *inExt = inData->GetExtent();
+  int* inExt = inData->GetExtent();
 
   // find the region to loop over
   maxC = outData->GetNumberOfScalarComponents();
   maxX = outExt[1] - outExt[0];
   maxY = outExt[3] - outExt[2];
   maxZ = outExt[5] - outExt[4];
-  target = static_cast<unsigned long>((maxZ+1)*(maxY+1)/50.0);
+  target = static_cast<unsigned long>((maxZ + 1) * (maxY + 1) / 50.0);
   target++;
 
   // Get the dimensionality of the gradient.
@@ -165,18 +156,31 @@ void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude *self,
 
   // The data spacing is important for computing the gradient.
   inData->GetSpacing(r);
-  r[0] = 0.5 / r[0];
-  r[1] = 0.5 / r[1];
-  r[2] = 0.5 / r[2];
+ 
+
+  bool useAspect = self->GetAspectGradient();
+
+  double avgSpacing = (r[0] + r[1] + r[2]) / 3.0;
+  
+  if (useAspect) {
+      // adjust the aspect
+      r[0] = avgSpacing / (r[0] * 2.0);
+      r[1] = avgSpacing / (r[1] * 2.0);
+      r[2] = avgSpacing / (r[2] * 2.0);
+  }
+  else {
+      r[0] = 0.5 / r[0];
+      r[1] = 0.5 / r[1];
+      r[2] = 0.5 / r[2];
+  }
 
   // get some other info we need
   inData->GetIncrements(inIncs);
   wholeExtent = inData->GetExtent();
 
   // Move the starting pointer to the correct location.
-  inPtr += (outExt[0]-inExt[0])*inIncs[0] +
-           (outExt[2]-inExt[2])*inIncs[1] +
-           (outExt[4]-inExt[4])*inIncs[2];
+  inPtr += (outExt[0] - inExt[0]) * inIncs[0] + (outExt[2] - inExt[2]) * inIncs[1] +
+    (outExt[4] - inExt[4]) * inIncs[2];
 
   // Loop through output pixels
   for (idxZ = 0; idxZ <= maxZ; idxZ++)
@@ -187,9 +191,9 @@ void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude *self,
     {
       if (!id)
       {
-        if (!(count%target))
+        if (!(count % target))
         {
-          self->UpdateProgress(count/(50.0*target));
+          self->UpdateProgress(count / (50.0 * target));
         }
         count++;
       }
@@ -232,54 +236,31 @@ void vtkImageGradientMagnitudeExecute(vtkImageGradientMagnitude *self,
   }
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This method contains a switch statement that calls the correct
 // templated function for the input data type.  The output data
 // must match input type.  This method does handle boundary conditions.
-void vtkImageGradientMagnitude::ThreadedExecute (vtkImageData *inData,
-                                                 vtkImageData *outData,
-                                                 int outExt[6], int id)
+void vtkImageGradientMagnitude::ThreadedExecute(
+  vtkImageData* inData, vtkImageData* outData, int outExt[6], int id)
 {
-  void *inPtr;
-  void *outPtr = outData->GetScalarPointerForExtent(outExt);
+  void* inPtr;
+  void* outPtr = outData->GetScalarPointerForExtent(outExt);
   inPtr = inData->GetScalarPointer();
 
   // this filter expects that input is the same type as output.
   if (inData->GetScalarType() != outData->GetScalarType())
   {
-    vtkErrorMacro(<< "Execute: input data type, "
-                  << inData->GetScalarType()
-                  << ", must match out ScalarType "
-                  << outData->GetScalarType());
+    vtkErrorMacro(<< "Execute: input data type, " << inData->GetScalarType()
+                  << ", must match out ScalarType " << outData->GetScalarType());
     return;
   }
 
   switch (inData->GetScalarType())
   {
-    vtkTemplateMacro(
-      vtkImageGradientMagnitudeExecute(this,
-                                       inData, static_cast<VTK_TT *>(inPtr),
-                                       outData,
-                                       static_cast<VTK_TT *>(outPtr), outExt,
-                                       id));
+    vtkTemplateMacro(vtkImageGradientMagnitudeExecute(this, inData, static_cast<VTK_TT*>(inPtr),
+      outData, static_cast<VTK_TT*>(outPtr), outExt, id));
     default:
       vtkErrorMacro(<< "Execute: Unknown ScalarType");
       return;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

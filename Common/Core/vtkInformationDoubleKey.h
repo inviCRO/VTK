@@ -18,7 +18,7 @@
  *
  * vtkInformationDoubleKey is used to represent keys for double values
  * in vtkInformation.
-*/
+ */
 
 #ifndef vtkInformationDoubleKey_h
 #define vtkInformationDoubleKey_h
@@ -31,42 +31,42 @@
 class VTKCOMMONCORE_EXPORT vtkInformationDoubleKey : public vtkInformationKey
 {
 public:
-  vtkTypeMacro(vtkInformationDoubleKey,vtkInformationKey);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkInformationDoubleKey, vtkInformationKey);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkInformationDoubleKey(const char* name, const char* location);
-  ~vtkInformationDoubleKey() VTK_OVERRIDE;
+  ~vtkInformationDoubleKey() override;
 
   /**
    * This method simply returns a new vtkInformationDoubleKey, given a
    * name and a location. This method is provided for wrappers. Use the
    * constructor directly from C++ instead.
    */
-  static vtkInformationDoubleKey* MakeKey(const char* name, const char* location)
+  static VTK_NEWINSTANCE vtkInformationDoubleKey* MakeKey(const char* name, const char* location)
   {
     return new vtkInformationDoubleKey(name, location);
   }
 
-  //@{
+  ///@{
   /**
    * Get/Set the value associated with this key in the given
    * information object.
    */
   void Set(vtkInformation* info, double);
   double Get(vtkInformation* info);
-  //@}
+  ///@}
 
   /**
    * Copy the entry associated with this key from one information
    * object to another.  If there is no entry in the first information
    * object for this key, the value is removed from the second.
    */
-  void ShallowCopy(vtkInformation* from, vtkInformation* to) VTK_OVERRIDE;
+  void ShallowCopy(vtkInformation* from, vtkInformation* to) override;
 
   /**
    * Print the key's value in an information object to a stream.
    */
-  void Print(ostream& os, vtkInformation* info) VTK_OVERRIDE;
+  void Print(ostream& os, vtkInformation* info) override;
 
 protected:
   /**
@@ -77,8 +77,8 @@ protected:
   double* GetWatchAddress(vtkInformation* info);
 
 private:
-  vtkInformationDoubleKey(const vtkInformationDoubleKey&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkInformationDoubleKey&) VTK_DELETE_FUNCTION;
+  vtkInformationDoubleKey(const vtkInformationDoubleKey&) = delete;
+  void operator=(const vtkInformationDoubleKey&) = delete;
 };
 
 #endif

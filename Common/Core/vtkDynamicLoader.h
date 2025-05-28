@@ -20,31 +20,32 @@
  * libraries into a process.
  * @sa
  * A more portable and lightweight solution is kwsys::DynamicLoader
-*/
+ */
 
 #ifndef vtkDynamicLoader_h
 #define vtkDynamicLoader_h
 
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkObject.h"
-#include <vtksys/DynamicLoader.hxx>
+#include <vtksys/DynamicLoader.hxx> // Implementation
 
 typedef vtksys::DynamicLoader::LibraryHandle vtkLibHandle;
-// Cannot use this as this is a void (*)() but VTK old API used to be void*
 typedef vtksys::DynamicLoader::SymbolPointer vtkSymbolPointer;
 
 class VTKCOMMONCORE_EXPORT vtkDynamicLoader : public vtkObject
 {
 public:
   static vtkDynamicLoader* New();
-  vtkTypeMacro(vtkDynamicLoader,vtkObject);
+  vtkTypeMacro(vtkDynamicLoader, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Load a dynamic library into the current process.
    * The returned vtkLibHandle can be used to access the symbols in the
    * library.
    */
-  static vtkLibHandle OpenLibrary(const char*);
+  static vtkLibHandle OpenLibrary(VTK_FILEPATH const char*);
+  static vtkLibHandle OpenLibrary(VTK_FILEPATH const char*, int);
 
   /**
    * Attempt to detach a dynamic library from the
@@ -54,9 +55,8 @@ public:
 
   /**
    * Find the address of the symbol in the given library
-   * static vtkSymbolPointer GetSymbolAddress(vtkLibHandle, const char*);
    */
-  static void* GetSymbolAddress(vtkLibHandle, const char*);
+  static vtkSymbolPointer GetSymbolAddress(vtkLibHandle, const char*);
 
   /**
    * Return the library prefix for the given architecture
@@ -74,13 +74,12 @@ public:
   static const char* LastError();
 
 protected:
-  vtkDynamicLoader() {}
-  ~vtkDynamicLoader() VTK_OVERRIDE {}
+  vtkDynamicLoader() = default;
+  ~vtkDynamicLoader() override = default;
 
 private:
-  vtkDynamicLoader(const vtkDynamicLoader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDynamicLoader&) VTK_DELETE_FUNCTION;
+  vtkDynamicLoader(const vtkDynamicLoader&) = delete;
+  void operator=(const vtkDynamicLoader&) = delete;
 };
 
 #endif
-// VTK-HeaderTest-Exclude: vtkDynamicLoader.h

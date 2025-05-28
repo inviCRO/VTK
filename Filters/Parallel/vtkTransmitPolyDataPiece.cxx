@@ -26,43 +26,38 @@
 
 vtkStandardNewMacro(vtkTransmitPolyDataPiece);
 
-vtkCxxSetObjectMacro(vtkTransmitPolyDataPiece,Controller,
-                     vtkMultiProcessController);
+vtkCxxSetObjectMacro(vtkTransmitPolyDataPiece, Controller, vtkMultiProcessController);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTransmitPolyDataPiece::vtkTransmitPolyDataPiece()
 {
   this->CreateGhostCells = 1;
 
   // Controller keeps a reference to this object as well.
-  this->Controller = NULL;
+  this->Controller = nullptr;
   this->SetController(vtkMultiProcessController::GetGlobalController());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTransmitPolyDataPiece::~vtkTransmitPolyDataPiece()
 {
-  this->SetController(NULL);
+  this->SetController(nullptr);
 }
 
-//----------------------------------------------------------------------------
-int vtkTransmitPolyDataPiece::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkTransmitPolyDataPiece::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the info objects
-  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // get the input and output
-  vtkPolyData *input = vtkPolyData::SafeDownCast(
-    inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkPolyData *output = vtkPolyData::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPolyData* input = vtkPolyData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   int procId;
-  if (this->Controller == NULL)
+  if (this->Controller == nullptr)
   {
     vtkErrorMacro("Could not find Controller.");
     return 0;
@@ -84,13 +79,12 @@ int vtkTransmitPolyDataPiece::RequestData(
   return 1;
 }
 
-//----------------------------------------------------------------------------
-void vtkTransmitPolyDataPiece::RootExecute(vtkPolyData *input,
-                                           vtkPolyData *output,
-                                           vtkInformation *outInfo)
+//------------------------------------------------------------------------------
+void vtkTransmitPolyDataPiece::RootExecute(
+  vtkPolyData* input, vtkPolyData* output, vtkInformation* outInfo)
 {
-  vtkPolyData *tmp = vtkPolyData::New();
-  vtkExtractPolyDataPiece *extract = vtkExtractPolyDataPiece::New();
+  vtkPolyData* tmp = vtkPolyData::New();
+  vtkExtractPolyDataPiece* extract = vtkExtractPolyDataPiece::New();
   int ext[3];
   int numProcs, i;
 
@@ -99,12 +93,9 @@ void vtkTransmitPolyDataPiece::RootExecute(vtkPolyData *input,
   extract->SetCreateGhostCells(this->CreateGhostCells);
   extract->SetInputData(tmp);
 
-  int nPieces =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-  int piece =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-  int ghosts =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+  int nPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+  int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+  int ghosts = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
   extract->UpdatePiece(piece, nPieces, ghosts);
 
   // Copy geometry without copying information.
@@ -125,19 +116,15 @@ void vtkTransmitPolyDataPiece::RootExecute(vtkPolyData *input,
   extract->Delete();
 }
 
-//----------------------------------------------------------------------------
-void vtkTransmitPolyDataPiece::SatelliteExecute(int, vtkPolyData *output,
-                                                vtkInformation *outInfo)
+//------------------------------------------------------------------------------
+void vtkTransmitPolyDataPiece::SatelliteExecute(int, vtkPolyData* output, vtkInformation* outInfo)
 {
-  vtkPolyData *tmp = vtkPolyData::New();
+  vtkPolyData* tmp = vtkPolyData::New();
   int ext[3];
 
-  ext[0] =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-  ext[1] =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-  ext[2] =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+  ext[0] = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+  ext[1] = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+  ext[2] = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
 
   this->Controller->Send(ext, 3, 0, 22341);
   this->Controller->Receive(tmp, 0, 22342);
@@ -151,13 +138,12 @@ void vtkTransmitPolyDataPiece::SatelliteExecute(int, vtkPolyData *output,
   tmp->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkTransmitPolyDataPiece::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Create Ghost Cells: " << (this->CreateGhostCells ? "On\n" : "Off\n");
 
   os << indent << "Controller: (" << this->Controller << ")\n";
-
 }

@@ -26,13 +26,13 @@ void vtkXdmf3ArraySelection::Merge(const vtkXdmf3ArraySelection& other)
   }
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXdmf3ArraySelection::AddArray(const char* name, bool status)
 {
   (*this)[name] = status;
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkXdmf3ArraySelection::ArrayIsEnabled(const char* name)
 {
   vtkXdmf3ArraySelection::iterator iter = this->find(name);
@@ -45,42 +45,41 @@ bool vtkXdmf3ArraySelection::ArrayIsEnabled(const char* name)
   return true;
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkXdmf3ArraySelection::HasArray(const char* name)
 {
   vtkXdmf3ArraySelection::iterator iter = this->find(name);
   return (iter != this->end());
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXdmf3ArraySelection::GetArraySetting(const char* name)
 {
-  return this->ArrayIsEnabled(name)? 1 : 0;
+  return this->ArrayIsEnabled(name) ? 1 : 0;
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXdmf3ArraySelection::SetArrayStatus(const char* name, bool status)
 {
   this->AddArray(name, status);
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkXdmf3ArraySelection::GetArrayName(int index)
 {
-  int cc=0;
-  for (vtkXdmf3ArraySelection::iterator iter = this->begin();
-      iter != this->end(); ++iter)
+  int cc = 0;
+  for (vtkXdmf3ArraySelection::iterator iter = this->begin(); iter != this->end(); ++iter)
   {
-    if (cc==index)
+    if (cc == index)
     {
       return iter->first.c_str();
     }
     cc++;
   }
-  return NULL;
+  return nullptr;
 }
 
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXdmf3ArraySelection::GetNumberOfArrays()
 {
   return static_cast<int>(this->size());

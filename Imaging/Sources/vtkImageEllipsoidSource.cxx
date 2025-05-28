@@ -22,7 +22,7 @@
 
 vtkStandardNewMacro(vtkImageEllipsoidSource);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkImageEllipsoidSource::vtkImageEllipsoidSource()
 {
   this->WholeExtent[0] = 0;
@@ -44,26 +44,24 @@ vtkImageEllipsoidSource::vtkImageEllipsoidSource()
   this->SetNumberOfInputPorts(0);
 }
 
-//----------------------------------------------------------------------------
-vtkImageEllipsoidSource::~vtkImageEllipsoidSource()
-{
-}
+//------------------------------------------------------------------------------
+vtkImageEllipsoidSource::~vtkImageEllipsoidSource() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageEllipsoidSource::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
-  os << indent << "Center: (" << this->Center[0] << ", "
-     << this->Center[1] << ", " << this->Center[2] << ")\n";
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "Center: (" << this->Center[0] << ", " << this->Center[1] << ", "
+     << this->Center[2] << ")\n";
 
-  os << indent << "Radius: (" << this->Radius[0] << ", "
-     << this->Radius[1] << ", " << this->Radius[2] << ")\n";
+  os << indent << "Radius: (" << this->Radius[0] << ", " << this->Radius[1] << ", "
+     << this->Radius[2] << ")\n";
 
   os << indent << "InValue: " << this->InValue << "\n";
   os << indent << "OutValue: " << this->OutValue << "\n";
   os << indent << "OutputScalarType: " << this->OutputScalarType << "\n";
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageEllipsoidSource::SetWholeExtent(int extent[6])
 {
   int idx;
@@ -78,21 +76,22 @@ void vtkImageEllipsoidSource::SetWholeExtent(int extent[6])
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkImageEllipsoidSource::SetWholeExtent(int minX, int maxX,
-                                            int minY, int maxY,
-                                            int minZ, int maxZ)
+//------------------------------------------------------------------------------
+void vtkImageEllipsoidSource::SetWholeExtent(
+  int minX, int maxX, int minY, int maxY, int minZ, int maxZ)
 {
   int extent[6];
 
-  extent[0] = minX;  extent[1] = maxX;
-  extent[2] = minY;  extent[3] = maxY;
-  extent[4] = minZ;  extent[5] = maxZ;
+  extent[0] = minX;
+  extent[1] = maxX;
+  extent[2] = minY;
+  extent[3] = maxY;
+  extent[4] = minZ;
+  extent[5] = maxZ;
   this->SetWholeExtent(extent);
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkImageEllipsoidSource::GetWholeExtent(int extent[6])
 {
   int idx;
@@ -103,26 +102,23 @@ void vtkImageEllipsoidSource::GetWholeExtent(int extent[6])
   }
 }
 
-//----------------------------------------------------------------------------
-int vtkImageEllipsoidSource::RequestInformation (
-  vtkInformation * vtkNotUsed(request),
-  vtkInformationVector** vtkNotUsed( inputVector ),
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkImageEllipsoidSource::RequestInformation(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
   // get the info objects
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   outInfo->Set(vtkDataObject::SPACING(), 1.0, 1.0, 1.0);
-  outInfo->Set(vtkDataObject::ORIGIN(),  0.0, 0.0, 0.0);
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-               this->WholeExtent, 6);
+  outInfo->Set(vtkDataObject::ORIGIN(), 0.0, 0.0, 0.0);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), this->WholeExtent, 6);
   vtkDataObject::SetPointDataActiveScalarInfo(outInfo, this->OutputScalarType, -1);
   return 1;
 }
 
 template <class T>
-void vtkImageEllipsoidSourceExecute(vtkImageEllipsoidSource *self,
-                                    vtkImageData *data, int ext[6], T *ptr)
+void vtkImageEllipsoidSourceExecute(
+  vtkImageEllipsoidSource* self, vtkImageData* data, int ext[6], T* ptr)
 {
   int min0, max0;
   int idx0, idx1, idx2;
@@ -142,7 +138,7 @@ void vtkImageEllipsoidSourceExecute(vtkImageEllipsoidSource *self,
   max0 = ext[1];
   data->GetContinuousIncrements(ext, inc0, inc1, inc2);
 
-  target = static_cast<unsigned long>((ext[5]-ext[4]+1)*(ext[3]-ext[2]+1)/50.0);
+  target = static_cast<unsigned long>((ext[5] - ext[4] + 1) * (ext[3] - ext[2] + 1) / 50.0);
   target++;
 
   for (idx2 = ext[4]; idx2 <= ext[5]; ++idx2)
@@ -164,13 +160,12 @@ void vtkImageEllipsoidSourceExecute(vtkImageEllipsoidSource *self,
       }
     }
 
-
     s2 = temp * temp;
     for (idx1 = ext[2]; !self->AbortExecute && idx1 <= ext[3]; ++idx1)
     {
-      if (!(count%target))
+      if (!(count % target))
       {
-        self->UpdateProgress(count/(50.0*target));
+        self->UpdateProgress(count / (50.0 * target));
       }
       count++;
 
@@ -229,30 +224,25 @@ void vtkImageEllipsoidSourceExecute(vtkImageEllipsoidSource *self,
   }
 }
 
-//----------------------------------------------------------------------------
-int vtkImageEllipsoidSource::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector ** vtkNotUsed( inputVector ),
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkImageEllipsoidSource::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  vtkImageData *data = vtkImageData::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkImageData* data = vtkImageData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
   int extent[6];
 
-  outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),extent);
+  outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
   data->SetExtent(extent);
   data->AllocateScalars(outInfo);
 
-  void *ptr;
+  void* ptr;
   ptr = data->GetScalarPointerForExtent(extent);
 
   switch (data->GetScalarType())
   {
-    vtkTemplateMacro(
-      vtkImageEllipsoidSourceExecute(this, data, extent,
-                                     static_cast<VTK_TT *>(ptr)));
+    vtkTemplateMacro(vtkImageEllipsoidSourceExecute(this, data, extent, static_cast<VTK_TT*>(ptr)));
     default:
       vtkErrorMacro("Execute: Unknown output ScalarType");
   }

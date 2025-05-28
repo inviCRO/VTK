@@ -50,7 +50,7 @@
  *
  * @sa
  * vtkPCACurvatureEstimation
-*/
+ */
 
 #ifndef vtkPCANormalEstimation_h
 #define vtkPCANormalEstimation_h
@@ -61,42 +61,41 @@
 class vtkAbstractPointLocator;
 class vtkIdList;
 
-
 class VTKFILTERSPOINTS_EXPORT vtkPCANormalEstimation : public vtkPolyDataAlgorithm
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard methods for instantiating, obtaining type information, and
    * printing information.
    */
-  static vtkPCANormalEstimation *New();
-  vtkTypeMacro(vtkPCANormalEstimation,vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkPCANormalEstimation* New();
+  vtkTypeMacro(vtkPCANormalEstimation, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * For each sampled point, specify the number of the closest, surrounding
    * points used to estimate the normal (the so called k-neighborhood). By
    * default 25 points are used. Smaller numbers may speed performance at the
    * cost of accuracy.
    */
-  vtkSetClampMacro(SampleSize,int,1,VTK_INT_MAX);
-  vtkGetMacro(SampleSize,int);
-  //@}
+  vtkSetClampMacro(SampleSize, int, 1, VTK_INT_MAX);
+  vtkGetMacro(SampleSize, int);
+  ///@}
 
   /**
    * This enum is used to control how normals oriented is controlled.
    */
   enum Style
   {
-    AS_COMPUTED=0,
-    POINT=1,
-    GRAPH_TRAVERSAL=3
+    AS_COMPUTED = 0,
+    POINT = 1,
+    GRAPH_TRAVERSAL = 3
   };
 
-  //@{
+  ///@{
   /**
    * Configure how the filter addresses consistency in normal
    * oreientation. When initially computed using PCA, a point normal may
@@ -109,70 +108,65 @@ public:
    * across the graph of neighboring, connected points produces the best
    * results but is computationally expensive.
    */
-  vtkSetMacro(NormalOrientation,int);
-  vtkGetMacro(NormalOrientation,int);
-  void SetNormalOrientationToAsComputed()
-    { this->SetNormalOrientation(AS_COMPUTED); }
-  void SetNormalOrientationToPoint()
-    { this->SetNormalOrientation(POINT); }
-  void SetNormalOrientationToGraphTraversal()
-    { this->SetNormalOrientation(GRAPH_TRAVERSAL); }
-  //@}
+  vtkSetMacro(NormalOrientation, int);
+  vtkGetMacro(NormalOrientation, int);
+  void SetNormalOrientationToAsComputed() { this->SetNormalOrientation(AS_COMPUTED); }
+  void SetNormalOrientationToPoint() { this->SetNormalOrientation(POINT); }
+  void SetNormalOrientationToGraphTraversal() { this->SetNormalOrientation(GRAPH_TRAVERSAL); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If the normal orientation is to be consistent with a specified
    * direction, then an orientation point should be set. The sign of the
    * normals will be modified so that they point towards this point. By
    * default, the specified orientation point is (0,0,0).
    */
-  vtkSetVector3Macro(OrientationPoint,double);
-  vtkGetVectorMacro(OrientationPoint,double,3);
-  //@}
+  vtkSetVector3Macro(OrientationPoint, double);
+  vtkGetVectorMacro(OrientationPoint, double, 3);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The normal orientation can be flipped by enabling this flag.
    */
-  vtkSetMacro(FlipNormals,bool);
-  vtkGetMacro(FlipNormals,bool);
-  vtkBooleanMacro(FlipNormals,bool);
-  //@}
+  vtkSetMacro(FlipNormals, bool);
+  vtkGetMacro(FlipNormals, bool);
+  vtkBooleanMacro(FlipNormals, bool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify a point locator. By default a vtkStaticPointLocator is
    * used. The locator performs efficient searches to locate points
    * around a sample point.
    */
-  void SetLocator(vtkAbstractPointLocator *locator);
-  vtkGetObjectMacro(Locator,vtkAbstractPointLocator);
-  //@}
+  void SetLocator(vtkAbstractPointLocator* locator);
+  vtkGetObjectMacro(Locator, vtkAbstractPointLocator);
+  ///@}
 
 protected:
   vtkPCANormalEstimation();
-  ~vtkPCANormalEstimation() VTK_OVERRIDE;
+  ~vtkPCANormalEstimation() override;
 
   // IVars
   int SampleSize;
-  vtkAbstractPointLocator *Locator;
+  vtkAbstractPointLocator* Locator;
   int NormalOrientation;
   double OrientationPoint[3];
   bool FlipNormals;
 
   // Methods used to produce consistent normal orientations
-  void TraverseAndFlip (vtkPoints *inPts, float *normals, char *pointMap,
-                        vtkIdList *wave, vtkIdList *wave2);
+  void TraverseAndFlip(
+    vtkPoints* inPts, float* normals, char* pointMap, vtkIdList* wave, vtkIdList* wave2);
 
   // Pipeline management
-  int RequestData(vtkInformation *, vtkInformationVector **,
-    vtkInformationVector *) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
-  vtkPCANormalEstimation(const vtkPCANormalEstimation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPCANormalEstimation&) VTK_DELETE_FUNCTION;
-
+  vtkPCANormalEstimation(const vtkPCANormalEstimation&) = delete;
+  void operator=(const vtkPCANormalEstimation&) = delete;
 };
 
 #endif

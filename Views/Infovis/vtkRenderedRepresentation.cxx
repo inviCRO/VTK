@@ -24,8 +24,8 @@
 #include "vtkInformation.h"
 #include "vtkObjectFactory.h"
 #include "vtkProp.h"
-#include "vtkRenderer.h"
 #include "vtkRenderView.h"
+#include "vtkRenderer.h"
 #include "vtkSelection.h"
 #include "vtkSelectionNode.h"
 #include "vtkSmartPointer.h"
@@ -39,10 +39,9 @@ class vtkRenderedRepresentation::Internals
 public:
   // Convenience vectors for storing props to add/remove until the next render,
   // where they are added/removed by PrepareForRendering().
-  std::vector<vtkSmartPointer<vtkProp> > PropsToAdd;
-  std::vector<vtkSmartPointer<vtkProp> > PropsToRemove;
+  std::vector<vtkSmartPointer<vtkProp>> PropsToAdd;
+  std::vector<vtkSmartPointer<vtkProp>> PropsToRemove;
 };
-
 
 vtkRenderedRepresentation::vtkRenderedRepresentation()
 {
@@ -57,12 +56,12 @@ vtkRenderedRepresentation::~vtkRenderedRepresentation()
 
 void vtkRenderedRepresentation::AddPropOnNextRender(vtkProp* p)
 {
-  this->Implementation->PropsToAdd.push_back(p);
+  this->Implementation->PropsToAdd.emplace_back(p);
 }
 
 void vtkRenderedRepresentation::RemovePropOnNextRender(vtkProp* p)
 {
-  this->Implementation->PropsToRemove.push_back(p);
+  this->Implementation->PropsToRemove.emplace_back(p);
 }
 
 void vtkRenderedRepresentation::PrepareForRendering(vtkRenderView* view)
@@ -82,7 +81,7 @@ void vtkRenderedRepresentation::PrepareForRendering(vtkRenderView* view)
   this->Implementation->PropsToRemove.clear();
 }
 
-vtkUnicodeString vtkRenderedRepresentation::GetHoverText(vtkView* view, vtkProp* prop, vtkIdType cell)
+std::string vtkRenderedRepresentation::GetHoverString(vtkView* view, vtkProp* prop, vtkIdType cell)
 {
   vtkSmartPointer<vtkSelection> cellSelect = vtkSmartPointer<vtkSelection>::New();
   vtkSmartPointer<vtkSelectionNode> cellNode = vtkSmartPointer<vtkSelectionNode>::New();
@@ -94,8 +93,8 @@ vtkUnicodeString vtkRenderedRepresentation::GetHoverText(vtkView* view, vtkProp*
   cellNode->SetSelectionList(idArr);
   cellSelect->AddNode(cellNode);
   vtkSelection* converted = this->ConvertSelection(view, cellSelect);
-  vtkUnicodeString text = this->GetHoverTextInternal(converted);
-  if (converted != cellSelect.GetPointer())
+  std::string text = this->GetHoverStringInternal(converted);
+  if (converted != cellSelect)
   {
     converted->Delete();
   }

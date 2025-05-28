@@ -27,7 +27,7 @@
  *
  * @sa
  * vtkImplicitFunction
-*/
+ */
 
 #ifndef vtkPerlinNoise_h
 #define vtkPerlinNoise_h
@@ -38,71 +38,71 @@
 class VTKCOMMONDATAMODEL_EXPORT vtkPerlinNoise : public vtkImplicitFunction
 {
 public:
-  vtkTypeMacro(vtkPerlinNoise,vtkImplicitFunction);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkPerlinNoise, vtkImplicitFunction);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Instantiate the class.
    */
-  static vtkPerlinNoise *New();
+  static vtkPerlinNoise* New();
 
-  //@{
+  ///@{
   /**
    * Evaluate PerlinNoise function.
    */
   using vtkImplicitFunction::EvaluateFunction;
-  double EvaluateFunction(double x[3]) VTK_OVERRIDE;
-  //@}
+  double EvaluateFunction(double x[3]) override;
+  ///@}
 
   /**
    * Evaluate PerlinNoise gradient.  Currently, the method returns a 0
    * gradient.
    */
-  void EvaluateGradient(double x[3], double n[3]) VTK_OVERRIDE;
+  void EvaluateGradient(double x[3], double n[3]) override;
 
-  //@{
+  ///@{
   /**
    * Set/get the frequency, or physical scale,  of the noise function
    * (higher is finer scale).  The frequency can be adjusted per axis, or
    * the same for all axes.
    */
-  vtkSetVector3Macro(Frequency,double);
-  vtkGetVectorMacro(Frequency,double,3);
-  //@}
+  vtkSetVector3Macro(Frequency, double);
+  vtkGetVectorMacro(Frequency, double, 3);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the phase of the noise function.  This parameter can be used to
    * shift the noise function within space (perhaps to avoid a beat with a
    * noise pattern at another scale).  Phase tends to repeat about every
    * unit, so a phase of 0.5 is a half-cycle shift.
    */
-  vtkSetVector3Macro(Phase,double);
-  vtkGetVectorMacro(Phase,double,3);
-  //@}
+  vtkSetVector3Macro(Phase, double);
+  vtkGetVectorMacro(Phase, double, 3);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/get the amplitude of the noise function. Amplitude can be negative.
    * The noise function varies randomly between -|Amplitude| and |Amplitude|.
    * Therefore the range of values is 2*|Amplitude| large.
    * The initial amplitude is 1.
    */
-  vtkSetMacro(Amplitude,double);
-  vtkGetMacro(Amplitude,double);
-  //@}
+  vtkSetMacro(Amplitude, double);
+  vtkGetMacro(Amplitude, double);
+  ///@}
 
 protected:
   vtkPerlinNoise();
-  ~vtkPerlinNoise() VTK_OVERRIDE {}
+  ~vtkPerlinNoise() override = default;
 
   double Frequency[3];
   double Phase[3];
   double Amplitude;
 
 private:
-  vtkPerlinNoise(const vtkPerlinNoise&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPerlinNoise&) VTK_DELETE_FUNCTION;
+  vtkPerlinNoise(const vtkPerlinNoise&) = delete;
+  void operator=(const vtkPerlinNoise&) = delete;
 };
 
 #endif

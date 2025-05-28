@@ -27,17 +27,17 @@
  * @par Thanks:
  * Thanks to Brian Wylie from Sandia National Laboratories for implementing
  * this class
-*/
+ */
 
 #ifndef vtkQtTreeView_h
 #define vtkQtTreeView_h
 
-#include "vtkViewsQtModule.h" // For export macro
 #include "vtkQtView.h"
+#include "vtkViewsQtModule.h" // For export macro
 
-#include <QList> // Needed for member variables
-#include <QPointer> // Needed for member variables
 #include "vtkSmartPointer.h" // Needed for member variables
+#include <QList>             // Needed for member variables
+#include <QPointer>          // Needed for member variables
 
 class QAbstractItemDelegate;
 class QAbstractItemView;
@@ -53,17 +53,17 @@ class QItemSelectionModel;
 
 class VTKVIEWSQT_EXPORT vtkQtTreeView : public vtkQtView
 {
-Q_OBJECT
+  Q_OBJECT
 
-signals:
+Q_SIGNALS:
   void expanded(const QModelIndex&);
   void collapsed(const QModelIndex&);
   void updatePreviewWidget(const QModelIndex&);
 
 public:
-  static vtkQtTreeView *New();
+  static vtkQtTreeView* New();
   vtkTypeMacro(vtkQtTreeView, vtkQtView);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Get the main container of this view (a  QWidget).
@@ -71,7 +71,7 @@ public:
    * to GetWidget(): something like this
    * this->ui->box->layout()->addWidget(this->View->GetWidget());
    */
-  QWidget* GetWidget() VTK_OVERRIDE;
+  QWidget* GetWidget() override;
 
   /**
    * Have the view show/hide its column headers (default is ON)
@@ -116,7 +116,11 @@ public:
   /**
    * The column used to filter on
    */
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 12, 0))
+  void SetFilterRegExp(const QRegularExpression& pattern);
+#else
   void SetFilterRegExp(const QRegExp& pattern);
+#endif
 
   /**
    * The column used to filter on
@@ -126,34 +130,34 @@ public:
   /**
    * Collapses the model item specified by the index.
    */
-  void Collapse( const QModelIndex & index );
+  void Collapse(const QModelIndex& index);
 
   /**
    * Collapses all expanded items.
    */
   void CollapseAll();
 
-   /**
-    * Expands the model item specified by the index.
-    */
-   void Expand ( const QModelIndex & index );
+  /**
+   * Expands the model item specified by the index.
+   */
+  void Expand(const QModelIndex& index);
 
-   /**
-    * Expands all expandable items.
-    * Warning: if the model contains a large number of items,
-    * this function will take some time to execute.
-    */
-   void ExpandAll ();
+  /**
+   * Expands all expandable items.
+   * Warning: if the model contains a large number of items,
+   * this function will take some time to execute.
+   */
+  void ExpandAll();
 
-   /**
-    * Expands all expandable items to the given depth.
-    */
-   void ExpandToDepth ( int depth );
+  /**
+   * Expands all expandable items to the given depth.
+   */
+  void ExpandToDepth(int depth);
 
-   /**
-    * Resizes the column given to the size of its contents.
-    */
-   void ResizeColumnToContents ( int column );
+  /**
+   * Resizes the column given to the size of its contents.
+   */
+  void ResizeColumnToContents(int column);
 
   /**
    * Set whether to use a QColumnView (QTreeView is the default)
@@ -163,41 +167,41 @@ public:
   /**
    * Updates the view.
    */
-  void Update() VTK_OVERRIDE;
+  void Update() override;
 
   /**
    * Set item delegate to something custom
    */
   void SetItemDelegate(QAbstractItemDelegate* delegate);
 
-  //@{
+  ///@{
   /**
    * The array to use for coloring items in view.  Default is "color".
    */
   void SetColorArrayName(const char* name);
   const char* GetColorArrayName();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to color vertices.  Default is off.
    */
   void SetColorByArray(bool vis);
   bool GetColorByArray();
   vtkBooleanMacro(ColorByArray, bool);
-  //@}
+  ///@}
 
-  void ApplyViewTheme(vtkViewTheme* theme) VTK_OVERRIDE;
+  void ApplyViewTheme(vtkViewTheme* theme) override;
 
 protected:
   vtkQtTreeView();
-  ~vtkQtTreeView() VTK_OVERRIDE;
+  ~vtkQtTreeView() override;
 
-  void AddRepresentationInternal(vtkDataRepresentation* rep) VTK_OVERRIDE;
-  void RemoveRepresentationInternal(vtkDataRepresentation* rep) VTK_OVERRIDE;
+  void AddRepresentationInternal(vtkDataRepresentation* rep) override;
+  void RemoveRepresentationInternal(vtkDataRepresentation* rep) override;
 
-private slots:
-  void slotQtSelectionChanged(const QItemSelection&,const QItemSelection&);
+private Q_SLOTS:
+  void slotQtSelectionChanged(const QItemSelection&, const QItemSelection&);
 
 private:
   void SetVTKSelection();
@@ -220,9 +224,8 @@ private:
 
   vtkSmartPointer<vtkApplyColors> ApplyColors;
 
-  vtkQtTreeView(const vtkQtTreeView&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkQtTreeView&) VTK_DELETE_FUNCTION;
-
+  vtkQtTreeView(const vtkQtTreeView&) = delete;
+  void operator=(const vtkQtTreeView&) = delete;
 };
 
 #endif

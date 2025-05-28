@@ -13,24 +13,22 @@
 
 =========================================================================*/
 #include "vtkProgressBarWidget.h"
-#include "vtkProgressBarRepresentation.h"
 #include "vtkCallbackCommand.h"
 #include "vtkObjectFactory.h"
+#include "vtkProgressBarRepresentation.h"
 
 vtkStandardNewMacro(vtkProgressBarWidget);
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkProgressBarWidget::vtkProgressBarWidget()
 {
   this->Selectable = 0;
 }
 
-//-------------------------------------------------------------------------
-vtkProgressBarWidget::~vtkProgressBarWidget()
-{
-}
+//------------------------------------------------------------------------------
+vtkProgressBarWidget::~vtkProgressBarWidget() = default;
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProgressBarWidget::CreateDefaultRepresentation()
 {
   if (!this->WidgetRep)
@@ -39,7 +37,7 @@ void vtkProgressBarWidget::CreateDefaultRepresentation()
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkProgressBarWidget::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

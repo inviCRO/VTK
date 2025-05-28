@@ -14,20 +14,25 @@
 =========================================================================*/
 #include "vtkLagrangianParticleTracker.h"
 
+#include "vtkAppendPolyData.h"
+#include "vtkBilinearQuadIntersection.h"
 #include "vtkBoundingBox.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataIterator.h"
 #include "vtkCompositeDataSet.h"
+#include "vtkDataObjectTreeIterator.h"
 #include "vtkDataSet.h"
 #include "vtkDataSetSurfaceFilter.h"
 #include "vtkDoubleArray.h"
 #include "vtkExecutive.h"
+#include "vtkGenericCell.h"
 #include "vtkIdList.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkLagrangianMatidaIntegrationModel.h"
 #include "vtkLagrangianParticle.h"
-#include "vtkLongLongArray.h"
+#include "vtkLagrangianThreadedData.h"
+#include "vtkMultiBlockDataSet.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
@@ -37,51 +42,220 @@
 #include "vtkPolyLine.h"
 #include "vtkPolygon.h"
 #include "vtkRungeKutta2.h"
+#include "vtkSMPThreadLocalObject.h"
+#include "vtkSMPTools.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
-#include "vtkVoxel.h"
 
 #include <algorithm>
 #include <limits>
 #include <sstream>
 
 vtkObjectFactoryNewMacro(vtkLagrangianParticleTracker);
-vtkCxxSetObjectMacro(vtkLagrangianParticleTracker, IntegrationModel, vtkLagrangianBasicIntegrationModel);
+vtkCxxSetObjectMacro(
+  vtkLagrangianParticleTracker, IntegrationModel, vtkLagrangianBasicIntegrationModel);
 vtkCxxSetObjectMacro(vtkLagrangianParticleTracker, Integrator, vtkInitialValueProblemSolver);
 
-//---------------------------------------------------------------------------
-vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
+struct IntegratingFunctor
 {
-  this->IntegrationModel = vtkLagrangianMatidaIntegrationModel::New();
-  this->Integrator = vtkRungeKutta2::New();
+  vtkLagrangianParticleTracker* Tracker;
+  std::vector<vtkLagrangianParticle*>& ParticlesVec;
+  std::queue<vtkLagrangianParticle*>& ParticlesQueue;
+  vtkPolyData* ParticlePathsOutput;
+  vtkDataObject* Surfaces;
+  vtkDataObject* InteractionOutput;
+  vtkSMPThreadLocal<vtkLagrangianThreadedData*> LocalData;
+  bool Serial = false;
 
+  IntegratingFunctor(vtkLagrangianParticleTracker* tracker,
+    std::vector<vtkLagrangianParticle*>& particlesVec,
+    std::queue<vtkLagrangianParticle*>& particlesQueue, vtkPolyData* particlePathsOutput,
+    vtkDataObject* surfaces, vtkDataObject* interactionOutput, bool serial)
+    : Tracker(tracker)
+    , ParticlesVec(particlesVec)
+    , ParticlesQueue(particlesQueue)
+    , ParticlePathsOutput(particlePathsOutput)
+    , Surfaces(surfaces)
+    , InteractionOutput(interactionOutput)
+    , Serial(serial)
+  {
+  }
+
+  void Initialize()
+  {
+    // Create a local threaded data
+    vtkLagrangianThreadedData* localData =
+      this->Tracker->IntegrationModel->InitializeThreadedData();
+    this->LocalData.Local() = localData;
+
+    // Create a local non-threadsafe integrator with a threadsafe integration model
+    localData->Integrator = this->Tracker->Integrator->NewInstance();
+    localData->Integrator->SetFunctionSet(this->Tracker->IntegrationModel);
+
+    if (this->Tracker->GenerateParticlePathsOutput)
+    {
+      vtkPolyData* localParticlePathsOutput = localData->ParticlePathsOutput;
+      // Initialize a local particle path output
+      this->Tracker->InitializePathsOutput(this->Tracker->SeedData,
+        static_cast<vtkIdType>(this->LocalData.size()), localParticlePathsOutput);
+    }
+
+    if (this->Surfaces)
+    {
+      // Create and initialize a local interaction output
+      localData->InteractionOutput = this->InteractionOutput->NewInstance();
+      this->Tracker->InitializeInteractionOutput(
+        this->Tracker->SeedData, this->Surfaces, localData->InteractionOutput);
+    }
+  }
+
+  void operator()(vtkIdType partId, vtkIdType endPartId)
+  {
+    for (vtkIdType id = partId; id < endPartId; id++)
+    {
+      vtkLagrangianParticle* particle = this->ParticlesVec[id];
+      vtkLagrangianThreadedData* localData = this->LocalData.Local();
+
+      // Set threaded data on the particle
+      particle->SetThreadedData(localData);
+
+      // Create polyLine output cell
+      vtkNew<vtkPolyLine> particlePath;
+
+      // Integrate
+      this->Tracker->Integrate(localData->Integrator, particle, this->ParticlesQueue,
+        localData->ParticlePathsOutput, particlePath, localData->InteractionOutput);
+
+      this->Tracker->IntegratedParticleCounter += this->Tracker->IntegratedParticleCounterIncrement;
+
+      this->Tracker->DeleteParticle(particle);
+
+      // Special case to show progress in serial
+      if (this->Serial)
+      {
+        double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
+          this->Tracker->ParticleCounter;
+        this->Tracker->UpdateProgress(progress);
+      }
+    }
+    if (!this->Serial)
+    {
+      // In multithread, protect the progress event with a mutex
+      std::lock_guard<std::mutex> guard(this->Tracker->ProgressMutex);
+      double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
+        this->Tracker->ParticleCounter;
+      this->Tracker->UpdateProgress(progress);
+    }
+  }
+
+  void Reduce()
+  {
+    // Particle Path reduction
+    if (this->Tracker->GenerateParticlePathsOutput)
+    {
+      vtkNew<vtkAppendPolyData> append;
+      append->AddInputData(this->ParticlePathsOutput);
+      for (auto data : this->LocalData)
+      {
+        append->AddInputData(data->ParticlePathsOutput);
+      }
+      append->Update();
+      this->ParticlePathsOutput->ShallowCopy(append->GetOutput());
+    }
+
+    if (this->Surfaces)
+    {
+      // Interaction Reduction
+      vtkCompositeDataSet* hdInteractionOutput =
+        vtkCompositeDataSet::SafeDownCast(this->InteractionOutput);
+      vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(this->InteractionOutput);
+      if (hdInteractionOutput)
+      {
+        vtkCompositeDataSet* hdSurfaces = vtkCompositeDataSet::SafeDownCast(this->Surfaces);
+        vtkSmartPointer<vtkCompositeDataIterator> iter;
+        iter.TakeReference(hdSurfaces->NewIterator());
+        for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+        {
+          vtkNew<vtkAppendPolyData> append;
+          vtkPolyData* initialPD = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
+          if (initialPD)
+          {
+            append->AddInputData(initialPD);
+          }
+          for (auto data : this->LocalData)
+          {
+            append->AddInputData(vtkPolyData::SafeDownCast(
+              vtkCompositeDataSet::SafeDownCast(data->InteractionOutput)->GetDataSet(iter)));
+          }
+          append->Update();
+          hdInteractionOutput->SetDataSet(iter, append->GetOutput());
+        }
+        for (auto data : this->LocalData)
+        {
+          data->InteractionOutput->Delete();
+        }
+      }
+      else
+      {
+        vtkNew<vtkAppendPolyData> append;
+        append->AddInputData(pdInteractionOutput);
+        for (auto data : this->LocalData)
+        {
+          auto interOut = data->InteractionOutput;
+          vtkPolyData* pd = vtkPolyData::SafeDownCast(interOut);
+          append->AddInputData(pd);
+          interOut->Delete();
+        }
+        append->Update();
+        pdInteractionOutput->ShallowCopy(append->GetOutput());
+      }
+    }
+
+    // Other threaded Data Reduction
+    for (auto data : this->LocalData)
+    {
+      data->Integrator->Delete();
+      this->Tracker->IntegrationModel->FinalizeThreadedData(data);
+    }
+  }
+};
+
+static constexpr double MAX_REINTEGRATION_FACTOR = 1.0e10;
+
+//------------------------------------------------------------------------------
+vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
+  : IntegrationModel(vtkLagrangianMatidaIntegrationModel::New())
+  , Integrator(vtkRungeKutta2::New())
+  , CellLengthComputationMode(STEP_CUR_CELL_LENGTH)
+  , StepFactor(1.0)
+  , StepFactorMin(0.5)
+  , StepFactorMax(1.5)
+  , MaximumNumberOfSteps(100)
+  , MaximumIntegrationTime(-1.0)
+  , AdaptiveStepReintegration(false)
+  , GeneratePolyVertexInteractionOutput(false)
+  , ParticleCounter(0)
+  , IntegratedParticleCounter(0)
+  , IntegratedParticleCounterIncrement(1)
+  , MinimumVelocityMagnitude(0.001)
+  , MinimumReductionFactor(1.1)
+  , FlowCache(nullptr)
+  , FlowTime(0)
+  , SurfacesCache(nullptr)
+  , SurfacesTime(0)
+  , SerialThreadedData(nullptr)
+{
   this->SetNumberOfInputPorts(3);
   this->SetNumberOfOutputPorts(2);
-
-  this->CellLengthComputationMode = STEP_LAST_CELL_LENGTH;
-  this->AdaptiveStepReintegration = false;
-  this->StepFactor = 1.0;
-  this->StepFactorMin = 0.5;
-  this->StepFactorMax = 1.5;
-  this->MaximumNumberOfSteps = 100;
-
-  this->MinimumVelocityMagnitude = 0.001;
-  this->MinimumReductionFactor = 1.1;
-
-  this->UseParticlePathsRenderingThreshold = false;
-  this->ParticlePathsRenderingPointsThreshold = 100;
-
-  this->CreateOutOfDomainParticle = false;
-  this->ParticleCounter = 0;
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLagrangianParticleTracker::~vtkLagrangianParticleTracker()
 {
-  this->SetIntegrator(NULL);
-  this->SetIntegrationModel(NULL);
+  this->SetIntegrator(nullptr);
+  this->SetIntegrationModel(nullptr);
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangianParticleTracker::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -103,69 +277,66 @@ void vtkLagrangianParticleTracker::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << indent << "Integrator: " << this->Integrator << endl;
   }
-  os << indent << "CellLengthComputationMode: "
-    << this->CellLengthComputationMode << endl;
+  os << indent << "CellLengthComputationMode: " << this->CellLengthComputationMode << endl;
   os << indent << "StepFactor: " << this->StepFactor << endl;
   os << indent << "StepFactorMin: " << this->StepFactorMin << endl;
   os << indent << "StepFactorMax: " << this->StepFactorMax << endl;
   os << indent << "MaximumNumberOfSteps: " << this->MaximumNumberOfSteps << endl;
+  os << indent << "MaximumIntegrationTime: " << this->MaximumIntegrationTime << endl;
   os << indent << "AdaptiveStepReintegration: " << this->AdaptiveStepReintegration << endl;
-  os << indent << "UseParticlePathsRenderingThreshold: "
-    << this->UseParticlePathsRenderingThreshold << endl;
-  os << indent << "ParticlePathsRenderingPointsThreshold: "
-    << this->ParticlePathsRenderingPointsThreshold << endl;
+  os << indent << "GenerateParticlePathsOutput: " << this->GenerateParticlePathsOutput << endl;
   os << indent << "MinimumVelocityMagnitude: " << this->MinimumVelocityMagnitude << endl;
   os << indent << "MinimumReductionFactor: " << this->MinimumReductionFactor << endl;
   os << indent << "ParticleCounter: " << this->ParticleCounter << endl;
+  os << indent << "IntegratedParticleCounter: " << this->IntegratedParticleCounter << endl;
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangianParticleTracker::SetSourceConnection(vtkAlgorithmOutput* algInput)
 {
   this->SetInputConnection(1, algInput);
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::SetSourceData(vtkDataObject *source)
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::SetSourceData(vtkDataObject* source)
 {
   this->SetInputData(1, source);
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject* vtkLagrangianParticleTracker::GetSource()
 {
   if (this->GetNumberOfInputConnections(1) < 1)
   {
-    return 0;
+    return nullptr;
   }
   return vtkDataObject::SafeDownCast(this->GetExecutive()->GetInputData(1, 0));
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangianParticleTracker::SetSurfaceConnection(vtkAlgorithmOutput* algOutput)
 {
   this->SetInputConnection(2, algOutput);
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::SetSurfaceData(vtkDataObject *surface)
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::SetSurfaceData(vtkDataObject* surface)
 {
   this->SetInputData(2, surface);
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject* vtkLagrangianParticleTracker::GetSurface()
 {
   if (this->GetNumberOfInputConnections(2) < 1)
   {
-    return 0;
+    return nullptr;
   }
   return this->GetExecutive()->GetInputData(2, 0);
 }
 
-//---------------------------------------------------------------------------
-int vtkLagrangianParticleTracker::FillInputPortInformation(int port,
-  vtkInformation *info)
+//------------------------------------------------------------------------------
+int vtkLagrangianParticleTracker::FillInputPortInformation(int port, vtkInformation* info)
 {
   if (port == 2)
   {
@@ -174,9 +345,8 @@ int vtkLagrangianParticleTracker::FillInputPortInformation(int port,
   return this->Superclass::FillInputPortInformation(port, info);
 }
 
-//----------------------------------------------------------------------------
-int vtkLagrangianParticleTracker::FillOutputPortInformation(int port,
-  vtkInformation* info)
+//------------------------------------------------------------------------------
+int vtkLagrangianParticleTracker::FillOutputPortInformation(int port, vtkInformation* info)
 {
   if (port == 0)
   {
@@ -185,16 +355,14 @@ int vtkLagrangianParticleTracker::FillOutputPortInformation(int port,
   return this->Superclass::FillOutputPortInformation(port, info);
 }
 
-//----------------------------------------------------------------------------
-int vtkLagrangianParticleTracker::RequestDataObject(
-  vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector,
-  vtkInformationVector* outputVector)
+//------------------------------------------------------------------------------
+int vtkLagrangianParticleTracker::RequestDataObject(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  // Create a polydata output
+  // Create particle path output
   vtkInformation* info = outputVector->GetInformationObject(0);
   vtkNew<vtkPolyData> particlePathsOutput;
-  info->Set(vtkDataObject::DATA_OBJECT(), particlePathsOutput.Get());
+  info->Set(vtkDataObject::DATA_OBJECT(), particlePathsOutput);
 
   // Create a surface interaction output
   // First check for composite
@@ -202,11 +370,10 @@ int vtkLagrangianParticleTracker::RequestDataObject(
   info = outputVector->GetInformationObject(1);
   if (inInfo)
   {
-    vtkDataObject *input = vtkDataObject::SafeDownCast(
-      inInfo->Get(vtkDataObject::DATA_OBJECT()));
+    vtkDataObject* input = vtkDataObject::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
     if (input)
     {
-      vtkCompositeDataSet *hdInput = vtkCompositeDataSet::SafeDownCast(input);
+      vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(input);
       if (hdInput)
       {
         vtkDataObject* interactionOutput = input->NewInstance();
@@ -218,53 +385,137 @@ int vtkLagrangianParticleTracker::RequestDataObject(
   }
   // In any other case, create a polydata
   vtkNew<vtkPolyData> interactionOutput;
-  info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput.Get());
+  info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput);
   return 1;
 }
 
-//---------------------------------------------------------------------------
-int vtkLagrangianParticleTracker::RequestData(
-  vtkInformation* vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+//------------------------------------------------------------------------------
+int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  // Initialize inputs
-  vtkDataObject* flow = 0;
-  vtkDataObject* seeds = 0;
-  vtkDataObject* surfaces = 0;
   std::queue<vtkLagrangianParticle*> particlesQueue;
 
   if (!this->IntegrationModel)
   {
-    vtkErrorMacro(<< "Integration Model is NULL, cannot integrate");
+    vtkErrorMacro(<< "Integration Model is nullptr, cannot integrate");
     return 0;
   }
   this->IntegrationModel->SetTracker(this);
 
-  vtkNew<vtkPointData> seedData;
-  if (!this->InitializeInputs(inputVector, flow, seeds, surfaces,
-    particlesQueue, seedData.Get()))
+  // Initialize flow
+  vtkDataObject* flow = vtkDataObject::GetData(inputVector[0]);
+  vtkBoundingBox bounds;
+  if (!this->InitializeFlow(flow, &bounds))
   {
-    vtkErrorMacro(<< "Cannot initialize inputs");
+    vtkErrorMacro(<< "Could not initialize flow, aborting.");
+    return false;
+  }
+
+  // Initialize surfaces
+  vtkInformation* surfacesInInfo = inputVector[2]->GetInformationObject(0);
+  vtkDataObject* surfaces = nullptr;
+  if (surfacesInInfo)
+  {
+    surfaces = surfacesInInfo->Get(vtkDataObject::DATA_OBJECT());
+    if (this->UpdateSurfaceCacheIfNeeded(surfaces))
+    {
+      this->InitializeSurface(surfaces);
+    }
+  }
+
+  // give the model a chance to setup prior to particle initalization
+  this->IntegrationModel->PreParticleInitalization();
+
+  // Recover seeds
+  vtkDataObject* seeds = vtkDataObject::GetData(inputVector[1]);
+  if (!seeds)
+  {
+    vtkErrorMacro(<< "Cannot recover seeds, aborting.");
     return 0;
   }
 
-  // Initialize outputs
-  vtkPolyData* particlePathsOutput;
-  vtkDataObject* interactionOutput;
-  if (!this->InitializeOutputs(outputVector, seedData.Get(),
-    static_cast<vtkIdType>(particlesQueue.size()), surfaces,
-    particlePathsOutput, interactionOutput))
+  // Check seed dataset type
+  vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(seeds);
+  vtkDataSet* actualSeeds = vtkDataSet::SafeDownCast(seeds);
+  if (hdInput)
   {
-    vtkErrorMacro(<< "Cannot initialize outputs");
+    // Composite data
+    vtkSmartPointer<vtkCompositeDataIterator> iter;
+    iter.TakeReference(hdInput->NewIterator());
+    bool leafFound = false;
+    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+    {
+      vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+      if (ds)
+      {
+        // We show the warning only when the input contains more than one leaf
+        if (leafFound)
+        {
+          vtkWarningMacro("Only the first block of seeds have been used to "
+                          "generate seeds, other blocks are ignored");
+          break;
+        }
+        actualSeeds = ds;
+        leafFound = true;
+      }
+    }
+  }
+
+  if (!actualSeeds)
+  {
+    vtkErrorMacro(<< "This filter cannot handle input of type: "
+                  << (seeds ? seeds->GetClassName() : "(none)"));
     return 0;
+  }
+  this->SeedData = actualSeeds->GetPointData();
+
+  // Create a SerialThreadedData object that can be used on particles in the
+  // serial initialisation phase.
+  this->SerialThreadedData = this->IntegrationModel->InitializeThreadedData();
+
+  // Initialize Particles from the seeds
+  if (!this->InitializeParticles(&bounds, actualSeeds, particlesQueue, this->SeedData))
+  {
+    vtkErrorMacro(<< "Could not initialize particles, aborting.");
+    return false;
+  }
+
+  // Initialize outputs
+  vtkPolyData* particlePathsOutput = nullptr;
+  if (this->GenerateParticlePathsOutput)
+  {
+    particlePathsOutput = vtkPolyData::GetData(outputVector);
+    if (!particlePathsOutput)
+    {
+      vtkErrorMacro(<< "Cannot find a vtkMultiPiece particle paths output. aborting");
+      return 0;
+    }
+    this->InitializePathsOutput(this->SeedData, 0, particlePathsOutput);
+  }
+
+  vtkDataObject* interactionOutput = nullptr;
+  if (surfaces)
+  {
+    vtkInformation* interactionOutInfo = outputVector->GetInformationObject(1);
+    interactionOutput = interactionOutInfo->Get(vtkPolyData::DATA_OBJECT());
+    if (!interactionOutput)
+    {
+      vtkErrorMacro(<< "Cannot find a vtkMultiBlock interaction output. aborting");
+      return 0;
+    }
+    vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+    if (hdInteractionOutput)
+    {
+      hdInteractionOutput->CopyStructure(vtkCompositeDataSet::SafeDownCast(surfaces));
+    }
+    this->InitializeInteractionOutput(this->SeedData, surfaces, interactionOutput);
   }
 
   // Let model a chance to change the particles or compute things
   // before integration.
   this->IntegrationModel->PreIntegrate(particlesQueue);
 
-  // Integrate each particle
+  std::vector<vtkLagrangianParticle*> particlesVec;
   while (!this->GetAbortExecute())
   {
     // Check for particle feed
@@ -274,36 +525,25 @@ int vtkLagrangianParticleTracker::RequestData(
       break;
     }
 
-    // Recover particle
-    vtkLagrangianParticle* particle = particlesQueue.front();
-    particlesQueue.pop();
-
-    // Create polyLine output cell
-    vtkNew<vtkPolyLine> particlePath;
-
-    // Integrate
-    this->Integrate(particle, particlesQueue, particlePathsOutput,
-      particlePath->GetPointIds(), interactionOutput);
-
-    if (particlePath->GetPointIds()->GetNumberOfIds() == 1)
+    // Move the current particle queue into a SMP usable vector
+    particlesVec.clear();
+    particlesVec.resize(particlesQueue.size());
+    for (auto& particlePtr : particlesVec)
     {
-      particlePath->GetPointIds()->InsertNextId(particlePath->GetPointId(0));
+      // Recover particle
+      vtkLagrangianParticle* particleTmp = particlesQueue.front();
+      particlesQueue.pop();
+      particlePtr = particleTmp;
     }
 
-    // Duplicate single point particle paths, to avoid degenerated lines.
-    if (particlePath->GetPointIds()->GetNumberOfIds() > 0)
-    {
-      // Add particle path or vertex to cell array
-      particlePathsOutput->GetLines()->InsertNextCell(particlePath.Get());
-      this->InsertPathData(particle, particlePathsOutput->GetCellData());
-
-      // Insert data from seed data only on not yet written arrays
-      this->InsertSeedData(particle, particlePathsOutput->GetCellData());
-    }
-
-    // Delete integrated particle
-    delete particle;
+    // Integrate all available particles
+    IntegratingFunctor functor(this, particlesVec, particlesQueue, particlePathsOutput, surfaces,
+      interactionOutput, vtkSMPTools::GetEstimatedNumberOfThreads() == 1);
+    vtkSMPTools::For(0, static_cast<vtkIdType>(particlesVec.size()), functor);
   }
+
+  // Delete the SerialThreadedData
+  this->IntegrationModel->FinalizeThreadedData(this->SerialThreadedData);
 
   // Abort if necessary
   if (this->GetAbortExecute())
@@ -313,7 +553,7 @@ int vtkLagrangianParticleTracker::RequestData(
     {
       vtkLagrangianParticle* particle = particlesQueue.front();
       particlesQueue.pop();
-      delete particle;
+      this->DeleteParticle(particle);
     }
   }
   // Finalize outputs
@@ -325,14 +565,7 @@ int vtkLagrangianParticleTracker::RequestData(
   return 1;
 }
 
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::CheckParticlePathsRenderingThreshold(vtkPolyData* particlePathsOutput)
-{
-  return this->UseParticlePathsRenderingThreshold &&
-    particlePathsOutput->GetNumberOfPoints() > this->ParticlePathsRenderingPointsThreshold;
-}
-
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkLagrangianParticleTracker::GetMTime()
 {
   // Take integrator and integration model MTime into account
@@ -341,164 +574,47 @@ vtkMTimeType vtkLagrangianParticleTracker::GetMTime()
       this->Integrator ? this->Integrator->GetMTime() : 0));
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkLagrangianParticleTracker::GetNewParticleId()
 {
-  vtkIdType id = this->ParticleCounter;
-  this->ParticleCounter++;
-  return id;
+  return this->ParticleCounter++;
 }
 
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::InitializeInputs(vtkInformationVector **inputVector,
-  vtkDataObject*& flow, vtkDataObject*& seeds, vtkDataObject*& surfaces,
-  std::queue<vtkLagrangianParticle*>& particlesQueue, vtkPointData* seedData)
-{
-  // Initialize flow
-  vtkInformation* flowInInfo = inputVector[0]->GetInformationObject(0);
-  flow = flowInInfo->Get(vtkDataObject::DATA_OBJECT());
-  vtkBoundingBox bounds;
-  if (!this->InitializeFlow(flow, &bounds))
-  {
-    vtkErrorMacro(<< "Could not initialize flow, aborting.");
-    return false;
-  }
-
-  // Recover seeds
-  vtkInformation *seedsInInfo = inputVector[1]->GetInformationObject(0);
-  seeds = vtkDataObject::SafeDownCast(seedsInInfo->Get(vtkDataObject::DATA_OBJECT()));
-  if (!seeds)
-  {
-    vtkErrorMacro(<< "Cannot recover seeds, aborting.");
-    return false;
-  }
-
-  // Configure integrator (required before particle initialization)
-  this->Integrator->SetFunctionSet(this->IntegrationModel);
-
-  // Initialize Particles
-  if (!this->InitializeParticles(&bounds, seeds, particlesQueue, seedData))
-  {
-    vtkErrorMacro(<< "Could not initialize particles, aborting.");
-    return false;
-  }
-
-  // Recover surfaces
-  vtkInformation* surfacesInInfo = inputVector[2]->GetInformationObject(0);
-  if (surfacesInInfo != NULL)
-  {
-    surfaces = surfacesInInfo->Get(vtkDataObject::DATA_OBJECT());
-    this->InitializeSurface(surfaces);
-  }
-  return true;
-}
-
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::InitializeOutputs(
-  vtkInformationVector *outputVector, vtkPointData* seedData,
-  vtkIdType numberOfSeeds, vtkDataObject* surfaces,
-  vtkPolyData*& particlePathsOutput, vtkDataObject*& interactionOutput)
-{
-  if (!this->InitializePathsOutput(outputVector, seedData, numberOfSeeds, particlePathsOutput))
-  {
-    return false;
-  }
-  if (!this->InitializeInteractionOutput(outputVector, seedData, surfaces, interactionOutput))
-  {
-    return false;
-  }
-  return true;
-}
-
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::InitializePathsOutput(vtkInformationVector *outputVector,
+//------------------------------------------------------------------------------
+bool vtkLagrangianParticleTracker::InitializePathsOutput(
   vtkPointData* seedData, vtkIdType numberOfSeeds, vtkPolyData*& particlePathsOutput)
 {
-  // Prepare path output
-  vtkInformation* particleOutInfo = outputVector->GetInformationObject(0);
-  particlePathsOutput = vtkPolyData::SafeDownCast(particleOutInfo->Get(
-    vtkPolyData::DATA_OBJECT()));
-  if (!particlePathsOutput)
-  {
-    vtkErrorMacro(<< "Cannot find a vtkPolyData particle paths output. aborting");
-    return false;
-  }
-
-  // Set information keys
-  particlePathsOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
-    particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
-  particlePathsOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
-    particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
-  particlePathsOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
-    particleOutInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
 
   vtkNew<vtkPoints> particlePathsPoints;
   vtkNew<vtkCellArray> particlePaths;
   vtkNew<vtkCellArray> particleVerts;
-  particlePathsOutput->SetPoints(particlePathsPoints.Get());
-  particlePathsOutput->SetLines(particlePaths.Get());
-  particlePathsOutput->SetVerts(particleVerts.Get());
+  particlePathsOutput->SetPoints(particlePathsPoints);
+  particlePathsOutput->SetLines(particlePaths);
+  particlePathsOutput->SetVerts(particleVerts);
 
   // Prepare particle paths output point data
   vtkCellData* particlePathsCellData = particlePathsOutput->GetCellData();
   particlePathsCellData->CopyStructure(seedData);
-  this->InitializePathData(particlePathsCellData);
+  this->IntegrationModel->InitializePathData(particlePathsCellData);
 
   // Initialize Particle Paths Point Data
   vtkPointData* particlePathsPointData = particlePathsOutput->GetPointData();
-  this->InitializeParticleData(particlePathsPointData, numberOfSeeds);
+  this->IntegrationModel->InitializeParticleData(particlePathsPointData, numberOfSeeds);
 
-  // Initialize particle data from integration model, if any
-  this->IntegrationModel->
-    InitializeVariablesParticleData(particlePathsPointData, numberOfSeeds);
   return true;
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::InitializeInteractionOutput(
-  vtkInformationVector *outputVector, vtkPointData* seedData,
-  vtkDataObject* surfaces, vtkDataObject*& interactionOutput)
+  vtkPointData* seedData, vtkDataObject* surfaces, vtkDataObject*& interactionOutput)
 {
-  // Prepare interaction output
-  vtkInformation* particleOutInfo = outputVector->GetInformationObject(1);
-  interactionOutput = particleOutInfo->Get(vtkDataObject::DATA_OBJECT());
-  if (!interactionOutput)
-  {
-    vtkErrorMacro(<< "Cannot find a vtkDataObject particle interaction output. aborting");
-    return false;
-  }
-
-  // Set information keys
-  interactionOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
-    particleOutInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
-  interactionOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
-    particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
-  interactionOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
-    particleOutInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
-
   // Check surfaces dataset type
-  vtkCompositeDataSet *hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
+  vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
   vtkDataSet* dsInput = vtkDataSet::SafeDownCast(surfaces);
   if (hdInput)
   {
-    // Composite data
-    vtkCompositeDataSet* hdOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
-    if (!hdOutput)
-    {
-      vtkErrorMacro(<< "Cannot find composite interaction output, aborting");
-      return false;
-    }
-
-    hdOutput->CopyStructure(hdInput);
+    vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+    hdInteractionOutput->CopyStructure(hdInput);
     vtkSmartPointer<vtkCompositeDataIterator> iter;
     iter.TakeReference(hdInput->NewIterator());
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
@@ -506,170 +622,152 @@ bool vtkLagrangianParticleTracker::InitializeInteractionOutput(
       vtkNew<vtkPolyData> pd;
       vtkNew<vtkCellArray> cells;
       vtkNew<vtkPoints> points;
-      pd->SetPoints(points.Get());
+      pd->SetPoints(points);
       pd->GetPointData()->CopyStructure(seedData);
-      this->InitializePathData(pd->GetPointData());
-      this->InitializeInteractionData(pd->GetPointData());
-      this->InitializeParticleData(pd->GetPointData());
-      this->IntegrationModel->
-        InitializeVariablesParticleData(pd->GetPointData());
-      hdOutput->SetDataSet(iter, pd.Get());
+      this->IntegrationModel->InitializePathData(pd->GetPointData());
+      this->IntegrationModel->InitializeInteractionData(pd->GetPointData());
+      this->IntegrationModel->InitializeParticleData(pd->GetPointData());
+      hdInteractionOutput->SetDataSet(iter, pd);
     }
   }
   else if (dsInput)
   {
-    vtkPolyData* pd = vtkPolyData::SafeDownCast(interactionOutput);
-    if (!pd)
-    {
-      vtkErrorMacro(<< "Cannot find polydata interaction output, aborting");
-      return false;
-    }
-
+    vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(interactionOutput);
     vtkNew<vtkPoints> points;
     vtkNew<vtkCellArray> cells;
-    pd->SetPoints(points.Get());
-    pd->GetPointData()->CopyStructure(seedData);
-    this->InitializePathData(pd->GetPointData());
-    this->InitializeInteractionData(pd->GetPointData());
-    this->InitializeParticleData(pd->GetPointData());
-    this->IntegrationModel->
-      InitializeVariablesParticleData(pd->GetPointData());
+    pdInteractionOutput->SetPoints(points);
+    pdInteractionOutput->GetPointData()->CopyStructure(seedData);
+    this->IntegrationModel->InitializePathData(pdInteractionOutput->GetPointData());
+    this->IntegrationModel->InitializeInteractionData(pdInteractionOutput->GetPointData());
+    this->IntegrationModel->InitializeParticleData(pdInteractionOutput->GetPointData());
   }
   return true;
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InitializeParticleData(vtkFieldData* particleData, int maxTuple)
-{
-  vtkNew<vtkIntArray> particleStepNumArray;
-  particleStepNumArray->SetName("StepNumber");
-  particleStepNumArray->SetNumberOfComponents(1);
-  particleStepNumArray->Allocate(maxTuple);
-  particleData->AddArray(particleStepNumArray.Get());
-
-  vtkNew<vtkDoubleArray> particleVelArray;
-  particleVelArray->SetName("ParticleVelocity");
-  particleVelArray->SetNumberOfComponents(3);
-  particleVelArray->Allocate(maxTuple*3);
-  particleData->AddArray(particleVelArray.Get());
-
-  vtkNew<vtkDoubleArray> particleIntegrationTimeArray;
-  particleIntegrationTimeArray->SetName("IntegrationTime");
-  particleIntegrationTimeArray->SetNumberOfComponents(1);
-  particleIntegrationTimeArray->Allocate(maxTuple);
-  particleData->AddArray(particleIntegrationTimeArray.Get());
-}
-
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InitializePathData(vtkFieldData* data)
-{
-  vtkNew<vtkLongLongArray> particleIdArray;
-  particleIdArray->SetName("Id");
-  particleIdArray->SetNumberOfComponents(1);
-  data->AddArray(particleIdArray.Get());
-
-  vtkNew<vtkLongLongArray> particleParentIdArray;
-  particleParentIdArray->SetName("ParentId");
-  particleParentIdArray->SetNumberOfComponents(1);
-  data->AddArray(particleParentIdArray.Get());
-
-  vtkNew<vtkLongLongArray> particleSeedIdArray;
-  particleSeedIdArray->SetName("SeedId");
-  particleSeedIdArray->SetNumberOfComponents(1);
-  data->AddArray(particleSeedIdArray.Get());
-
-  vtkNew<vtkIntArray> particleTerminationArray;
-  particleTerminationArray->SetName("Termination");
-  particleTerminationArray->SetNumberOfComponents(1);
-  data->AddArray(particleTerminationArray.Get());
-}
-
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InitializeInteractionData(vtkFieldData* data)
-{
-  vtkNew<vtkIntArray> interactionArray;
-  interactionArray->SetName("Interaction");
-  interactionArray->SetNumberOfComponents(1);
-  data->AddArray(interactionArray.Get());
-}
-
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::FinalizeOutputs(
-  vtkPolyData* particlePathsOutput,
-  vtkDataObject* interactionOutput)
+  vtkPolyData* particlePathsOutput, vtkDataObject* interactionOutput)
 {
-  // Recover structures
-  vtkPointData* particlePathsPointData = particlePathsOutput->GetPointData();
-  vtkPoints* particlePathsPoints = particlePathsOutput->GetPoints();
-
-  // Squeeze and resize point data
-  for (int i = 0; i < particlePathsPointData->GetNumberOfArrays(); i++)
+  if (this->GenerateParticlePathsOutput)
   {
-    vtkDataArray* array = particlePathsPointData->GetArray(i);
-    array->Resize(particlePathsPoints->GetNumberOfPoints());
-    array->Squeeze();
+    if (!particlePathsOutput)
+    {
+      vtkErrorMacro("Could not recover a output path polydata, something went wrong");
+      return false;
+    }
+
+    // Recover structures
+    vtkPointData* particlePathsPointData = particlePathsOutput->GetPointData();
+    vtkPoints* particlePathsPoints = particlePathsOutput->GetPoints();
+
+    // Squeeze and resize point data
+    for (int i = 0; i < particlePathsPointData->GetNumberOfArrays(); i++)
+    {
+      vtkDataArray* array = particlePathsPointData->GetArray(i);
+      array->Resize(particlePathsPoints->GetNumberOfPoints());
+      array->Squeeze();
+    }
   }
 
   // Insert interaction poly-vertex cell
-  vtkCompositeDataSet *hd = vtkCompositeDataSet::SafeDownCast(interactionOutput);
-  vtkPolyData* pd = vtkPolyData::SafeDownCast(interactionOutput);
-  if (hd)
+  if (interactionOutput)
   {
-    vtkSmartPointer<vtkCompositeDataIterator> iter;
-    iter.TakeReference(hd->NewIterator());
-    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+    vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+    vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(interactionOutput);
+    if (hdInteractionOutput)
     {
-      vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(hd->GetDataSet(iter));
-      if (!pdBlock)
+      vtkNew<vtkDataObjectTreeIterator> iter;
+      iter->SetDataSet(hdInteractionOutput);
+      for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
       {
-        vtkErrorMacro(<< "Cannot recover interaction output, something went wrong");
-        return false;
+        vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
+        if (!pdBlock)
+        {
+          vtkErrorMacro(<< "Cannot recover interaction output, something went wrong");
+          return false;
+        }
+        if (this->GeneratePolyVertexInteractionOutput)
+        {
+          vtkLagrangianParticleTracker::InsertPolyVertexCell(pdBlock);
+        }
+        else
+        {
+          vtkLagrangianParticleTracker::InsertVertexCells(pdBlock);
+        }
       }
-      this->InsertPolyVertexCell(pdBlock);
     }
-  }
-  else if (pd)
-  {
-    this->InsertPolyVertexCell(pd);
+    else
+    {
+      if (this->GeneratePolyVertexInteractionOutput)
+      {
+        vtkLagrangianParticleTracker::InsertPolyVertexCell(pdInteractionOutput);
+      }
+      else
+      {
+        vtkLagrangianParticleTracker::InsertVertexCells(pdInteractionOutput);
+      }
+    }
   }
 
   // Enable model post processing
   this->IntegrationModel->FinalizeOutputs(particlePathsOutput, interactionOutput);
-
-  // Optional paths rendering
-  if (this->CheckParticlePathsRenderingThreshold(particlePathsOutput))
-  {
-    particlePathsOutput->Initialize();
-  }
   return true;
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangianParticleTracker::InsertPolyVertexCell(vtkPolyData* polydata)
 {
   // Insert a vertex cell for each point
-  int nPoint = polydata->GetNumberOfPoints();
+  vtkIdType nPoint = polydata->GetNumberOfPoints();
   if (nPoint > 0)
   {
     vtkNew<vtkCellArray> polyVertex;
-    polyVertex->Allocate(polyVertex->EstimateSize(1, nPoint));
+    polyVertex->AllocateEstimate(1, nPoint);
     polyVertex->InsertNextCell(nPoint);
-    for (int i = 0; i<nPoint; i++)
+    for (vtkIdType i = 0; i < nPoint; i++)
     {
       polyVertex->InsertCellPoint(i);
     }
-    polydata->SetVerts(polyVertex.Get());
+    polydata->SetVerts(polyVertex);
   }
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::InsertVertexCells(vtkPolyData* polydata)
+{
+  // Insert a vertex cell for each point
+  vtkIdType nPoint = polydata->GetNumberOfPoints();
+  if (nPoint > 0)
+  {
+    vtkNew<vtkCellArray> polyVertex;
+    polyVertex->AllocateEstimate(1, nPoint);
+    for (vtkIdType i = 0; i < nPoint; i++)
+    {
+      polyVertex->InsertNextCell(1);
+      polyVertex->InsertCellPoint(i);
+    }
+    polydata->SetVerts(polyVertex);
+  }
+}
+
+//------------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::InitializeFlow(vtkDataObject* input, vtkBoundingBox* bounds)
 {
+  // Check for updated cache
+  if (input == this->FlowCache && input->GetMTime() <= this->FlowTime &&
+    this->IntegrationModel->GetLocatorsBuilt())
+  {
+    bounds->Reset();
+    bounds->AddBox(this->FlowBoundsCache);
+    return true;
+  }
+
+  // No Cache, do the initialization
   // Clear previously setup flow
   this->IntegrationModel->ClearDataSets();
 
   // Check flow dataset type
-  vtkCompositeDataSet *hdInput = vtkCompositeDataSet::SafeDownCast(input);
+  vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(input);
   vtkDataSet* dsInput = vtkDataSet::SafeDownCast(input);
   if (hdInput)
   {
@@ -678,7 +776,7 @@ bool vtkLagrangianParticleTracker::InitializeFlow(vtkDataObject* input, vtkBound
     iter.TakeReference(hdInput->NewIterator());
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
     {
-      vtkDataSet *ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+      vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
       if (ds)
       {
         // Add each leaf to the integration model
@@ -687,7 +785,6 @@ bool vtkLagrangianParticleTracker::InitializeFlow(vtkDataObject* input, vtkBound
         bounds->AddBounds(ds->GetBounds());
       }
     }
-    return true;
   }
   else if (dsInput)
   {
@@ -695,24 +792,41 @@ bool vtkLagrangianParticleTracker::InitializeFlow(vtkDataObject* input, vtkBound
     this->IntegrationModel->AddDataSet(dsInput);
     dsInput->ComputeBounds();
     bounds->AddBounds(dsInput->GetBounds());
-    return true;
   }
   else
   {
-    vtkErrorMacro(<< "This filter cannot handle input of type: " <<
-      (input ? input->GetClassName() : "(none)"));
+    vtkErrorMacro(<< "This filter cannot handle input of type: "
+                  << (input ? input->GetClassName() : "(none)"));
     return false;
   }
+  this->IntegrationModel->SetLocatorsBuilt(true);
+  this->FlowCache = input;
+  this->FlowTime = input->GetMTime();
+  this->FlowBoundsCache.Reset();
+  this->FlowBoundsCache.AddBox(*bounds);
+  return true;
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+bool vtkLagrangianParticleTracker::UpdateSurfaceCacheIfNeeded(vtkDataObject*& surfaces)
+{
+  if (surfaces != this->SurfacesCache || surfaces->GetMTime() > this->SurfacesTime)
+  {
+    this->SurfacesCache = surfaces;
+    this->SurfacesTime = surfaces->GetMTime();
+    return true;
+  }
+  return false;
+}
+
+//------------------------------------------------------------------------------
 void vtkLagrangianParticleTracker::InitializeSurface(vtkDataObject*& surfaces)
 {
   // Clear previously setup surfaces
-  this->IntegrationModel->ClearDataSets(true);
+  this->IntegrationModel->ClearDataSets(/*surface*/ true);
 
   // Check surfaces dataset type
-  vtkCompositeDataSet *hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
+  vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
   vtkDataSet* dsInput = vtkDataSet::SafeDownCast(surfaces);
 
   if (hdInput)
@@ -727,7 +841,7 @@ void vtkLagrangianParticleTracker::InitializeSurface(vtkDataObject*& surfaces)
       {
         vtkPolyData* pd = vtkPolyData::SafeDownCast(iter->GetCurrentDataObject());
         vtkNew<vtkDataSetSurfaceFilter> surfaceFilter;
-        if (pd == NULL)
+        if (!pd)
         {
           surfaceFilter->SetInputData(ds);
           surfaceFilter->Update();
@@ -747,7 +861,7 @@ void vtkLagrangianParticleTracker::InitializeSurface(vtkDataObject*& surfaces)
         }
         if (pd->GetNumberOfCells() > 0)
         {
-          this->IntegrationModel->AddDataSet(pd, true, iter->GetCurrentFlatIndex());
+          this->IntegrationModel->AddDataSet(pd, /*surface*/ true, iter->GetCurrentFlatIndex());
         }
       }
     }
@@ -756,7 +870,7 @@ void vtkLagrangianParticleTracker::InitializeSurface(vtkDataObject*& surfaces)
   {
     vtkPolyData* pd = vtkPolyData::SafeDownCast(dsInput);
     vtkNew<vtkDataSetSurfaceFilter> surfaceFilter;
-    if (pd == NULL)
+    if (!pd)
     {
       surfaceFilter->SetInputData(dsInput);
       surfaceFilter->Update();
@@ -776,210 +890,168 @@ void vtkLagrangianParticleTracker::InitializeSurface(vtkDataObject*& surfaces)
     }
     if (pd->GetNumberOfCells() > 0)
     {
-      this->IntegrationModel->AddDataSet(pd, true);
+      this->IntegrationModel->AddDataSet(pd, /*surface*/ true);
     }
   }
 }
 
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::InitializeParticles(
-  const vtkBoundingBox* bounds, vtkDataObject* seeds,
-  std::queue<vtkLagrangianParticle*>& particles, vtkPointData* seedData)
+//------------------------------------------------------------------------------
+bool vtkLagrangianParticleTracker::InitializeParticles(const vtkBoundingBox* bounds,
+  vtkDataSet* seeds, std::queue<vtkLagrangianParticle*>& particles, vtkPointData* seedData)
 {
   // Sanity check
-  if (seeds == NULL)
+  if (!seeds)
   {
     vtkErrorMacro(<< "Cannot generate Particles without seeds");
     return false;
   }
 
-  // Check seed dataset type
-  vtkCompositeDataSet *hdInput = vtkCompositeDataSet::SafeDownCast(seeds);
-  vtkDataSet* actualSeeds = vtkDataSet::SafeDownCast(seeds);
-  if (hdInput)
-  {
-    // Composite data
-    vtkSmartPointer<vtkCompositeDataIterator> iter;
-    iter.TakeReference(hdInput->NewIterator());
-    bool leafFound = false;
-    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
-    {
-      vtkDataSet *ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      if (ds)
-      {
-        // We show the warning only when the input contains more than one leaf
-        if (leafFound)
-        {
-          vtkWarningMacro("Only the first block of seeds have been used to "
-            "generate seeds, other blocks are ignored");
-          break;
-        }
-        actualSeeds = ds;
-        leafFound = true;
-      }
-    }
-  }
-
-  if (!actualSeeds)
-  {
-    vtkErrorMacro(<< "This filter cannot handle input of type: " <<
-      (seeds ? seeds->GetClassName() : "(none)"));
-    return false;
-  }
-
   // Recover data
-  int nVar = this->IntegrationModel->GetNumberOfIndependentVariables();
-  seedData->DeepCopy(actualSeeds->GetPointData());
-
-  vtkDataArray* initialVelocities = NULL;
-  vtkDataArray* initialIntegrationTimes = NULL;
-
-  if (actualSeeds->GetNumberOfPoints() > 0)
+  vtkDataArray* initialVelocities = nullptr;
+  vtkDataArray* initialIntegrationTimes = nullptr;
+  if (seeds->GetNumberOfPoints() > 0)
   {
     // Recover initial velocities, index 0
-    initialVelocities = vtkDataArray::SafeDownCast(
-      this->IntegrationModel->GetSeedArray(0, actualSeeds->GetPointData()));
-    if (initialVelocities == NULL)
+    initialVelocities =
+      vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(0, seedData));
+    if (!initialVelocities)
     {
       vtkErrorMacro(<< "initialVelocity is not set in particle data, "
-        "unable to initialize particles!");
+                       "unable to initialize particles!");
       return false;
     }
 
     // Recover initial integration time if any, index 1
     if (this->IntegrationModel->GetUseInitialIntegrationTime())
     {
-      initialIntegrationTimes = vtkDataArray::SafeDownCast(
-        this->IntegrationModel->GetSeedArray(1, actualSeeds->GetPointData()));
-      if (initialVelocities == NULL)
+      initialIntegrationTimes =
+        vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(1, seedData));
+      if (!initialVelocities)
       {
         vtkWarningMacro("initialIntegrationTimes is not set in particle data, "
-          "initial integration time set to zero!");
+                        "initial integration time set to zero!");
       }
     }
   }
 
   // Create one particle for each point
-  this->GenerateParticles(bounds, actualSeeds, initialVelocities,
-    initialIntegrationTimes, seedData, nVar, particles);
+  int nVar = this->IntegrationModel->GetNumberOfIndependentVariables();
+  this->GenerateParticles(
+    bounds, seeds, initialVelocities, initialIntegrationTimes, seedData, nVar, particles);
   return true;
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::GenerateParticles(
-  const vtkBoundingBox* vtkNotUsed(bounds), vtkDataSet* seeds,
-  vtkDataArray* initialVelocities, vtkDataArray* initialIntegrationTimes,
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* vtkNotUsed(bounds),
+  vtkDataSet* seeds, vtkDataArray* initialVelocities, vtkDataArray* initialIntegrationTimes,
   vtkPointData* seedData, int nVar, std::queue<vtkLagrangianParticle*>& particles)
 {
   this->ParticleCounter = 0;
+  this->IntegratedParticleCounter = 0;
+
   for (vtkIdType i = 0; i < seeds->GetNumberOfPoints(); i++)
   {
     double position[3];
     seeds->GetPoint(i, position);
-    double initialIntegrationTime = initialIntegrationTimes ?
-      initialIntegrationTimes->GetTuple1(i) : 0;
+    double initialIntegrationTime =
+      initialIntegrationTimes ? initialIntegrationTimes->GetTuple1(i) : 0;
     vtkIdType particleId = this->GetNewParticleId();
-    vtkLagrangianParticle* particle = new vtkLagrangianParticle(nVar, particleId,
-      particleId, i, initialIntegrationTime, seedData);
+    vtkLagrangianParticle* particle = new vtkLagrangianParticle(nVar, particleId, particleId, i,
+      initialIntegrationTime, seedData, this->IntegrationModel->GetNumberOfTrackedUserData());
     memcpy(particle->GetPosition(), position, 3 * sizeof(double));
     initialVelocities->GetTuple(i, particle->GetVelocity());
+    particle->SetThreadedData(this->SerialThreadedData);
     this->IntegrationModel->InitializeParticle(particle);
-    if (this->IntegrationModel->FindInLocators(particle->GetPosition()))
+    if (this->IntegrationModel->FindInLocators(particle->GetPosition(), particle))
     {
       particles.push(particle);
     }
     else
     {
-      delete particle;
+      this->DeleteParticle(particle);
     }
   }
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangianParticleTracker::GetParticleFeed(
   std::queue<vtkLagrangianParticle*>& vtkNotUsed(particleQueue))
 {
 }
 
-//---------------------------------------------------------------------------
-int vtkLagrangianParticleTracker::Integrate(vtkLagrangianParticle* particle,
-  std::queue<vtkLagrangianParticle*>& particlesQueue,
-  vtkPolyData* particlePathsOutput, vtkIdList* particlePathPointId,
-  vtkDataObject* interactionOutput)
+//------------------------------------------------------------------------------
+int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integrator,
+  vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particlesQueue,
+  vtkPolyData* particlePathsOutput, vtkPolyLine* particlePath, vtkDataObject* interactionOutput)
 {
   // Sanity check
-  if (particle == NULL)
+  if (!particle)
   {
-    vtkErrorMacro(<< "Cannot integrate NULL particle");
+    vtkErrorMacro(<< "Cannot integrate nullptr particle");
     return -1;
   }
 
-  // Set the current particle
-  this->IntegrationModel->SetCurrentParticle(particle);
-
-  // Integrate until MaximumNumberOfSteps is reached or special case stops integration
+  // Integrate until MaximumNumberOfSteps or MaximumIntegrationTime is reached or special case stops
   int integrationRes = 0;
   double stepFactor = this->StepFactor;
   double reintegrationFactor = 1;
   double& stepTimeActual = particle->GetStepTimeRef();
-  while (particle->GetNumberOfSteps() < this->MaximumNumberOfSteps)
+  while (particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
   {
-    // Update progress
-    if (particle->GetNumberOfSteps() % 100 == 0 && this->ParticleCounter > 0)
-    {
-      double progress = static_cast<double>(particle->GetId() +
-        static_cast<double>(particle->GetNumberOfSteps()) / this->MaximumNumberOfSteps) /
-        this->ParticleCounter;
-      this->UpdateProgress(progress);
-      if (this->GetAbortExecute())
-      {
-        break;
-      }
-    }
-
     // Compute step
-    double velocityMagnitude = reintegrationFactor * std::max(
-      this->MinimumVelocityMagnitude,
-      vtkMath::Norm(particle->GetVelocity()));
+    double velocityMagnitude = reintegrationFactor *
+      std::max(this->MinimumVelocityMagnitude, vtkMath::Norm(particle->GetVelocity()));
     double cellLength = this->ComputeCellLength(particle);
 
-    double stepLength    = stepFactor          * cellLength;
+    if (cellLength < 0.0)
+    {
+      // Stop integration
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_DOMAIN);
+      break;
+    }
+
+    double stepLength = stepFactor * cellLength;
     double stepLengthMin = this->StepFactorMin * cellLength;
     double stepLengthMax = this->StepFactorMax * cellLength;
-    double stepTime    = stepLength    / velocityMagnitude;
-    double stepTimeMin = stepLengthMin / velocityMagnitude;
-    double stepTimeMax = stepLengthMax / velocityMagnitude;
+    double stepTime = stepLength / (reintegrationFactor * velocityMagnitude);
+    double stepTimeMin = stepLengthMin / (reintegrationFactor * velocityMagnitude);
+    double stepTimeMax = stepLengthMax / (reintegrationFactor * velocityMagnitude);
 
     // Integrate one step
-    if (!this->ComputeNextStep(particle->GetEquationVariables(),
-      particle->GetNextEquationVariables(), particle->GetIntegrationTime(),
-      stepTime, stepTimeActual, stepTimeMin, stepTimeMax, integrationRes))
+    if (!this->ComputeNextStep(integrator, particle->GetEquationVariables(),
+          particle->GetNextEquationVariables(), particle->GetIntegrationTime(), stepTime,
+          stepTimeActual, stepTimeMin, stepTimeMax, cellLength, integrationRes, particle))
     {
       vtkErrorMacro(<< "Integration Error");
       break;
     }
 
-    bool stagnating =
-      std::abs(particle->GetPosition()[0] - particle->GetNextPosition()[0]) <
-      std::numeric_limits<double>::epsilon() &&
+    bool stagnating = std::abs(particle->GetPosition()[0] - particle->GetNextPosition()[0]) <
+        std::numeric_limits<double>::epsilon() &&
       std::abs(particle->GetPosition()[1] - particle->GetNextPosition()[1]) <
-      std::numeric_limits<double>::epsilon() &&
+        std::numeric_limits<double>::epsilon() &&
       std::abs(particle->GetPosition()[2] - particle->GetNextPosition()[2]) <
-      std::numeric_limits<double>::epsilon();
+        std::numeric_limits<double>::epsilon();
 
     // Only stagnating OUT_OF_DOMAIN are actually out of domain
-    bool outOfDomain = integrationRes ==
-      vtkInitialValueProblemSolver::OUT_OF_DOMAIN && stagnating;
+    bool outOfDomain = integrationRes == vtkInitialValueProblemSolver::OUT_OF_DOMAIN && stagnating;
 
     // Simpler Adaptive Step Reintegration code
-    if (this->AdaptiveStepReintegration)
+    if (this->AdaptiveStepReintegration &&
+      this->IntegrationModel->CheckAdaptiveStepReintegration(particle))
     {
-      double stepLengthCurr2 = vtkMath::Distance2BetweenPoints(
-        particle->GetPosition(), particle->GetNextPosition());
+      double stepLengthCurr2 =
+        vtkMath::Distance2BetweenPoints(particle->GetPosition(), particle->GetNextPosition());
       double stepLengthMax2 = stepLengthMax * stepLengthMax;
       if (stepLengthCurr2 > stepLengthMax2)
       {
         reintegrationFactor *= 2;
+        if (reintegrationFactor > MAX_REINTEGRATION_FACTOR)
+        {
+          vtkErrorMacro(<< "ReintegrationFactor is too high. Dropping particle.");
+          particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_ABORTED);
+          break;
+        }
         continue;
       }
       reintegrationFactor = 1;
@@ -1000,13 +1072,13 @@ int vtkLagrangianParticleTracker::Integrate(vtkLagrangianParticle* particle,
       unsigned int interactedSurfaceFlaxIndex;
       vtkLagrangianParticle* interactionParticle =
         this->IntegrationModel->ComputeSurfaceInteraction(
-        particle, particlesQueue, interactedSurfaceFlaxIndex, passThroughParticles);
-      if (interactionParticle != NULL)
+          particle, particlesQueue, interactedSurfaceFlaxIndex, passThroughParticles);
+      if (interactionParticle)
       {
-        this->InsertInteractionOutputPoint(interactionParticle,
-          interactedSurfaceFlaxIndex, interactionOutput);
-        delete interactionParticle;
-        interactionParticle = NULL;
+        this->InsertInteractionOutputPoint(
+          interactionParticle, interactedSurfaceFlaxIndex, interactionOutput);
+        this->DeleteParticle(interactionParticle);
+        interactionParticle = nullptr;
       }
 
       // Insert pass through interaction points
@@ -1019,23 +1091,31 @@ int vtkLagrangianParticleTracker::Integrate(vtkLagrangianParticle* particle,
         vtkLagrangianBasicIntegrationModel::PassThroughParticlesItem item =
           passThroughParticles.front();
         passThroughParticles.pop();
+
         this->InsertInteractionOutputPoint(item.second, item.first, interactionOutput);
 
         // the pass through particles needs to be deleted
-        delete item.second;
+        this->DeleteParticle(item.second);
       }
 
       // Particle has been correctly integrated and interacted, record it
       // Insert Current particle as an output point
-      this->InsertPathOutputPoint(particle, particlePathsOutput, particlePathPointId);
+
+      if (this->GenerateParticlePathsOutput)
+      {
+        this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds());
+      }
 
       // Particle has been terminated by surface
-      if (particle->GetTermination() !=
-        vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+      if (particle->GetTermination() != vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
       {
         // Insert last particle path point on surface
         particle->MoveToNextPosition();
-        this->InsertPathOutputPoint(particle, particlePathsOutput, particlePathPointId);
+
+        if (this->GenerateParticlePathsOutput)
+        {
+          this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds());
+        }
 
         // stop integration
         break;
@@ -1044,8 +1124,7 @@ int vtkLagrangianParticleTracker::Integrate(vtkLagrangianParticle* particle,
 
     if (this->IntegrationModel->CheckFreeFlightTermination(particle))
     {
-      particle->SetTermination(
-        vtkLagrangianParticle::PARTICLE_TERMINATION_FLIGHT_TERMINATED);
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_FLIGHT_TERMINATED);
       break;
     }
 
@@ -1053,26 +1132,50 @@ int vtkLagrangianParticleTracker::Integrate(vtkLagrangianParticle* particle,
     particle->MoveToNextPosition();
 
     // Compute now adaptive step
-    if (this->Integrator->IsAdaptive() || this->AdaptiveStepReintegration)
+    if (integrator->IsAdaptive() || this->AdaptiveStepReintegration)
     {
-      stepFactor = stepTime * velocityMagnitude / cellLength;
+      stepFactor = stepTime * reintegrationFactor * velocityMagnitude / cellLength;
+    }
+    if (this->MaximumNumberOfSteps > -1 &&
+      particle->GetNumberOfSteps() == this->MaximumNumberOfSteps &&
+      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+    {
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_STEPS);
+    }
+    if (this->MaximumIntegrationTime >= 0.0 &&
+      particle->GetIntegrationTime() >= this->MaximumIntegrationTime &&
+      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+    {
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_TIME);
     }
   }
-  if (particle->GetNumberOfSteps() == this->MaximumNumberOfSteps &&
-    particle->GetTermination() ==
-    vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+
+  if (this->GenerateParticlePathsOutput)
   {
-    particle->SetTermination(
-      vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_STEPS);
+    if (particlePath->GetPointIds()->GetNumberOfIds() == 1)
+    {
+      particlePath->GetPointIds()->InsertNextId(particlePath->GetPointId(0));
+    }
+
+    // Duplicate single point particle paths, to avoid degenerated lines.
+    if (particlePath->GetPointIds()->GetNumberOfIds() > 0)
+    {
+
+      // Add particle path or vertex to cell array
+      particlePathsOutput->GetLines()->InsertNextCell(particlePath);
+      this->IntegrationModel->InsertPathData(particle, particlePathsOutput->GetCellData());
+
+      // Insert data from seed data only in not yet written arrays
+      this->IntegrationModel->InsertParticleSeedData(particle, particlePathsOutput->GetCellData());
+    }
   }
-  this->IntegrationModel->SetCurrentParticle(NULL);
+
   return integrationRes;
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InsertPathOutputPoint(
-  vtkLagrangianParticle* particle, vtkPolyData* particlePathsOutput,
-  vtkIdList* particlePathPointId, bool prev)
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::InsertPathOutputPoint(vtkLagrangianParticle* particle,
+  vtkPolyData* particlePathsOutput, vtkIdList* particlePathPointId, bool prev)
 {
   // Recover structures
   vtkPoints* particlePathsPoints = particlePathsOutput->GetPoints();
@@ -1085,26 +1188,19 @@ void vtkLagrangianParticleTracker::InsertPathOutputPoint(
   particlePathPointId->InsertNextId(pointId);
 
   // Insert particle data
-  this->InsertParticleData(particle, particlePathsPointData,
-    prev ? vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_PREV :
-    vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_CURRENT);
-
-  // Add Variables data
-  this->IntegrationModel->InsertVariablesParticleData(particle,
-    particlePathsPointData, prev ?
-    vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_PREV :
-    vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_CURRENT);
+  this->IntegrationModel->InsertParticleData(particle, particlePathsPointData,
+    prev ? vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_PREV
+         : vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_CURRENT);
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InsertInteractionOutputPoint(
-  vtkLagrangianParticle* particle, unsigned int interactedSurfaceFlatIndex,
-  vtkDataObject* interactionOutput)
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::InsertInteractionOutputPoint(vtkLagrangianParticle* particle,
+  unsigned int interactedSurfaceFlatIndex, vtkDataObject* interactionOutput)
 {
   // Find the correct output
-  vtkCompositeDataSet *hdOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+  vtkCompositeDataSet* hdOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
   vtkPolyData* pdOutput = vtkPolyData::SafeDownCast(interactionOutput);
-  vtkPolyData* interactionPd = NULL;
+  vtkPolyData* interactionPd = nullptr;
   if (hdOutput)
   {
     vtkSmartPointer<vtkCompositeDataIterator> iter;
@@ -1126,7 +1222,7 @@ void vtkLagrangianParticleTracker::InsertInteractionOutputPoint(
   if (!interactionPd)
   {
     vtkErrorMacro(<< "Something went wrong with interaction output, "
-      "cannot find correct interaction output polydata");
+                     "cannot find correct interaction output polydata");
     return;
   }
 
@@ -1136,148 +1232,45 @@ void vtkLagrangianParticleTracker::InsertInteractionOutputPoint(
 
   // Fill up interaction point data
   vtkPointData* pointData = interactionPd->GetPointData();
-  this->InsertPathData(particle, pointData);
-  this->InsertInteractionData(particle, pointData);
-  this->InsertParticleData(particle, pointData,
-    vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_NEXT);
+  this->IntegrationModel->InsertPathData(particle, pointData);
+  this->IntegrationModel->InsertInteractionData(particle, pointData);
+  this->IntegrationModel->InsertParticleData(
+    particle, pointData, vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_NEXT);
 
-  // Add Variables data
-  this->IntegrationModel->InsertVariablesParticleData(particle, pointData,
-    vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_NEXT);
+  // Let models add surface interaction data from the model
+  this->IntegrationModel->InsertSurfaceInteractionData(particle, pointData);
 
   // Finally, Insert data from seed data only on not yet written arrays
-  this->InsertSeedData(particle, pointData);
+  this->IntegrationModel->InsertParticleSeedData(particle, pointData);
 }
 
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InsertSeedData(vtkLagrangianParticle* particle,
-  vtkFieldData* data)
-{
-  // Check for max number of tuples in arrays
-  vtkIdType maxTuples = 0;
-  for (int i = 0; i < data->GetNumberOfArrays(); i++)
-  {
-    maxTuples = std::max(data->GetArray(i)->GetNumberOfTuples(), maxTuples);
-  }
-
-  // Copy seed data in not yet written array only
-  // ie not yet at maxTuple
-  vtkPointData* seedData = particle->GetSeedData();
-  for (int i = 0; i < seedData->GetNumberOfArrays(); i++)
-  {
-    const char* name = seedData->GetArrayName(i);
-    vtkDataArray* arr = data->GetArray(name);
-    if (arr->GetNumberOfTuples() < maxTuples)
-    {
-      arr->InsertNextTuple(
-        seedData->GetArray(i)->GetTuple(particle->GetSeedArrayTupleIndex()));
-    }
-  }
-  // here all arrays from data should have the exact same size
-}
-
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InsertPathData(vtkLagrangianParticle* particle,
-  vtkFieldData* data)
-{
-  vtkLongLongArray::SafeDownCast(
-    data->GetArray("Id"))->InsertNextValue(particle->GetId());
-  vtkLongLongArray::SafeDownCast(
-    data->GetArray("ParentId"))
-    ->InsertNextValue(particle->GetParentId());
-  vtkLongLongArray::SafeDownCast(
-    data->GetArray("SeedId"))->InsertNextValue(particle->GetSeedId());
-  vtkIntArray::SafeDownCast(
-    data->GetArray("Termination"))->InsertNextValue(particle->GetTermination());
-}
-
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InsertInteractionData(
-  vtkLagrangianParticle* particle, vtkFieldData* data)
-{
-  vtkIntArray::SafeDownCast(
-    data->GetArray("Interaction"))->InsertNextValue(particle->GetInteraction());
-}
-
-//---------------------------------------------------------------------------
-void vtkLagrangianParticleTracker::InsertParticleData(vtkLagrangianParticle* particle,
-  vtkFieldData* data, int stepEnum)
-{
-  switch (stepEnum)
-  {
-    case vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_PREV:
-      vtkIntArray::SafeDownCast(
-        data->GetArray("StepNumber"))->InsertNextValue(particle->GetNumberOfSteps() - 1);
-      data->GetArray("ParticleVelocity")->InsertNextTuple(particle->GetPrevVelocity());
-      data->GetArray("IntegrationTime")->InsertNextTuple1(particle->GetPrevIntegrationTime());
-      break;
-    case vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_CURRENT:
-      vtkIntArray::SafeDownCast(
-        data->GetArray("StepNumber"))->InsertNextValue(particle->GetNumberOfSteps());
-      data->GetArray("ParticleVelocity")->InsertNextTuple(particle->GetVelocity());
-      data->GetArray("IntegrationTime")->InsertNextTuple1(particle->GetIntegrationTime());
-      break;
-    case vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_NEXT:
-      vtkIntArray::SafeDownCast(
-        data->GetArray("StepNumber"))->InsertNextValue(particle->GetNumberOfSteps() + 1);
-      data->GetArray("ParticleVelocity")->InsertNextTuple(particle->GetNextVelocity());
-      data->GetArray("IntegrationTime")->InsertNextTuple1(particle->GetIntegrationTime() +
-        particle->GetStepTimeRef());
-      break;
-    default:
-      break;
-  }
-}
-
-//---------------------------------------------------------------------------
-double vtkLagrangianParticleTracker::ComputeCellLength(
-  vtkLagrangianParticle* particle)
+//------------------------------------------------------------------------------
+double vtkLagrangianParticleTracker::ComputeCellLength(vtkLagrangianParticle* particle)
 {
   double cellLength = 1.0;
-  vtkDataSet* dataset = NULL;
-  vtkCell* cell = NULL;
-  bool forceLastCell = false;
-  if (this->CellLengthComputationMode == STEP_CUR_CELL_LENGTH ||
-    this->CellLengthComputationMode == STEP_CUR_CELL_VEL_DIR ||
-    this->CellLengthComputationMode == STEP_CUR_CELL_DIV_THEO)
+  vtkDataSet* dataset = nullptr;
+  vtkGenericCell* cell = particle->GetThreadedData()->GenericCell;
+  if (!cell)
   {
-    vtkIdType cellId;
-    if (this->IntegrationModel->FindInLocators(particle->GetPosition(), dataset, cellId))
-    {
-      cell = dataset->GetCell(cellId);
-    }
-    else
-    {
-      forceLastCell = true;
-    }
-  }
-  if (this->CellLengthComputationMode == STEP_LAST_CELL_LENGTH ||
-    this->CellLengthComputationMode == STEP_LAST_CELL_VEL_DIR ||
-    this->CellLengthComputationMode == STEP_LAST_CELL_DIV_THEO ||
-    forceLastCell)
-  {
-    dataset = particle->GetLastDataSet();
-    if (!dataset)
-    {
-      return cellLength;
-    }
-    cell = dataset->GetCell(particle->GetLastCellId());
-    if (!cell)
-    {
-      return cellLength;
-    }
-  }
-  if (cell == NULL)
-  {
-    vtkWarningMacro("Unsupported Cell Length Computation Mode"
-      " or could not find a cell to compute cell length with");
+    vtkErrorMacro("Could not recover a generic cell for cell length computation");
     return 1.0;
   }
 
+  vtkIdType cellId;
+  vtkAbstractCellLocator* loc;
+  double* weights;
+  if (this->IntegrationModel->FindInLocators(
+        particle->GetPosition(), particle, dataset, cellId, loc, weights))
+  {
+    dataset->GetCell(cellId, cell);
+  }
+  else
+  {
+    return -1.0; // no cell found
+  }
+
   double* vel = particle->GetVelocity();
-  if ((this->CellLengthComputationMode == STEP_CUR_CELL_VEL_DIR ||
-    this->CellLengthComputationMode == STEP_LAST_CELL_VEL_DIR) &&
-      vtkMath::Norm(vel) > 0.0)
+  if (this->CellLengthComputationMode == STEP_CUR_CELL_VEL_DIR && vtkMath::Norm(vel) > 0.0)
   {
     double velHat[3] = { vel[0], vel[1], vel[2] };
     vtkMath::Normalize(velHat);
@@ -1288,6 +1281,7 @@ double vtkLagrangianParticleTracker::ComputeCellLength(
       vtkCell* edge = cell->GetEdge(ne);
       vtkIdType e0 = edge->GetPointId(0);
       vtkIdType e1 = edge->GetPointId(1);
+
       dataset->GetPoint(e0, x0);
       dataset->GetPoint(e1, x1);
       vtkMath::Subtract(x0, x1, evect);
@@ -1296,22 +1290,20 @@ double vtkLagrangianParticleTracker::ComputeCellLength(
     }
     cellLength = tmpCellLength;
   }
-  else if ((this->CellLengthComputationMode == STEP_CUR_CELL_DIV_THEO ||
-    this->CellLengthComputationMode == STEP_LAST_CELL_DIV_THEO) &&
-      vtkMath::Norm(vel) > 0.0 && !vtkVoxel::SafeDownCast(cell))
+  else if (this->CellLengthComputationMode == STEP_CUR_CELL_DIV_THEO && vtkMath::Norm(vel) > 0.0)
   {
-    double velHat[3] = {vel[0], vel[1], vel[2]};
+    double velHat[3] = { vel[0], vel[1], vel[2] };
     vtkMath::Normalize(velHat);
     double xa = 0.0;  // cell cross-sectional area in velHat direction
     double vol = 0.0; // cell volume
     for (int nf = 0; nf < cell->GetNumberOfFaces(); ++nf)
     {
-      double norm[3];  // cell face normal
-      double centroid[3] = {0.0, 0.0, 0.0}; // cell face centroid
+      double norm[3];                         // cell face normal
+      double centroid[3] = { 0.0, 0.0, 0.0 }; // cell face centroid
       vtkCell* face = cell->GetFace(nf);
       vtkPoints* pts = face->GetPoints();
       vtkIdType nPoints = pts->GetNumberOfPoints();
-      const double area = vtkPolygon::ComputeArea(pts, nPoints, NULL, norm);
+      const double area = vtkPolygon::ComputeArea(pts, nPoints, nullptr, norm);
       const double fact = 1.0 / static_cast<double>(nPoints);
       for (int np = 0; np < nPoints; ++np)
       {
@@ -1321,8 +1313,8 @@ double vtkLagrangianParticleTracker::ComputeCellLength(
           centroid[nc] += x[nc] * fact;
         }
       }
-      xa += std::fabs(vtkMath::Dot(norm, velHat) * area) / 2.0;   // sum unsigned areas
-      vol += vtkMath::Dot(norm, centroid) * area / 3.0;           // using divergence theorem
+      xa += std::fabs(vtkMath::Dot(norm, velHat) * area) / 2.0; // sum unsigned areas
+      vol += vtkMath::Dot(norm, centroid) * area / 3.0;         // using divergence theorem
     }
     // characteristic length is cell volume / cell cross-sectional area in velocity direction
     // Absolute value of volume because of some Fluent cases where all the volumes seem negative
@@ -1335,22 +1327,20 @@ double vtkLagrangianParticleTracker::ComputeCellLength(
   return cellLength;
 }
 
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::ComputeNextStep(
-  double* xprev, double* xnext,
-  double t, double& delT, double& delTActual,
-  double minStep, double maxStep,
-  int& integrationRes)
+//------------------------------------------------------------------------------
+bool vtkLagrangianParticleTracker::ComputeNextStep(vtkInitialValueProblemSolver* integrator,
+  double* xprev, double* xnext, double t, double& delT, double& delTActual, double minStep,
+  double maxStep, double cellLength, int& integrationRes, vtkLagrangianParticle* particle)
 {
   // Check for potential manual integration
   double error;
-  if (!this->IntegrationModel->ManualIntegration(xprev, xnext, t, delT, delTActual,
-    minStep, maxStep, this->IntegrationModel->GetTolerance(), error, integrationRes))
+  if (!this->IntegrationModel->ManualIntegration(integrator, xprev, xnext, t, delT, delTActual,
+        minStep, maxStep, this->IntegrationModel->GetTolerance(), cellLength, error, integrationRes,
+        particle))
   {
     // integrate one step
-    integrationRes =
-      this->Integrator->ComputeNextStep(xprev, xnext, t, delT, delTActual,
-        minStep, maxStep, this->IntegrationModel->GetTolerance(), error);
+    integrationRes = integrator->ComputeNextStep(xprev, xnext, t, delT, delTActual, minStep,
+      maxStep, this->IntegrationModel->GetTolerance(), error, particle);
   }
 
   // Check failure cases
@@ -1365,4 +1355,11 @@ bool vtkLagrangianParticleTracker::ComputeNextStep(
     return false;
   }
   return true;
+}
+
+//------------------------------------------------------------------------------
+void vtkLagrangianParticleTracker::DeleteParticle(vtkLagrangianParticle* particle)
+{
+  this->IntegrationModel->ParticleAboutToBeDeleted(particle);
+  delete particle;
 }

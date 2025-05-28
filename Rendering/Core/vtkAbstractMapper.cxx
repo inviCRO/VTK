@@ -23,17 +23,16 @@
 #include "vtkPlanes.h"
 #include "vtkPointData.h"
 #include "vtkTimerLog.h"
+#include "vtkUnsignedCharArray.h"
 
-
-vtkCxxSetObjectMacro(vtkAbstractMapper,ClippingPlanes,vtkPlaneCollection);
-
+vtkCxxSetObjectMacro(vtkAbstractMapper, ClippingPlanes, vtkPlaneCollection);
 
 // Construct object.
 vtkAbstractMapper::vtkAbstractMapper()
 {
   this->TimeToDraw = 0.0;
-  this->LastWindow = NULL;
-  this->ClippingPlanes = NULL;
+  this->LastWindow = nullptr;
+  this->ClippingPlanes = nullptr;
   this->Timer = vtkTimerLog::New();
   this->SetNumberOfOutputPorts(0);
   this->SetNumberOfInputPorts(1);
@@ -55,18 +54,18 @@ vtkMTimeType vtkAbstractMapper::GetMTime()
   vtkMTimeType mTime = this->Superclass::GetMTime();
   vtkMTimeType clipMTime;
 
-  if ( this->ClippingPlanes != NULL )
+  if (this->ClippingPlanes != nullptr)
   {
     clipMTime = this->ClippingPlanes->GetMTime();
-    mTime = ( clipMTime > mTime ? clipMTime : mTime );
+    mTime = (clipMTime > mTime ? clipMTime : mTime);
   }
 
   return mTime;
 }
 
-void vtkAbstractMapper::AddClippingPlane(vtkPlane *plane)
+void vtkAbstractMapper::AddClippingPlane(vtkPlane* plane)
 {
-  if (this->ClippingPlanes == NULL)
+  if (this->ClippingPlanes == nullptr)
   {
     this->ClippingPlanes = vtkPlaneCollection::New();
     this->ClippingPlanes->Register(this);
@@ -77,9 +76,9 @@ void vtkAbstractMapper::AddClippingPlane(vtkPlane *plane)
   this->Modified();
 }
 
-void vtkAbstractMapper::RemoveClippingPlane(vtkPlane *plane)
+void vtkAbstractMapper::RemoveClippingPlane(vtkPlane* plane)
 {
-  if (this->ClippingPlanes == NULL)
+  if (this->ClippingPlanes == nullptr)
   {
     vtkErrorMacro(<< "Cannot remove clipping plane: mapper has none");
     return;
@@ -90,15 +89,15 @@ void vtkAbstractMapper::RemoveClippingPlane(vtkPlane *plane)
 
 void vtkAbstractMapper::RemoveAllClippingPlanes()
 {
-  if ( this->ClippingPlanes )
+  if (this->ClippingPlanes)
   {
     this->ClippingPlanes->RemoveAllItems();
   }
 }
 
-void vtkAbstractMapper::SetClippingPlanes(vtkPlanes *planes)
+void vtkAbstractMapper::SetClippingPlanes(vtkPlanes* planes)
 {
-  vtkPlane *plane;
+  vtkPlane* plane;
   if (!planes)
   {
     return;
@@ -107,7 +106,7 @@ void vtkAbstractMapper::SetClippingPlanes(vtkPlanes *planes)
   int numPlanes = planes->GetNumberOfPlanes();
 
   this->RemoveAllClippingPlanes();
-  for (int i=0; i<numPlanes && i<6; i++)
+  for (int i = 0; i < numPlanes && i < 6; i++)
   {
     plane = vtkPlane::New();
     planes->GetPlane(i, plane);
@@ -116,39 +115,66 @@ void vtkAbstractMapper::SetClippingPlanes(vtkPlanes *planes)
   }
 }
 
-vtkDataArray* vtkAbstractMapper::GetScalars(vtkDataSet *input,
-                                            int scalarMode,
-                                            int arrayAccessMode,
-                                            int arrayId,
-                                            const char *arrayName,
-                                            int& cellFlag)
+//------------------------------------------------------------------------------
+vtkUnsignedCharArray* vtkAbstractMapper::GetGhostArray(
+  vtkDataSet* input, int scalarMode, unsigned char& ghostsToSkip)
 {
-  vtkAbstractArray* abstractScalars =
-    vtkAbstractMapper::GetAbstractScalars(input, scalarMode, arrayAccessMode, arrayId, arrayName, cellFlag);
+  switch (scalarMode)
+  {
+    case VTK_SCALAR_MODE_DEFAULT:
+    {
+      vtkUnsignedCharArray* ghosts = input->GetPointData()->GetGhostArray();
+      if (!ghosts)
+      {
+        ghostsToSkip = input->GetCellData()->GetGhostsToSkip();
+        return input->GetCellData()->GetGhostArray();
+      }
+      ghostsToSkip = input->GetPointData()->GetGhostsToSkip();
+      return ghosts;
+    }
+    case VTK_SCALAR_MODE_USE_POINT_DATA:
+    case VTK_SCALAR_MODE_USE_POINT_FIELD_DATA:
+      ghostsToSkip = input->GetPointData()->GetGhostsToSkip();
+      return input->GetPointData()->GetGhostArray();
+    case VTK_SCALAR_MODE_USE_CELL_DATA:
+    case VTK_SCALAR_MODE_USE_CELL_FIELD_DATA:
+      ghostsToSkip = input->GetCellData()->GetGhostsToSkip();
+      return input->GetCellData()->GetGhostArray();
+    case VTK_SCALAR_MODE_USE_FIELD_DATA:
+      ghostsToSkip = input->GetFieldData()->GetGhostsToSkip();
+      return input->GetFieldData()->GetGhostArray();
+    default:
+      return nullptr;
+  }
+}
+
+//------------------------------------------------------------------------------
+vtkDataArray* vtkAbstractMapper::GetScalars(vtkDataSet* input, int scalarMode, int arrayAccessMode,
+  int arrayId, const char* arrayName, int& cellFlag)
+{
+  vtkAbstractArray* abstractScalars = vtkAbstractMapper::GetAbstractScalars(
+    input, scalarMode, arrayAccessMode, arrayId, arrayName, cellFlag);
   vtkDataArray* scalars = vtkArrayDownCast<vtkDataArray>(abstractScalars);
   return scalars;
 }
 
-vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet *input,
-                                                        int scalarMode,
-                                                        int arrayAccessMode,
-                                                        int arrayId,
-                                                        const char *arrayName,
-                                                        int& cellFlag)
+//------------------------------------------------------------------------------
+vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet* input, int scalarMode,
+  int arrayAccessMode, int arrayId, const char* arrayName, int& cellFlag)
 {
-  vtkAbstractArray *scalars=NULL;
-  vtkPointData *pd;
-  vtkCellData *cd;
-  vtkFieldData *fd;
+  vtkAbstractArray* scalars = nullptr;
+  vtkPointData* pd;
+  vtkCellData* cd;
+  vtkFieldData* fd;
 
   // make sure we have an input
-  if ( !input )
+  if (!input)
   {
-    return NULL;
+    return nullptr;
   }
 
   // get and scalar data according to scalar mode
-  if ( scalarMode == VTK_SCALAR_MODE_DEFAULT )
+  if (scalarMode == VTK_SCALAR_MODE_DEFAULT)
   {
     scalars = input->GetPointData()->GetScalars();
     cellFlag = 0;
@@ -158,17 +184,17 @@ vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet *input,
       cellFlag = 1;
     }
   }
-  else if ( scalarMode == VTK_SCALAR_MODE_USE_POINT_DATA )
+  else if (scalarMode == VTK_SCALAR_MODE_USE_POINT_DATA)
   {
     scalars = input->GetPointData()->GetScalars();
     cellFlag = 0;
   }
-  else if ( scalarMode == VTK_SCALAR_MODE_USE_CELL_DATA )
+  else if (scalarMode == VTK_SCALAR_MODE_USE_CELL_DATA)
   {
     scalars = input->GetCellData()->GetScalars();
     cellFlag = 1;
   }
-  else if ( scalarMode == VTK_SCALAR_MODE_USE_POINT_FIELD_DATA )
+  else if (scalarMode == VTK_SCALAR_MODE_USE_POINT_FIELD_DATA)
   {
     pd = input->GetPointData();
     if (arrayAccessMode == VTK_GET_ARRAY_BY_ID)
@@ -181,7 +207,7 @@ vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet *input,
     }
     cellFlag = 0;
   }
-  else if ( scalarMode == VTK_SCALAR_MODE_USE_CELL_FIELD_DATA )
+  else if (scalarMode == VTK_SCALAR_MODE_USE_CELL_FIELD_DATA)
   {
     cd = input->GetCellData();
     if (arrayAccessMode == VTK_GET_ARRAY_BY_ID)
@@ -194,7 +220,7 @@ vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet *input,
     }
     cellFlag = 1;
   }
-  else if ( scalarMode == VTK_SCALAR_MODE_USE_FIELD_DATA )
+  else if (scalarMode == VTK_SCALAR_MODE_USE_FIELD_DATA)
   {
     fd = input->GetFieldData();
     if (arrayAccessMode == VTK_GET_ARRAY_BY_ID)
@@ -211,23 +237,22 @@ vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet *input,
   return scalars;
 }
 
-
 // Shallow copy of vtkProp.
-void vtkAbstractMapper::ShallowCopy(vtkAbstractMapper *mapper)
+void vtkAbstractMapper::ShallowCopy(vtkAbstractMapper* mapper)
 {
-  this->SetClippingPlanes( mapper->GetClippingPlanes() );
+  this->SetClippingPlanes(mapper->GetClippingPlanes());
 }
 
 void vtkAbstractMapper::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "TimeToDraw: " << this->TimeToDraw << "\n";
 
-  if ( this->ClippingPlanes )
+  if (this->ClippingPlanes)
   {
     os << indent << "ClippingPlanes:\n";
-    this->ClippingPlanes->PrintSelf(os,indent.GetNextIndent());
+    this->ClippingPlanes->PrintSelf(os, indent.GetNextIndent());
   }
   else
   {
@@ -235,4 +260,14 @@ void vtkAbstractMapper::PrintSelf(ostream& os, vtkIndent indent)
   }
 }
 
+int vtkAbstractMapper::GetNumberOfClippingPlanes()
+{
+  int n = 0;
 
+  if (this->ClippingPlanes)
+  {
+    n = this->ClippingPlanes->GetNumberOfItems();
+  }
+
+  return n;
+}

@@ -6,14 +6,13 @@
 /* Work-around CMake dependency scanning limitation.  This must
    duplicate the above list of headers.  */
 #if 0
-#include "MD5.h.in"
+#  include "MD5.h.in"
 #endif
 
 #include <stddef.h> /* size_t */
+#include <stdint.h> /* uintptr_t */
 #include <stdlib.h> /* malloc, free */
 #include <string.h> /* memcpy, strlen */
-
-/*--------------------------------------------------------------------------*/
 
 /* This MD5 implementation has been taken from a third party.  Slight
    modifications to the arrangement of the code have been made to put
@@ -21,8 +20,8 @@
    implementation file.  */
 
 #if defined(__clang__) && !defined(__INTEL_COMPILER)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wcast-align"
 #endif
 
 /*
@@ -100,9 +99,9 @@ typedef struct md5_state_s
 
 #undef BYTE_ORDER /* 1 = big-endian, -1 = little-endian, 0 = unknown */
 #ifdef ARCH_IS_BIG_ENDIAN
-#define BYTE_ORDER (ARCH_IS_BIG_ENDIAN ? 1 : -1)
+#  define BYTE_ORDER (ARCH_IS_BIG_ENDIAN ? 1 : -1)
 #else
-#define BYTE_ORDER 0
+#  define BYTE_ORDER 0
 #endif
 
 #define T_MASK ((md5_word_t)~0)
@@ -173,8 +172,10 @@ typedef struct md5_state_s
 
 static void md5_process(md5_state_t* pms, const md5_byte_t* data /*[64]*/)
 {
-  md5_word_t a = pms->abcd[0], b = pms->abcd[1], c = pms->abcd[2],
-             d = pms->abcd[3];
+  md5_word_t a = pms->abcd[0];
+  md5_word_t b = pms->abcd[1];
+  md5_word_t c = pms->abcd[2];
+  md5_word_t d = pms->abcd[3];
   md5_word_t t;
 #if BYTE_ORDER > 0
   /* Define storage only for big-endian CPUs. */
@@ -202,7 +203,7 @@ static void md5_process(md5_state_t* pms, const md5_byte_t* data /*[64]*/)
        * On little-endian machines, we can process properly aligned
        * data without copying it.
        */
-      if (!((data - (const md5_byte_t*)0) & 3)) {
+      if (!((uintptr_t)data & 3)) {
         /* data are properly aligned */
         X = (const md5_word_t*)data;
       } else {
@@ -224,14 +225,15 @@ static void md5_process(md5_state_t* pms, const md5_byte_t* data /*[64]*/)
       const md5_byte_t* xp = data;
       int i;
 
-#if BYTE_ORDER == 0
+#  if BYTE_ORDER == 0
       X = xbuf; /* (dynamic only) */
-#else
-#define xbuf X /* (static only) */
-#endif
-      for (i = 0; i < 16; ++i, xp += 4)
+#  else
+#    define xbuf X /* (static only) */
+#  endif
+      for (i = 0; i < 16; ++i, xp += 4) {
         xbuf[i] =
           (md5_word_t)(xp[0] + (xp[1] << 8) + (xp[2] << 16) + (xp[3] << 24));
+      }
     }
 #endif
   }
@@ -369,34 +371,39 @@ static void md5_append(md5_state_t* pms, const md5_byte_t* data, size_t nbytes)
   size_t offset = (pms->count[0] >> 3) & 63;
   md5_word_t nbits = (md5_word_t)(nbytes << 3);
 
-  if (nbytes <= 0)
+  if (nbytes <= 0) {
     return;
+  }
 
   /* Update the message length. */
   pms->count[1] += (md5_word_t)(nbytes >> 29);
   pms->count[0] += nbits;
-  if (pms->count[0] < nbits)
+  if (pms->count[0] < nbits) {
     pms->count[1]++;
+  }
 
   /* Process an initial partial block. */
   if (offset) {
     size_t copy = (offset + nbytes > 64 ? 64 - offset : nbytes);
 
     memcpy(pms->buf + offset, p, copy);
-    if (offset + copy < 64)
+    if (offset + copy < 64) {
       return;
+    }
     p += copy;
     left -= copy;
     md5_process(pms, pms->buf);
   }
 
   /* Process full blocks. */
-  for (; left >= 64; p += 64, left -= 64)
+  for (; left >= 64; p += 64, left -= 64) {
     md5_process(pms, p);
+  }
 
   /* Process a final partial block. */
-  if (left)
+  if (left) {
     memcpy(pms->buf, p, left);
+  }
 }
 
 /* Finish the message and return the digest. */
@@ -411,28 +418,28 @@ static void md5_finish(md5_state_t* pms, md5_byte_t digest[16])
   int i;
 
   /* Save the length before padding. */
-  for (i = 0; i < 8; ++i)
+  for (i = 0; i < 8; ++i) {
     data[i] = (md5_byte_t)(pms->count[i >> 2] >> ((i & 3) << 3));
+  }
   /* Pad to 56 bytes mod 64. */
   md5_append(pms, pad, ((55 - (pms->count[0] >> 3)) & 63) + 1);
   /* Append the length. */
   md5_append(pms, data, 8);
-  for (i = 0; i < 16; ++i)
+  for (i = 0; i < 16; ++i) {
     digest[i] = (md5_byte_t)(pms->abcd[i >> 2] >> ((i & 3) << 3));
+  }
 }
 
 #if defined(__clang__) && !defined(__INTEL_COMPILER)
-#pragma clang diagnostic pop
+#  pragma clang diagnostic pop
 #endif
 
-/*--------------------------------------------------------------------------*/
 /* Wrap up the MD5 state in our opaque structure.  */
 struct kwsysMD5_s
 {
   md5_state_t md5_state;
 };
 
-/*--------------------------------------------------------------------------*/
 kwsysMD5* kwsysMD5_New(void)
 {
   /* Allocate a process control structure.  */
@@ -443,7 +450,6 @@ kwsysMD5* kwsysMD5_New(void)
   return md5;
 }
 
-/*--------------------------------------------------------------------------*/
 void kwsysMD5_Delete(kwsysMD5* md5)
 {
   /* Make sure we have an instance.  */
@@ -455,13 +461,11 @@ void kwsysMD5_Delete(kwsysMD5* md5)
   free(md5);
 }
 
-/*--------------------------------------------------------------------------*/
 void kwsysMD5_Initialize(kwsysMD5* md5)
 {
   md5_init(&md5->md5_state);
 }
 
-/*--------------------------------------------------------------------------*/
 void kwsysMD5_Append(kwsysMD5* md5, unsigned char const* data, int length)
 {
   size_t dlen;
@@ -473,13 +477,11 @@ void kwsysMD5_Append(kwsysMD5* md5, unsigned char const* data, int length)
   md5_append(&md5->md5_state, (md5_byte_t const*)data, dlen);
 }
 
-/*--------------------------------------------------------------------------*/
 void kwsysMD5_Finalize(kwsysMD5* md5, unsigned char digest[16])
 {
   md5_finish(&md5->md5_state, (md5_byte_t*)digest);
 }
 
-/*--------------------------------------------------------------------------*/
 void kwsysMD5_FinalizeHex(kwsysMD5* md5, char buffer[32])
 {
   unsigned char digest[16];
@@ -487,7 +489,6 @@ void kwsysMD5_FinalizeHex(kwsysMD5* md5, char buffer[32])
   kwsysMD5_DigestToHex(digest, buffer);
 }
 
-/*--------------------------------------------------------------------------*/
 void kwsysMD5_DigestToHex(unsigned char const digest[16], char buffer[32])
 {
   /* Map from 4-bit index to hexadecimal representation.  */

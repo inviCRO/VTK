@@ -18,64 +18,63 @@
  *
  * vtkImageSinusoidSource just produces images with pixel values determined
  * by a sinusoid.
-*/
+ */
 
 #ifndef vtkImageSinusoidSource_h
 #define vtkImageSinusoidSource_h
 
-#include "vtkImagingSourcesModule.h" // For export macro
 #include "vtkImageAlgorithm.h"
+#include "vtkImagingSourcesModule.h" // For export macro
 
 class VTKIMAGINGSOURCES_EXPORT vtkImageSinusoidSource : public vtkImageAlgorithm
 {
 public:
-  static vtkImageSinusoidSource *New();
-  vtkTypeMacro(vtkImageSinusoidSource,vtkImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  static vtkImageSinusoidSource* New();
+  vtkTypeMacro(vtkImageSinusoidSource, vtkImageAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Set/Get the extent of the whole output image.
    */
-  void SetWholeExtent(int xMinx, int xMax, int yMin, int yMax,
-                      int zMin, int zMax);
+  void SetWholeExtent(int xMinx, int xMax, int yMin, int yMax, int zMin, int zMax);
 
-  //@{
+  ///@{
   /**
    * Set/Get the direction vector which determines the sinusoidal
    * orientation. The magnitude is ignored.
    */
-  void SetDirection(double,double,double);
+  void SetDirection(double, double, double);
   void SetDirection(double dir[3]);
   vtkGetVector3Macro(Direction, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the period of the sinusoid in pixels.
    */
   vtkSetMacro(Period, double);
   vtkGetMacro(Period, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the phase: 0->2Pi.  0 => Cosine, pi/2 => Sine.
    */
   vtkSetMacro(Phase, double);
   vtkGetMacro(Phase, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the magnitude of the sinusoid.
    */
   vtkSetMacro(Amplitude, double);
   vtkGetMacro(Amplitude, double);
-  //@}
+  ///@}
 
 protected:
   vtkImageSinusoidSource();
-  ~vtkImageSinusoidSource()VTK_OVERRIDE {}
+  ~vtkImageSinusoidSource() override = default;
 
   int WholeExtent[6];
   double Direction[3];
@@ -83,15 +82,12 @@ protected:
   double Phase;
   double Amplitude;
 
-  int RequestInformation (vtkInformation *, vtkInformationVector**, vtkInformationVector *) VTK_OVERRIDE;
-  void ExecuteDataWithInformation(vtkDataObject *data, vtkInformation* outInfo) VTK_OVERRIDE;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  void ExecuteDataWithInformation(vtkDataObject* data, vtkInformation* outInfo) override;
+
 private:
-  vtkImageSinusoidSource(const vtkImageSinusoidSource&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageSinusoidSource&) VTK_DELETE_FUNCTION;
+  vtkImageSinusoidSource(const vtkImageSinusoidSource&) = delete;
+  void operator=(const vtkImageSinusoidSource&) = delete;
 };
 
-
 #endif
-
-
-

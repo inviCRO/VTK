@@ -28,7 +28,7 @@ script by simply running:
 
 Here is a link to the script as it appears today: [vtk_common.cmake][].
 
-[vtk_common.cmake]: https://gitlab.kitware.com/vtk/vtk/tree/dashboard/vtk_common.cmake
+[vtk_common.cmake]: https://gitlab.kitware.com/vtk/vtk/-/tree/dashboard/vtk_common.cmake
 
 Changing the Dashboard Scripts
 ------------------------------
@@ -42,4 +42,7 @@ Make your edits, test it, and commit the result.  Create a patch file with:
 
     $ git format-patch origin/dashboard
 
-And email the results to the developer's mailing list.
+And post the results in the [Development][] category in the [VTK Discourse][] forum.
+
+[Development]: https://discourse.vtk.org/c/development
+[VTK Discourse]: https://discourse.vtk.org/

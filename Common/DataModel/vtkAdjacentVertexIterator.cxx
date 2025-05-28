@@ -20,21 +20,21 @@
 
 #include "vtkAdjacentVertexIterator.h"
 
-#include "vtkObjectFactory.h"
 #include "vtkGraph.h"
+#include "vtkObjectFactory.h"
 
 vtkCxxSetObjectMacro(vtkAdjacentVertexIterator, Graph, vtkGraph);
 vtkStandardNewMacro(vtkAdjacentVertexIterator);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAdjacentVertexIterator::vtkAdjacentVertexIterator()
 {
   this->Vertex = 0;
-  this->Current = 0;
-  this->End = 0;
-  this->Graph = 0;
+  this->Current = nullptr;
+  this->End = nullptr;
+  this->Graph = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAdjacentVertexIterator::~vtkAdjacentVertexIterator()
 {
   if (this->Graph)
@@ -43,8 +43,8 @@ vtkAdjacentVertexIterator::~vtkAdjacentVertexIterator()
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkAdjacentVertexIterator::Initialize(vtkGraph *graph, vtkIdType v)
+//------------------------------------------------------------------------------
+void vtkAdjacentVertexIterator::Initialize(vtkGraph* graph, vtkIdType v)
 {
   this->SetGraph(graph);
   this->Vertex = v;
@@ -53,10 +53,10 @@ void vtkAdjacentVertexIterator::Initialize(vtkGraph *graph, vtkIdType v)
   this->End = this->Current + nedges;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAdjacentVertexIterator::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
   os << indent << "Graph: " << (this->Graph ? "" : "(null)") << endl;
   if (this->Graph)
   {

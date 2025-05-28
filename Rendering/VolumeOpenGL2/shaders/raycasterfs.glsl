@@ -22,8 +22,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 /// 3D texture coordinates form vertex shader
-varying vec3 ip_textureCoords;
-varying vec3 ip_vertexPos;
+in vec3 ip_textureCoords;
+in vec3 ip_vertexPos;
 
 //////////////////////////////////////////////////////////////////////////////
 ///
@@ -38,17 +38,28 @@ vec4 g_fragColor = vec4(0.0);
 /// Uniforms, attributes, and globals
 ///
 //////////////////////////////////////////////////////////////////////////////
-vec3 g_dataPos;
 vec3 g_dirStep;
+float g_lengthStep = 0.0;
 vec4 g_srcColor;
 vec4 g_eyePosObj;
 bool g_exit;
 bool g_skip;
 float g_currentT;
 float g_terminatePointMax;
+uniform float fuseCoef;
+// These describe the entire ray for this scene, not just the current depth
+// peeling segment. These are texture coordinates.
+vec3 g_rayOrigin; // Entry point of volume or clip point
+vec3 g_rayTermination; // Termination point (depth, clip, etc)
 
-uniform vec4 in_volume_scale;
-uniform vec4 in_volume_bias;
+// These describe the current segment. If not peeling, they are initialized to
+// the ray endpoints.
+vec3 g_dataPos;
+vec3 g_terminatePos;
+
+float g_jitterValue = 0.0;
+
+//VTK::CustomUniforms::Dec
 
 //VTK::Output::Dec
 
@@ -60,15 +71,73 @@ uniform vec4 in_volume_bias;
 
 //VTK::Clipping::Dec
 
+#define EPSILON 0.001
+
+// Computes the intersection between a ray and a box
+// The box should be axis aligned so we only give two arguments
+struct Hit
+{
+  float tmin;
+  float tmax;
+};
+
+struct Ray
+{
+  vec3 origin;
+  vec3 dir;
+  vec3 invDir;
+};
+
+bool BBoxIntersect(const vec3 boxMin, const vec3 boxMax, const Ray r, out Hit hit)
+{
+  vec3 tbot = r.invDir * (boxMin - r.origin);
+  vec3 ttop = r.invDir * (boxMax - r.origin);
+  vec3 tmin = min(ttop, tbot);
+  vec3 tmax = max(ttop, tbot);
+  vec2 t = max(tmin.xx, tmin.yz);
+  float t0 = max(t.x, t.y);
+  t = min(tmax.xx, tmax.yz);
+  float t1 = min(t.x, t.y);
+  hit.tmin = t0;
+  hit.tmax = t1;
+  return t1 > max(t0, 0.0);
+}
+
+// As BBoxIntersect requires the inverse of the ray coords,
+// this function is used to avoid numerical issues
+void safe_0_vector(inout Ray ray)
+{
+  if(abs(ray.dir.x) < EPSILON) ray.dir.x = sign(ray.dir.x) * EPSILON;
+  if(abs(ray.dir.y) < EPSILON) ray.dir.y = sign(ray.dir.y) * EPSILON;
+  if(abs(ray.dir.z) < EPSILON) ray.dir.z = sign(ray.dir.z) * EPSILON;
+}
+
+// the phase function should be normalized to 4pi for compatibility with surface rendering
+//VTK::PhaseFunction::Dec
+
+//VTK::ComputeColor::Unif
+
 //VTK::Shading::Dec
 
 //VTK::BinaryMask::Dec
 
 //VTK::CompositeMask::Dec
 
+//VTK::GradientCache::Dec
+
+//VTK::Transfer2D::Dec
+
+//VTK::ComputeGradientOpacity1D::Dec
+
 //VTK::ComputeOpacity::Dec
 
+//VTK::ComputeRGBA2DWithGradient::Dec
+
 //VTK::ComputeGradient::Dec
+
+//VTK::ComputeDensityGradient::Dec
+
+//VTK::ComputeVolumetricShadow::Dec
 
 //VTK::ComputeLighting::Dec
 
@@ -82,10 +151,6 @@ uniform vec4 in_volume_bias;
 
 //VTK::DepthPeeling::Dec
 
-/// We support only 8 clipping planes for now
-/// The first value is the size of the data array for clipping
-/// planes (origin, normal)
-uniform float in_clippingPlanes[49];
 uniform float in_scale;
 uniform float in_bias;
 
@@ -129,6 +194,49 @@ vec4 NDCToWindow(const float xNDC, const float yNDC, const float zNDC)
   return WinCoord;
 }
 
+/**
+ * Clamps the texture coordinate vector @a pos to a new position in the set
+ * { start + i * step }, where i is an integer. If @a ceiling
+ * is true, the sample located further in the direction of @a step is used,
+ * otherwise the sample location closer to the eye is used.
+ * This function assumes both start and pos already have jittering applied.
+ */
+vec3 ClampToSampleLocation(vec3 start, vec3 step, vec3 pos, bool ceiling)
+{
+  vec3 offset = pos - start;
+  float stepLength = length(step);
+
+  // Scalar projection of offset on step:
+  float dist = dot(offset, step / stepLength);
+  if (dist < 0.) // Don't move before the start position:
+  {
+    return start;
+  }
+
+  // Number of steps
+  float steps = dist / stepLength;
+
+  // If we're reeaaaaallly close, just round -- it's likely just numerical noise
+  // and the value should be considered exact.
+  if (abs(mod(steps, 1.)) > 1e-5)
+  {
+    if (ceiling)
+    {
+      steps = ceil(steps);
+    }
+    else
+    {
+      steps = floor(steps);
+    }
+  }
+  else
+  {
+    steps = floor(steps + 0.5);
+  }
+
+  return start + steps * step;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 ///
 /// Ray-casting
@@ -151,15 +259,19 @@ void initializeRayCast()
 
   //VTK::Base::Init
 
-  //VTK::Terminate::Init
-
   //VTK::Cropping::Init
+
+  //VTK::Terminate::Init
 
   //VTK::Clipping::Init
 
   //VTK::RenderToImage::Init
 
   //VTK::DepthPass::Init
+
+  //VTK::Matrices::Init
+
+  g_jitterValue = jitterValue;
 }
 
 /**
@@ -173,6 +285,8 @@ vec4 castRay(const float zStart, const float zEnd)
 {
   //VTK::DepthPeeling::Ray::Init
 
+  //VTK::Clipping::Impl
+
   //VTK::DepthPeeling::Ray::PathCheck
 
   //VTK::Shading::Init
@@ -184,11 +298,11 @@ vec4 castRay(const float zStart, const float zEnd)
 
     //VTK::Cropping::Impl
 
-    //VTK::Clipping::Impl
-
     //VTK::BinaryMask::Impl
 
     //VTK::CompositeMask::Impl
+
+    //VTK::PreComputeGradients::Impl
 
     //VTK::Shading::Impl
 
@@ -225,6 +339,7 @@ void finalizeRayCast()
   g_fragColor.r = g_fragColor.r * in_scale + in_bias * g_fragColor.a;
   g_fragColor.g = g_fragColor.g * in_scale + in_bias * g_fragColor.a;
   g_fragColor.b = g_fragColor.b * in_scale + in_bias * g_fragColor.a;
+  g_fragColor.a *= fuseCoef;
   gl_FragData[0] = g_fragColor;
 
   //VTK::RenderToImage::Exit

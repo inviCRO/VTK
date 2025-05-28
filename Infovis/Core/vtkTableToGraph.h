@@ -61,13 +61,13 @@
  * the distinguishing value, but as a vtkVariant holding the raw value instead
  * of being converted to a string. The "ids" column is set as the vertex pedigree
  * ID attribute.
-*/
+ */
 
 #ifndef vtkTableToGraph_h
 #define vtkTableToGraph_h
 
-#include "vtkInfovisCoreModule.h" // For export macro
 #include "vtkGraphAlgorithm.h"
+#include "vtkInfovisCoreModule.h" // For export macro
 
 class vtkBitArray;
 class vtkMutableDirectedGraph;
@@ -78,14 +78,14 @@ class VTKINFOVISCORE_EXPORT vtkTableToGraph : public vtkGraphAlgorithm
 {
 public:
   static vtkTableToGraph* New();
-  vtkTypeMacro(vtkTableToGraph,vtkGraphAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkTableToGraph, vtkGraphAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Add a vertex to the link graph.  Specify the column name, the domain name
    * for the column, and whether the column is hidden.
    */
-  void AddLinkVertex(const char* column, const char* domain = 0, int hidden = 0);
+  void AddLinkVertex(const char* column, const char* domain = nullptr, int hidden = 0);
 
   /**
    * Clear the link graph vertices.  This also clears all edges.
@@ -102,33 +102,34 @@ public:
    */
   void ClearLinkEdges();
 
-  //@{
+  ///@{
   /**
    * The graph describing how to link the columns in the table.
    */
   vtkGetObjectMacro(LinkGraph, vtkMutableDirectedGraph);
   void SetLinkGraph(vtkMutableDirectedGraph* g);
-  //@}
+  ///@}
 
   /**
    * Links the columns in a specific order.
    * This creates a simple path as the link graph.
    */
-  void LinkColumnPath(vtkStringArray* column, vtkStringArray* domain = 0, vtkBitArray* hidden = 0);
+  void LinkColumnPath(
+    vtkStringArray* column, vtkStringArray* domain = nullptr, vtkBitArray* hidden = nullptr);
 
-  //@{
+  ///@{
   /**
    * Specify the directedness of the output graph.
    */
   vtkSetMacro(Directed, bool);
   vtkGetMacro(Directed, bool);
   vtkBooleanMacro(Directed, bool);
-  //@}
+  ///@}
 
   /**
    * Get the current modified time.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
   /**
    * A convenience method for setting the vertex table input.  This
@@ -141,33 +142,26 @@ public:
 
 protected:
   vtkTableToGraph();
-  ~vtkTableToGraph() VTK_OVERRIDE;
+  ~vtkTableToGraph() override;
 
   /**
    * Validate that the link graph is in the appropriate format.
    */
   int ValidateLinkGraph();
 
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
-  int RequestData(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int RequestDataObject(
-    vtkInformation*,
-    vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
+  int RequestDataObject(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   bool Directed;
   vtkMutableDirectedGraph* LinkGraph;
   vtkStringArray* VertexTableDomains;
 
 private:
-  vtkTableToGraph(const vtkTableToGraph&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTableToGraph&) VTK_DELETE_FUNCTION;
+  vtkTableToGraph(const vtkTableToGraph&) = delete;
+  void operator=(const vtkTableToGraph&) = delete;
 };
 
 #endif
-

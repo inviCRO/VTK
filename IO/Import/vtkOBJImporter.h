@@ -18,15 +18,15 @@
  *                   Allen Tannenbaum (SUNY Stonybrook), Patricio Vela (Georgia Tech)
  * @sa
  *  vtkImporter
-*/
+ */
 
 #ifndef vtkOBJImporter_h
 #define vtkOBJImporter_h
 
 #include "vtkIOImportModule.h" // For export macro
-#include <string> // for string
-#include "vtkSmartPointer.h" // for ivars
 #include "vtkImporter.h"
+#include "vtkSmartPointer.h" // for ivars
+#include <string>            // for string
 
 class vtkRenderWindow;
 class vtkRenderer;
@@ -59,22 +59,27 @@ class vtkOBJPolyDataProcessor;
 class VTKIOIMPORT_EXPORT vtkOBJImporter : public vtkImporter
 {
 public:
-  static vtkOBJImporter *New();
+  static vtkOBJImporter* New();
 
-  vtkTypeMacro(vtkOBJImporter,vtkImporter);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkOBJImporter, vtkImporter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Specify the name of the file to read.
    */
-  void SetFileName(const char* arg);
-  void SetFileNameMTL(const char* arg);
-  void SetTexturePath(const char* path);
-  const char* GetFileName() const;
-  const char* GetFileNameMTL() const;
-  const char* GetTexturePath() const;
-  //@}
+  void SetFileName(VTK_FILEPATH const char* arg);
+  void SetFileNameMTL(VTK_FILEPATH const char* arg);
+  void SetTexturePath(VTK_FILEPATH const char* path);
+  VTK_FILEPATH const char* GetFileName() const;
+  VTK_FILEPATH const char* GetFileNameMTL() const;
+  VTK_FILEPATH const char* GetTexturePath() const;
+  ///@}
+
+  /**
+   * Get a printable string describing all outputs
+   */
+  std::string GetOutputsDescription() override;
 
   /**
    * Get a string describing an output
@@ -83,20 +88,17 @@ public:
 
 protected:
   vtkOBJImporter();
-  ~vtkOBJImporter() VTK_OVERRIDE;
+  ~vtkOBJImporter() override;
 
-  int  ImportBegin() VTK_OVERRIDE /*override*/;
-  void ImportEnd () VTK_OVERRIDE /*override*/;
-  void ReadData() VTK_OVERRIDE /* override */;
+  int ImportBegin() override /*override*/;
+  void ImportEnd() override /*override*/;
+  void ReadData() override /* override */;
 
-  vtkSmartPointer<vtkOBJPolyDataProcessor>   Impl;
+  vtkSmartPointer<vtkOBJPolyDataProcessor> Impl;
 
 private:
-  vtkOBJImporter(const vtkOBJImporter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkOBJImporter&) VTK_DELETE_FUNCTION;
+  vtkOBJImporter(const vtkOBJImporter&) = delete;
+  void operator=(const vtkOBJImporter&) = delete;
 };
 
-
-
 #endif
-// VTK-HeaderTest-Exclude: vtkOBJImporter.h

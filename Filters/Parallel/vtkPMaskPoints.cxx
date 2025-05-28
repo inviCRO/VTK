@@ -14,17 +14,21 @@
 =========================================================================*/
 #include "vtkPMaskPoints.h"
 
+#include "vtkCommunicator.h"
 #include "vtkDummyController.h"
 #include "vtkMultiProcessController.h"
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkPMaskPoints);
 
-//----------------------------------------------------------------------------
+vtkCxxSetObjectMacro(vtkPMaskPoints, Controller, vtkMultiProcessController);
+
+//------------------------------------------------------------------------------
 vtkPMaskPoints::vtkPMaskPoints()
 {
-  this->Controller = 0;
+  this->Controller = nullptr;
 
   vtkSmartPointer<vtkMultiProcessController> controller =
     vtkMultiProcessController::GetGlobalController();
@@ -32,18 +36,19 @@ vtkPMaskPoints::vtkPMaskPoints()
   {
     controller = vtkSmartPointer<vtkDummyController>::New();
   }
-  this->SetController(controller.GetPointer());
+  this->SetController(controller);
 }
 
+//------------------------------------------------------------------------------
 vtkPMaskPoints::~vtkPMaskPoints()
 {
-  this->SetController(NULL);
+  this->SetController(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPMaskPoints::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   if (this->GetController())
   {
@@ -51,62 +56,69 @@ void vtkPMaskPoints::PrintSelf(ostream& os, vtkIndent indent)
   }
   else
   {
-    os << indent << "Controller: (null)" << std::endl;;
+    os << indent << "Controller: (null)" << std::endl;
   }
 }
 
-void vtkPMaskPoints::SetController(vtkMultiProcessController *c)
-{
-  if(this->Controller == c)
-  {
-    return;
-  }
-
-  this->Modified();
-
-  if(this->Controller != 0)
-  {
-    this->Controller->UnRegister(this);
-    this->Controller = 0;
-  }
-
-  if(c == 0)
-  {
-    return;
-  }
-
-  this->Controller = c;
-  c->Register(this);
-}
-
+//------------------------------------------------------------------------------
 vtkMultiProcessController* vtkPMaskPoints::GetController()
 {
   return (vtkMultiProcessController*)this->Controller;
 }
 
-void vtkPMaskPoints::InternalScatter
-(unsigned long* a, unsigned long * b, int c, int d)
+//------------------------------------------------------------------------------
+void vtkPMaskPoints::InternalScatter(unsigned long* a, unsigned long* b, int c, int d)
 {
   this->Controller->Scatter(a, b, c, d);
 }
 
-void vtkPMaskPoints::InternalGather
-(unsigned long* a, unsigned long* b, int c, int d)
+//------------------------------------------------------------------------------
+void vtkPMaskPoints::InternalGather(unsigned long* a, unsigned long* b, int c, int d)
 {
   this->Controller->Gather(a, b, c, d);
 }
 
+//------------------------------------------------------------------------------
+void vtkPMaskPoints::InternalBroadcast(double* a, int b, int c)
+{
+  this->Controller->Broadcast(a, b, c);
+}
+
+//------------------------------------------------------------------------------
+void vtkPMaskPoints::InternalGather(double* a, double* b, int c, int d)
+{
+  this->Controller->Gather(a, b, c, d);
+}
+
+//------------------------------------------------------------------------------
 int vtkPMaskPoints::InternalGetNumberOfProcesses()
 {
   return this->Controller->GetNumberOfProcesses();
 }
 
+//------------------------------------------------------------------------------
 int vtkPMaskPoints::InternalGetLocalProcessId()
 {
   return this->Controller->GetLocalProcessId();
 }
 
+//------------------------------------------------------------------------------
 void vtkPMaskPoints::InternalBarrier()
 {
   this->Controller->Barrier();
+}
+
+//------------------------------------------------------------------------------
+void vtkPMaskPoints::InternalSplitController(int color, int key)
+{
+  this->OriginalController = this->Controller;
+  this->Controller = this->OriginalController->PartitionController(color, key);
+}
+
+//------------------------------------------------------------------------------
+void vtkPMaskPoints::InternalResetController()
+{
+  this->Controller->Delete();
+  this->Controller = this->OriginalController;
+  this->OriginalController = nullptr;
 }

@@ -27,6 +27,8 @@
  * mouseExited: scrollWheel:, mouseDown:, rightMouseDown:,
  * otherMouseDown:, mouseDragged:, rightMouseDragged:, otherMouseDragged:,
  * and updateTrackingAreas.
+ * To provide file dropping support, it implements the following methods:
+ * draggingEntered: and performDragOperation:.
  * To be able to render and draw onscreen, it overrides drawRect:.
  *
  * Compatibility notes:
@@ -34,37 +36,43 @@
  * but starting with VTK 5.0 is now a subclass of NSView.
  * - starting with VTK 6.3 this class overrides the more modern
  * updateTrackingAreas instead of resetCursorRects.
+ * - starting with VTK 8.1 this class properly supports Retina
+ * displays and implements viewWillMoveToWindow: and
+ * viewDidChangeBackingProperties to do so.
+ * - starting with VTK 9.0 this class now also overrides initWithCoder:.
+ * It also implements draggingEntered: and performDragOperation: and thus
+ * declares conformance to the NSDraggingDestination protocol.
  *
  * @sa
  * vtkCocoaRenderWindow vtkCocoaRenderWindowInteractor
-*/
+ */
 
 #ifndef vtkCocoaGLView_h
 #define vtkCocoaGLView_h
 
-#include "vtkRenderingOpenGL2Module.h" // For export macro
+#import "vtkRenderingOpenGL2Module.h" // For export macro
 #import <Cocoa/Cocoa.h>
 
 // Note: This file should be includable by both pure Objective-C and Objective-C++ source files.
 // To achieve this, we use the neat technique below:
 #ifdef __cplusplus
-  // Forward declarations
-  class vtkCocoaRenderWindow;
-  class vtkCocoaRenderWindowInteractor;
+// Forward declarations
+class vtkCocoaRenderWindow;
+class vtkCocoaRenderWindowInteractor;
 
-  // Type declarations
-  typedef vtkCocoaRenderWindow *vtkCocoaRenderWindowRef;
-  typedef vtkCocoaRenderWindowInteractor *vtkCocoaRenderWindowInteractorRef;
+// Type declarations
+typedef vtkCocoaRenderWindow* vtkCocoaRenderWindowRef;
+typedef vtkCocoaRenderWindowInteractor* vtkCocoaRenderWindowInteractorRef;
 #else
-  // Type declarations
-  typedef void *vtkCocoaRenderWindowRef;
-  typedef void *vtkCocoaRenderWindowInteractorRef;
+// Type declarations
+typedef void* vtkCocoaRenderWindowRef;
+typedef void* vtkCocoaRenderWindowInteractorRef;
 #endif
 
 VTKRENDERINGOPENGL2_EXPORT
-@interface vtkCocoaGLView : NSView
+@interface vtkCocoaGLView : NSView<NSDraggingDestination>
 {
-  @private
+@private
   vtkCocoaRenderWindowRef _myVTKRenderWindow;
   NSTrackingArea* _rolloverTrackingArea;
 }

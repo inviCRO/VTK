@@ -32,13 +32,13 @@
  * This array must be a vtkIntArray.
  * Any type that does not map to a font property that was set will
  * be set to the type 0's type property.
-*/
+ */
 
 #ifndef vtkLabelSizeCalculator_h
 #define vtkLabelSizeCalculator_h
 
-#include "vtkRenderingLabelModule.h" // For export macro
 #include "vtkPassInputTypeAlgorithm.h"
+#include "vtkRenderingLabelModule.h" // For export macro
 
 class vtkIntArray;
 class vtkTextRenderer;
@@ -49,10 +49,10 @@ class VTKRENDERINGLABEL_EXPORT vtkLabelSizeCalculator : public vtkPassInputTypeA
 {
 public:
   static vtkLabelSizeCalculator* New();
-  void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
-  vtkTypeMacro(vtkLabelSizeCalculator,vtkPassInputTypeAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  vtkTypeMacro(vtkLabelSizeCalculator, vtkPassInputTypeAlgorithm);
 
-  //@{
+  ///@{
   /**
    * Get/Set the font used compute label sizes.
    * This defaults to "Arial" at 12 points.
@@ -61,40 +61,38 @@ public:
    */
   virtual void SetFontProperty(vtkTextProperty* fontProp, int type = 0);
   virtual vtkTextProperty* GetFontProperty(int type = 0);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The name of the output array containing text label sizes
    * This defaults to "LabelSize"
    */
   vtkSetStringMacro(LabelSizeArrayName);
   vtkGetStringMacro(LabelSizeArrayName);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the DPI at which the labels are to be rendered. Defaults to 72.
    * @sa vtkWindow::GetDPI()
    */
-  vtkSetMacro(DPI, int)
-  vtkGetMacro(DPI, int)
-  //@}
+  vtkSetMacro(DPI, int);
+  vtkGetMacro(DPI, int);
+  ///@}
 
 protected:
   vtkLabelSizeCalculator();
-  ~vtkLabelSizeCalculator() VTK_OVERRIDE;
+  ~vtkLabelSizeCalculator() override;
 
-  int FillInputPortInformation( int port, vtkInformation* info ) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
   int RequestData(
-    vtkInformation* request,
-    vtkInformationVector** inInfo,
-    vtkInformationVector* outInfo ) VTK_OVERRIDE;
+    vtkInformation* request, vtkInformationVector** inInfo, vtkInformationVector* outInfo) override;
 
-  virtual vtkIntArray* LabelSizesForArray( vtkAbstractArray* labels, vtkIntArray* types );
+  virtual vtkIntArray* LabelSizesForArray(vtkAbstractArray* labels, vtkIntArray* types);
 
-  virtual void SetFontUtil( vtkTextRenderer* fontProp );
-  vtkGetObjectMacro(FontUtil,vtkTextRenderer);
+  virtual void SetFontUtil(vtkTextRenderer* fontProp);
+  vtkGetObjectMacro(FontUtil, vtkTextRenderer);
 
   vtkTextRenderer* FontUtil;
   char* LabelSizeArrayName;
@@ -105,8 +103,8 @@ protected:
   Internals* Implementation;
 
 private:
-  vtkLabelSizeCalculator( const vtkLabelSizeCalculator& ) VTK_DELETE_FUNCTION;
-  void operator = ( const vtkLabelSizeCalculator& ) VTK_DELETE_FUNCTION;
+  vtkLabelSizeCalculator(const vtkLabelSizeCalculator&) = delete;
+  void operator=(const vtkLabelSizeCalculator&) = delete;
 };
 
 #endif // vtkLabelSizeCalculator_h

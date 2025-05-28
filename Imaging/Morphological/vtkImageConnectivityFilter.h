@@ -87,14 +87,14 @@
  * of the filter.
  *
  * @sa
- * vtkConnectivityFilter, vtkPolyDataConnectivityFilter
-*/
+ * vtkConnectivityFilter, vtkPolyDataConnectivityFilter, vtkmImageConnectivity
+ */
 
 #ifndef vtkImageConnectivityFilter_h
 #define vtkImageConnectivityFilter_h
 
-#include "vtkImagingMorphologicalModule.h" // For export macro
 #include "vtkImageAlgorithm.h"
+#include "vtkImagingMorphologicalModule.h" // For export macro
 
 class vtkIdTypeArray;
 class vtkIntArray;
@@ -102,18 +102,18 @@ class vtkDataSet;
 class vtkImageData;
 class vtkImageStencilData;
 
-class VTKIMAGINGMORPHOLOGICAL_EXPORT vtkImageConnectivityFilter :
-  public vtkImageAlgorithm
+class VTKIMAGINGMORPHOLOGICAL_EXPORT vtkImageConnectivityFilter : public vtkImageAlgorithm
 {
 public:
-  static vtkImageConnectivityFilter *New();
+  static vtkImageConnectivityFilter* New();
   vtkTypeMacro(vtkImageConnectivityFilter, vtkImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Enum constants for SetLabelMode().
    */
-  enum LabelModeEnum {
+  enum LabelModeEnum
+  {
     SeedScalar = 0,
     ConstantValue = 1,
     SizeRank = 2
@@ -122,37 +122,38 @@ public:
   /**
    * Enum constants for SetExtractionMode().
    */
-  enum ExtractionModeEnum {
+  enum ExtractionModeEnum
+  {
     SeededRegions = 0,
     AllRegions = 1,
     LargestRegion = 2
   };
 
-  //@{
+  ///@{
   /**
    * The input for seed locations (input port 1).
    * Each point in the supplied data set will be used as a seed, unless
    * the data set has scalars, in which case only the points with scalar
    * values that are not equal to zero will be used as seeds.
    */
-  void SetSeedConnection(vtkAlgorithmOutput *port);
-  vtkAlgorithmOutput *GetSeedConnection();
-  void SetSeedData(vtkDataSet *data);
-  //@}
+  void SetSeedConnection(vtkAlgorithmOutput* port);
+  vtkAlgorithmOutput* GetSeedConnection();
+  void SetSeedData(vtkDataSet* data);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The input for a stencil (input port 2).
    * The output labels will be restricted to the region inside the stencil,
    * as if no input voxels existed outside the stencil.  This allows you to
    * apply this filter within an arbitrary region of interest.
    */
-  void SetStencilConnection(vtkAlgorithmOutput *port);
-  vtkAlgorithmOutput *GetStencilConnection();
-  void SetStencilData(vtkImageStencilData *data);
-  //@}
+  void SetStencilConnection(vtkAlgorithmOutput* port);
+  vtkAlgorithmOutput* GetStencilConnection();
+  void SetStencilData(vtkImageStencilData* data);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the scalar type for the output label image.
    * This should be one of UnsignedChar, Short, UnsignedShort, or Int
@@ -161,20 +162,16 @@ public:
    * greater than the maximum label value N, then only the largest N regions
    * will be kept and the rest will be discarded.
    */
-  void SetLabelScalarTypeToUnsignedChar() {
-    this->SetLabelScalarType(VTK_UNSIGNED_CHAR); }
-  void SetLabelScalarTypeToShort() {
-    this->SetLabelScalarType(VTK_SHORT); }
-  void SetLabelScalarTypeToUnsignedShort() {
-    this->SetLabelScalarType(VTK_UNSIGNED_SHORT); }
-  void SetLabelScalarTypeToInt() {
-    this->SetLabelScalarType(VTK_INT); }
-  const char *GetLabelScalarTypeAsString();
+  void SetLabelScalarTypeToUnsignedChar() { this->SetLabelScalarType(VTK_UNSIGNED_CHAR); }
+  void SetLabelScalarTypeToShort() { this->SetLabelScalarType(VTK_SHORT); }
+  void SetLabelScalarTypeToUnsignedShort() { this->SetLabelScalarType(VTK_UNSIGNED_SHORT); }
+  void SetLabelScalarTypeToInt() { this->SetLabelScalarType(VTK_INT); }
+  const char* GetLabelScalarTypeAsString();
   vtkSetMacro(LabelScalarType, int);
   vtkGetMacro(LabelScalarType, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the mode for applying labels to the output.
    * Labeling by SeedScalar uses the scalars from the seeds as labels, if
@@ -190,38 +187,35 @@ public:
   void SetLabelModeToSeedScalar() { this->SetLabelMode(SeedScalar); }
   void SetLabelModeToConstantValue() { this->SetLabelMode(ConstantValue); }
   void SetLabelModeToSizeRank() { this->SetLabelMode(SizeRank); }
-  const char *GetLabelModeAsString();
+  const char* GetLabelModeAsString();
   vtkSetMacro(LabelMode, int);
   vtkGetMacro(LabelMode, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set which regions to output from this filter.
    * This can be all the regions, just the seeded regions, or the largest
-   * region (which will the the largest seeded region, if there are seeds).
+   * region (which will be the largest seeded region, if there are seeds).
    * The default is to output all the seeded regions, if there are seeds,
    * or to output all the regions, if there are no seeds.
    */
-  void SetExtractionModeToSeededRegions(){
-    this->SetExtractionMode(SeededRegions); }
-  void SetExtractionModeToAllRegions() {
-    this->SetExtractionMode(AllRegions); }
-  void SetExtractionModeToLargestRegion() {
-    this->SetExtractionMode(LargestRegion); }
-  const char *GetExtractionModeAsString();
+  void SetExtractionModeToSeededRegions() { this->SetExtractionMode(SeededRegions); }
+  void SetExtractionModeToAllRegions() { this->SetExtractionMode(AllRegions); }
+  void SetExtractionModeToLargestRegion() { this->SetExtractionMode(LargestRegion); }
+  const char* GetExtractionModeAsString();
   vtkSetMacro(ExtractionMode, int);
   vtkGetMacro(ExtractionMode, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The label used when LabelMode is ConstantValue.
    * The default value is 255.
    */
   vtkSetMacro(LabelConstantValue, int);
   vtkGetMacro(LabelConstantValue, int);
-  //@}
+  ///@}
 
   /**
    * Get the number of extracted regions.
@@ -231,39 +225,35 @@ public:
   /**
    * Get the label used for each extracted region.
    */
-  vtkIdTypeArray *GetExtractedRegionLabels() {
-    return this->ExtractedRegionLabels; }
+  vtkIdTypeArray* GetExtractedRegionLabels() { return this->ExtractedRegionLabels; }
 
-  // Desciption:
+  // Description:
   // Get the size of each extracted region, as a voxel count.
-  vtkIdTypeArray *GetExtractedRegionSizes() {
-    return this->ExtractedRegionSizes; }
+  vtkIdTypeArray* GetExtractedRegionSizes() { return this->ExtractedRegionSizes; }
 
   /**
    * Get the PointId of the seed for each region.
    * If no seed was used, the PointId will be -1.
    */
-  vtkIdTypeArray *GetExtractedRegionSeedIds() {
-    return this->ExtractedRegionSeedIds; }
+  vtkIdTypeArray* GetExtractedRegionSeedIds() { return this->ExtractedRegionSeedIds; }
 
   /**
    * Get the extent (a 6-tuples) for each output region.
    * This is only valid if GenerateRegionExtentsOn() was called before
    * the filter was executed.
    */
-  vtkIntArray *GetExtractedRegionExtents() {
-    return this->ExtractedRegionExtents; }
+  vtkIntArray* GetExtractedRegionExtents() { return this->ExtractedRegionExtents; }
 
-  //@{
+  ///@{
   /**
    * Turn this on to request creation of the ExtractedRegionExtents array.
    */
-  vtkSetMacro(GenerateRegionExtents, int);
-  vtkBooleanMacro(GenerateRegionExtents, int);
-  vtkGetMacro(GenerateRegionExtents, int);
-  //@}
+  vtkSetMacro(GenerateRegionExtents, vtkTypeBool);
+  vtkBooleanMacro(GenerateRegionExtents, vtkTypeBool);
+  vtkGetMacro(GenerateRegionExtents, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the size range for the extracted regions.
    * Only regions that have sizes within the specified range will be present
@@ -271,9 +261,9 @@ public:
    */
   vtkSetVector2Macro(SizeRange, vtkIdType);
   vtkGetVector2Macro(SizeRange, vtkIdType);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set the scalar range used to define potential regions.
    * Only voxels with values that are within this range will be considered
@@ -283,19 +273,19 @@ public:
    */
   vtkSetVector2Macro(ScalarRange, double);
   vtkGetVector2Macro(ScalarRange, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * For multi-component input images, select which component to use.
    */
   vtkSetMacro(ActiveComponent, int);
   vtkGetMacro(ActiveComponent, int);
-  //@}
+  ///@}
 
 protected:
   vtkImageConnectivityFilter();
-  ~vtkImageConnectivityFilter() VTK_OVERRIDE;
+  ~vtkImageConnectivityFilter() override;
 
   int LabelMode;
   int ExtractionMode;
@@ -305,26 +295,23 @@ protected:
   int LabelConstantValue;
   int ActiveComponent;
   int LabelScalarType;
-  int GenerateRegionExtents;
+  vtkTypeBool GenerateRegionExtents;
 
-  vtkIdTypeArray *ExtractedRegionLabels;
-  vtkIdTypeArray *ExtractedRegionSizes;
-  vtkIdTypeArray *ExtractedRegionSeedIds;
-  vtkIntArray *ExtractedRegionExtents;
+  vtkIdTypeArray* ExtractedRegionLabels;
+  vtkIdTypeArray* ExtractedRegionSizes;
+  vtkIdTypeArray* ExtractedRegionSeedIds;
+  vtkIntArray* ExtractedRegionExtents;
 
   void ComputeInputUpdateExtent(int inExt[6], int outExt[6]);
 
-  int FillInputPortInformation(int port, vtkInformation *info) VTK_OVERRIDE;
-  int RequestInformation(
-    vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int RequestUpdateExtent(
-    vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  int RequestData(
-    vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
-  vtkImageConnectivityFilter(const vtkImageConnectivityFilter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageConnectivityFilter&) VTK_DELETE_FUNCTION;
+  vtkImageConnectivityFilter(const vtkImageConnectivityFilter&) = delete;
+  void operator=(const vtkImageConnectivityFilter&) = delete;
 };
 
 #endif

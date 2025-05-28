@@ -24,7 +24,7 @@
  *
  * This class uses the PROJ.4 library to represent geographic coordinate
  * projections.
-*/
+ */
 
 #ifndef vtkGeoProjection_h
 #define vtkGeoProjection_h
@@ -40,8 +40,8 @@ class VTKGEOVISCORE_EXPORT vtkGeoProjection : public vtkObject
 {
 public:
   static vtkGeoProjection* New();
-  void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
-  vtkTypeMacro(vtkGeoProjection,vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  vtkTypeMacro(vtkGeoProjection, vtkObject);
 
   /**
    * Returns the number of projections that this class offers.
@@ -53,24 +53,24 @@ public:
    * You can pass these strings to SetName(char*).
    * @param projection the index of a projection, must be in [0,GetNumberOfProjections()[.
    */
-  static const char* GetProjectionName( int projection );
+  static const char* GetProjectionName(int projection);
 
   /**
    * Returns a description of one of the projections supported by this class.
    * @param projection the index of a projection, must be in [0,GetNumberOfProjections()[.
    */
-  static const char* GetProjectionDescription( int projection );
+  static const char* GetProjectionDescription(int projection);
 
-  //@{
+  ///@{
   /**
    * Set/get the short name describing the projection you wish to use.
-   * This defaults to "rpoly" for no reason other than I like it.
+   * This defaults to "latlong".
    * To get a list of valid values, use the GetNumberOfProjections() and
    * GetProjectionName(int) static methods.
    */
   vtkSetStringMacro(Name);
   vtkGetStringMacro(Name);
-  //@}
+  ///@}
 
   /**
    * Return the index of the current projection's type in the list of all projection types.
@@ -80,22 +80,22 @@ public:
 
   /**
    * Get the description of a projection.
-   * This will return NULL if the projection name is invalid.
+   * This will return nullptr if the projection name is invalid.
    */
   const char* GetDescription();
 
-  //@{
+  ///@{
   /**
    * Set/get the longitude which corresponds to the central meridian of the projection.
    * This defaults to 0, the Greenwich Meridian.
    */
-  vtkSetMacro(CentralMeridian,double);
-  vtkGetMacro(CentralMeridian,double);
-  //@}
+  vtkSetMacro(CentralMeridian, double);
+  vtkGetMacro(CentralMeridian, double);
+  ///@}
 
   /**
    * Return a pointer to the PROJ.4 data structure describing this projection.
-   * This may return NULL if an invalid projection name or parameter set is specified.
+   * This may return nullptr if an invalid projection name or parameter set is specified.
    * If you invoke any methods on this vtkGeoProjection object, the PROJ.4 structure
    * this method returns may be freed, so you should not use the PROJ.4 structure
    * after changing any parameters. Also, you should not modify the PROJ.4 structure
@@ -134,9 +134,22 @@ public:
    */
   void ClearOptionalParameters();
 
+  ///@{
+  /**
+   * Set/Get/Clear projection string in PROJ.4 format.
+   * This is a special case alternative to setting the projection name and
+   * specifying parameters.
+   *
+   * \note If the PROJ4String is not empty, it supercedes the other parameters
+   * and is used explicitly to instantiate the `projPJ` projection object.
+   */
+  vtkSetStringMacro(PROJ4String);
+  vtkGetStringMacro(PROJ4String);
+  ///@}
+
 protected:
   vtkGeoProjection();
-  ~vtkGeoProjection() VTK_OVERRIDE;
+  ~vtkGeoProjection() override;
 
   /**
    * Determine whether the current projection structure has any
@@ -150,10 +163,11 @@ protected:
   double CentralMeridian;
   projPJ Projection;
   vtkMTimeType ProjectionMTime;
+  char* PROJ4String;
 
 private:
-  vtkGeoProjection( const vtkGeoProjection& ) VTK_DELETE_FUNCTION;
-  void operator = ( const vtkGeoProjection& ) VTK_DELETE_FUNCTION;
+  vtkGeoProjection(const vtkGeoProjection&) = delete;
+  void operator=(const vtkGeoProjection&) = delete;
 
   class vtkInternals;
   vtkInternals* Internals;

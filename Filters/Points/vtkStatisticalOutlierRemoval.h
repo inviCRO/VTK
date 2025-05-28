@@ -45,7 +45,7 @@
  * @sa
  * vtkPointCloudFilter vtkRadiusOutlierRemoval vtkExtractPoints
  * vtkThresholdPoints
-*/
+ */
 
 #ifndef vtkStatisticalOutlierRemoval_h
 #define vtkStatisticalOutlierRemoval_h
@@ -56,76 +56,75 @@
 class vtkAbstractPointLocator;
 class vtkPointSet;
 
-
 class VTKFILTERSPOINTS_EXPORT vtkStatisticalOutlierRemoval : public vtkPointCloudFilter
 {
 public:
-  //@{
+  ///@{
   /**
    * Standard methods for instantiating, obtaining type information, and
    * printing information.
    */
-  static vtkStatisticalOutlierRemoval *New();
-  vtkTypeMacro(vtkStatisticalOutlierRemoval,vtkPointCloudFilter);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  static vtkStatisticalOutlierRemoval* New();
+  vtkTypeMacro(vtkStatisticalOutlierRemoval, vtkPointCloudFilter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * For each point sampled, specify the number of the closest, surrounding
    * points used to compute statistics. By default 25 points are used. Smaller
    * numbers may speed performance.
    */
-  vtkSetClampMacro(SampleSize,int,1,VTK_INT_MAX);
-  vtkGetMacro(SampleSize,int);
-  //@}
+  vtkSetClampMacro(SampleSize, int, 1, VTK_INT_MAX);
+  vtkGetMacro(SampleSize, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * The filter uses this specified standard deviation factor to extract
    * points. By default, points within 1.0 standard deviations (i.e., a
    * StandardDeviationFactor=1.0) of the mean distance to neighboring
    * points are retained.
    */
-  vtkSetClampMacro(StandardDeviationFactor,double,0.0,VTK_FLOAT_MAX);
-  vtkGetMacro(StandardDeviationFactor,double);
-  //@}
+  vtkSetClampMacro(StandardDeviationFactor, double, 0.0, VTK_FLOAT_MAX);
+  vtkGetMacro(StandardDeviationFactor, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify a point locator. By default a vtkStaticPointLocator is
    * used. The locator performs efficient searches to locate points
    * surroinding a sample point.
    */
-  void SetLocator(vtkAbstractPointLocator *locator);
-  vtkGetObjectMacro(Locator,vtkAbstractPointLocator);
-  //@}
+  void SetLocator(vtkAbstractPointLocator* locator);
+  vtkGetObjectMacro(Locator, vtkAbstractPointLocator);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * After execution, return the value of the computed mean. Before execution
    * the value returned is invalid.
    */
-  vtkSetClampMacro(ComputedMean,double,0.0,VTK_FLOAT_MAX);
-  vtkGetMacro(ComputedMean,double);
-  //@}
+  vtkSetClampMacro(ComputedMean, double, 0.0, VTK_FLOAT_MAX);
+  vtkGetMacro(ComputedMean, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * After execution, return the value of the computed sigma (standard
    * deviation). Before execution the value returned is invalid.
    */
-  vtkSetClampMacro(ComputedStandardDeviation,double,0.0,VTK_FLOAT_MAX);
-  vtkGetMacro(ComputedStandardDeviation,double);
-  //@}
+  vtkSetClampMacro(ComputedStandardDeviation, double, 0.0, VTK_FLOAT_MAX);
+  vtkGetMacro(ComputedStandardDeviation, double);
+  ///@}
 
 protected:
   vtkStatisticalOutlierRemoval();
-  ~vtkStatisticalOutlierRemoval() VTK_OVERRIDE;
+  ~vtkStatisticalOutlierRemoval() override;
 
   int SampleSize;
   double StandardDeviationFactor;
-  vtkAbstractPointLocator *Locator;
+  vtkAbstractPointLocator* Locator;
 
   // Derived quantities
   double ComputedMean;
@@ -133,12 +132,11 @@ protected:
 
   // All derived classes must implement this method. Note that a side effect of
   // the class is to populate the PointMap. Zero is returned if there is a failure.
-  int FilterPoints(vtkPointSet *input) VTK_OVERRIDE;
+  int FilterPoints(vtkPointSet* input) override;
 
 private:
-  vtkStatisticalOutlierRemoval(const vtkStatisticalOutlierRemoval&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkStatisticalOutlierRemoval&) VTK_DELETE_FUNCTION;
-
+  vtkStatisticalOutlierRemoval(const vtkStatisticalOutlierRemoval&) = delete;
+  void operator=(const vtkStatisticalOutlierRemoval&) = delete;
 };
 
 #endif

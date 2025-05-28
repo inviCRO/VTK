@@ -14,7 +14,7 @@ All rights reserve
 =========================================================================*/
 /**
  * @class   vtkCubeAxesActor
- * @brief   create a  plot of a bounding box edges -
+ * @brief   create a plot of a bounding box edges -
  * used for navigation
  *
  * vtkCubeAxesActor is a composite actor that draws axes of the
@@ -51,13 +51,13 @@ All rights reserve
  *
  * @sa
  * vtkActor vtkAxisActor vtkCubeAxesActor2D
-*/
+ */
 
 #ifndef vtkCubeAxesActor_h
 #define vtkCubeAxesActor_h
 
-#include "vtkRenderingAnnotationModule.h" // For export macro
 #include "vtkActor.h"
+#include "vtkRenderingAnnotationModule.h" // For export macro
 
 class vtkAxisActor;
 class vtkCamera;
@@ -67,56 +67,56 @@ class vtkStringArray;
 class VTKRENDERINGANNOTATION_EXPORT vtkCubeAxesActor : public vtkActor
 {
 public:
-  vtkTypeMacro(vtkCubeAxesActor,vtkActor);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkCubeAxesActor, vtkActor);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Instantiate object with label format "6.3g" and the number of labels
    * per axis set to 3.
    */
-  static vtkCubeAxesActor *New();
+  static vtkCubeAxesActor* New();
 
-  //@{
+  ///@{
   /**
    * Draw the axes as per the vtkProp superclass' API.
    */
-  int RenderOpaqueGeometry(vtkViewport*) VTK_OVERRIDE;
+  int RenderOpaqueGeometry(vtkViewport*) override;
   virtual int RenderTranslucentGeometry(vtkViewport*);
-  int RenderTranslucentPolygonalGeometry(vtkViewport*) VTK_OVERRIDE;
-  int RenderOverlay(vtkViewport*) VTK_OVERRIDE;
-  int HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
-  //@}
+  int RenderTranslucentPolygonalGeometry(vtkViewport*) override;
+  int RenderOverlay(vtkViewport*) override;
+  vtkTypeBool HasTranslucentPolygonalGeometry() override;
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Gets/Sets the RebuildAxes flag
    */
-  vtkSetMacro( RebuildAxes, bool );
-  vtkGetMacro( RebuildAxes, bool );
-  //@}
+  vtkSetMacro(RebuildAxes, bool);
+  vtkGetMacro(RebuildAxes, bool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Explicitly specify the region in space around which to draw the bounds.
    * The bounds is used only when no Input or Prop is specified. The bounds
    * are specified according to (xmin,xmax, ymin,ymax, zmin,zmax), making
    * sure that the min's are less than the max's.
    */
-  vtkSetVector6Macro(Bounds,double);
+  vtkSetVector6Macro(Bounds, double);
   using Superclass::GetBounds;
-  double *GetBounds() VTK_OVERRIDE { return this->Bounds; }
-  //@}
+  double* GetBounds() VTK_SIZEHINT(6) override { return this->Bounds; }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Method used to properly return the bounds of the cube axis itself with all
    * its labels.
    */
   virtual void GetRenderedBounds(double rBounds[6]);
   virtual double* GetRenderedBounds();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Explicitly specify the range of each axes that's used to define the prop.
    * The default, (if you do not use these methods) is to use the bounds
@@ -125,24 +125,24 @@ public:
    * space (bounds) and the extent of the values it represents. In other words,
    * you can have the ticks and labels show a different range.
    */
-  vtkSetVector2Macro( XAxisRange, double );
-  vtkSetVector2Macro( YAxisRange, double );
-  vtkSetVector2Macro( ZAxisRange, double );
-  vtkGetVector2Macro( XAxisRange, double );
-  vtkGetVector2Macro( YAxisRange, double );
-  //@}
-  //@{
+  vtkSetVector2Macro(XAxisRange, double);
+  vtkSetVector2Macro(YAxisRange, double);
+  vtkSetVector2Macro(ZAxisRange, double);
+  vtkGetVector2Macro(XAxisRange, double);
+  vtkGetVector2Macro(YAxisRange, double);
+  ///@}
+  ///@{
   /**
    * Explicitly specify the axis labels along an axis as an array of strings
    * instead of using the values.
    */
   vtkStringArray* GetAxisLabels(int axis);
   void SetAxisLabels(int axis, vtkStringArray* value);
-  //@}
+  ///@}
 
-  vtkGetVector2Macro( ZAxisRange, double );
+  vtkGetVector2Macro(ZAxisRange, double);
 
-  //@{
+  ///@{
   /**
    * Explicitly specify the screen size of title and label text.
    * ScreenSize determines the size of the text in terms of screen
@@ -150,34 +150,34 @@ public:
    */
   void SetScreenSize(double screenSize);
   vtkGetMacro(ScreenSize, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Explicitly specify the distance between labels and the axis.
    * Default is 20.0.
    */
   void SetLabelOffset(double offset);
   vtkGetMacro(LabelOffset, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Explicitly specify the distance between title and labels.
    * Default is 20.0.
    */
   void SetTitleOffset(double offset);
   vtkGetMacro(TitleOffset, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the camera to perform scaling and translation of the
    * vtkCubeAxesActor.
    */
   virtual void SetCamera(vtkCamera*);
-  vtkGetObjectMacro(Camera,vtkCamera);
-  //@}
+  vtkGetObjectMacro(Camera, vtkCamera);
+  ///@}
 
   enum FlyMode
   {
@@ -188,7 +188,7 @@ public:
     VTK_FLY_STATIC_EDGES = 4
   };
 
-  //@{
+  ///@{
   /**
    * Specify a mode to control how the axes are drawn: either static,
    * closest triad, furthest triad or outer edges in relation to the
@@ -196,19 +196,14 @@ public:
    */
   vtkSetClampMacro(FlyMode, int, VTK_FLY_OUTER_EDGES, VTK_FLY_STATIC_EDGES);
   vtkGetMacro(FlyMode, int);
-  void SetFlyModeToOuterEdges()
-    {this->SetFlyMode(VTK_FLY_OUTER_EDGES);};
-  void SetFlyModeToClosestTriad()
-    {this->SetFlyMode(VTK_FLY_CLOSEST_TRIAD);};
-  void SetFlyModeToFurthestTriad()
-    {this->SetFlyMode(VTK_FLY_FURTHEST_TRIAD);};
-  void SetFlyModeToStaticTriad()
-    {this->SetFlyMode(VTK_FLY_STATIC_TRIAD);};
-  void SetFlyModeToStaticEdges()
-    {this->SetFlyMode(VTK_FLY_STATIC_EDGES);};
-  //@}
+  void SetFlyModeToOuterEdges() { this->SetFlyMode(VTK_FLY_OUTER_EDGES); }
+  void SetFlyModeToClosestTriad() { this->SetFlyMode(VTK_FLY_CLOSEST_TRIAD); }
+  void SetFlyModeToFurthestTriad() { this->SetFlyMode(VTK_FLY_FURTHEST_TRIAD); }
+  void SetFlyModeToStaticTriad() { this->SetFlyMode(VTK_FLY_STATIC_TRIAD); }
+  void SetFlyModeToStaticEdges() { this->SetFlyMode(VTK_FLY_STATIC_EDGES); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the labels for the x, y, and z axes. By default,
    * use "X-Axis", "Y-Axis" and "Z-Axis".
@@ -225,9 +220,9 @@ public:
   vtkGetStringMacro(ZTitle);
   vtkSetStringMacro(ZUnits);
   vtkGetStringMacro(ZUnits);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the format with which to print the labels on each of the
    * x-y-z axes.
@@ -238,9 +233,9 @@ public:
   vtkGetStringMacro(YLabelFormat);
   vtkSetStringMacro(ZLabelFormat);
   vtkGetStringMacro(ZLabelFormat);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set/Get the inertial factor that controls how often (i.e, how
    * many renders) the axes can switch position (jump from one axes
@@ -248,9 +243,9 @@ public:
    */
   vtkSetClampMacro(Inertia, int, 1, VTK_INT_MAX);
   vtkGetMacro(Inertia, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify an offset value to "pull back" the axes from the corner at
    * which they are joined to avoid overlap of axes labels. The
@@ -258,206 +253,206 @@ public:
    */
   vtkSetMacro(CornerOffset, double);
   vtkGetMacro(CornerOffset, double);
-  //@}
+  ///@}
 
   /**
    * Release any graphics resources that are being consumed by this actor.
    * The parameter window could be used to determine which graphic
    * resources to release.
    */
-  void ReleaseGraphicsResources(vtkWindow *) VTK_OVERRIDE;
+  void ReleaseGraphicsResources(vtkWindow*) override;
 
-  //@{
+  ///@{
   /**
    * Enable and disable the use of distance based LOD for titles and labels.
    */
-  vtkSetMacro( EnableDistanceLOD, int );
-  vtkGetMacro( EnableDistanceLOD, int );
-  //@}
+  vtkSetMacro(EnableDistanceLOD, int);
+  vtkGetMacro(EnableDistanceLOD, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set distance LOD threshold [0.0 - 1.0] for titles and labels.
    */
-  vtkSetClampMacro( DistanceLODThreshold, double, 0.0, 1.0 );
-  vtkGetMacro( DistanceLODThreshold, double);
-  //@}
+  vtkSetClampMacro(DistanceLODThreshold, double, 0.0, 1.0);
+  vtkGetMacro(DistanceLODThreshold, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable and disable the use of view angle based LOD for titles and labels.
    */
-  vtkSetMacro( EnableViewAngleLOD, int );
-  vtkGetMacro( EnableViewAngleLOD, int );
-  //@}
+  vtkSetMacro(EnableViewAngleLOD, int);
+  vtkGetMacro(EnableViewAngleLOD, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Set view angle LOD threshold [0.0 - 1.0] for titles and labels.
    */
-  vtkSetClampMacro( ViewAngleLODThreshold, double, 0., 1. );
-  vtkGetMacro( ViewAngleLODThreshold, double );
-  //@}
+  vtkSetClampMacro(ViewAngleLODThreshold, double, 0., 1.);
+  vtkGetMacro(ViewAngleLODThreshold, double);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on and off the visibility of each axis.
    */
-  vtkSetMacro(XAxisVisibility,int);
-  vtkGetMacro(XAxisVisibility,int);
-  vtkBooleanMacro(XAxisVisibility,int);
-  vtkSetMacro(YAxisVisibility,int);
-  vtkGetMacro(YAxisVisibility,int);
-  vtkBooleanMacro(YAxisVisibility,int);
-  vtkSetMacro(ZAxisVisibility,int);
-  vtkGetMacro(ZAxisVisibility,int);
-  vtkBooleanMacro(ZAxisVisibility,int);
-  //@}
+  vtkSetMacro(XAxisVisibility, vtkTypeBool);
+  vtkGetMacro(XAxisVisibility, vtkTypeBool);
+  vtkBooleanMacro(XAxisVisibility, vtkTypeBool);
+  vtkSetMacro(YAxisVisibility, vtkTypeBool);
+  vtkGetMacro(YAxisVisibility, vtkTypeBool);
+  vtkBooleanMacro(YAxisVisibility, vtkTypeBool);
+  vtkSetMacro(ZAxisVisibility, vtkTypeBool);
+  vtkGetMacro(ZAxisVisibility, vtkTypeBool);
+  vtkBooleanMacro(ZAxisVisibility, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Turn on and off the visibility of labels for each axis.
    */
-  vtkSetMacro(XAxisLabelVisibility,int);
-  vtkGetMacro(XAxisLabelVisibility,int);
-  vtkBooleanMacro(XAxisLabelVisibility,int);
-  //@}
+  vtkSetMacro(XAxisLabelVisibility, vtkTypeBool);
+  vtkGetMacro(XAxisLabelVisibility, vtkTypeBool);
+  vtkBooleanMacro(XAxisLabelVisibility, vtkTypeBool);
+  ///@}
 
-  vtkSetMacro(YAxisLabelVisibility,int);
-  vtkGetMacro(YAxisLabelVisibility,int);
-  vtkBooleanMacro(YAxisLabelVisibility,int);
+  vtkSetMacro(YAxisLabelVisibility, vtkTypeBool);
+  vtkGetMacro(YAxisLabelVisibility, vtkTypeBool);
+  vtkBooleanMacro(YAxisLabelVisibility, vtkTypeBool);
 
-  vtkSetMacro(ZAxisLabelVisibility,int);
-  vtkGetMacro(ZAxisLabelVisibility,int);
-  vtkBooleanMacro(ZAxisLabelVisibility,int);
+  vtkSetMacro(ZAxisLabelVisibility, vtkTypeBool);
+  vtkGetMacro(ZAxisLabelVisibility, vtkTypeBool);
+  vtkBooleanMacro(ZAxisLabelVisibility, vtkTypeBool);
 
-  //@{
+  ///@{
   /**
    * Turn on and off the visibility of ticks for each axis.
    */
-  vtkSetMacro(XAxisTickVisibility,int);
-  vtkGetMacro(XAxisTickVisibility,int);
-  vtkBooleanMacro(XAxisTickVisibility,int);
-  //@}
+  vtkSetMacro(XAxisTickVisibility, vtkTypeBool);
+  vtkGetMacro(XAxisTickVisibility, vtkTypeBool);
+  vtkBooleanMacro(XAxisTickVisibility, vtkTypeBool);
+  ///@}
 
-  vtkSetMacro(YAxisTickVisibility,int);
-  vtkGetMacro(YAxisTickVisibility,int);
-  vtkBooleanMacro(YAxisTickVisibility,int);
+  vtkSetMacro(YAxisTickVisibility, vtkTypeBool);
+  vtkGetMacro(YAxisTickVisibility, vtkTypeBool);
+  vtkBooleanMacro(YAxisTickVisibility, vtkTypeBool);
 
-  vtkSetMacro(ZAxisTickVisibility,int);
-  vtkGetMacro(ZAxisTickVisibility,int);
-  vtkBooleanMacro(ZAxisTickVisibility,int);
+  vtkSetMacro(ZAxisTickVisibility, vtkTypeBool);
+  vtkGetMacro(ZAxisTickVisibility, vtkTypeBool);
+  vtkBooleanMacro(ZAxisTickVisibility, vtkTypeBool);
 
-  //@{
+  ///@{
   /**
    * Turn on and off the visibility of minor ticks for each axis.
    */
-  vtkSetMacro(XAxisMinorTickVisibility,int);
-  vtkGetMacro(XAxisMinorTickVisibility,int);
-  vtkBooleanMacro(XAxisMinorTickVisibility,int);
-  //@}
+  vtkSetMacro(XAxisMinorTickVisibility, vtkTypeBool);
+  vtkGetMacro(XAxisMinorTickVisibility, vtkTypeBool);
+  vtkBooleanMacro(XAxisMinorTickVisibility, vtkTypeBool);
+  ///@}
 
-  vtkSetMacro(YAxisMinorTickVisibility,int);
-  vtkGetMacro(YAxisMinorTickVisibility,int);
-  vtkBooleanMacro(YAxisMinorTickVisibility,int);
+  vtkSetMacro(YAxisMinorTickVisibility, vtkTypeBool);
+  vtkGetMacro(YAxisMinorTickVisibility, vtkTypeBool);
+  vtkBooleanMacro(YAxisMinorTickVisibility, vtkTypeBool);
 
-  vtkSetMacro(ZAxisMinorTickVisibility,int);
-  vtkGetMacro(ZAxisMinorTickVisibility,int);
-  vtkBooleanMacro(ZAxisMinorTickVisibility,int);
+  vtkSetMacro(ZAxisMinorTickVisibility, vtkTypeBool);
+  vtkGetMacro(ZAxisMinorTickVisibility, vtkTypeBool);
+  vtkBooleanMacro(ZAxisMinorTickVisibility, vtkTypeBool);
 
-  vtkSetMacro(DrawXGridlines,int);
-  vtkGetMacro(DrawXGridlines,int);
-  vtkBooleanMacro(DrawXGridlines,int);
+  vtkSetMacro(DrawXGridlines, vtkTypeBool);
+  vtkGetMacro(DrawXGridlines, vtkTypeBool);
+  vtkBooleanMacro(DrawXGridlines, vtkTypeBool);
 
-  vtkSetMacro(DrawYGridlines,int);
-  vtkGetMacro(DrawYGridlines,int);
-  vtkBooleanMacro(DrawYGridlines,int);
+  vtkSetMacro(DrawYGridlines, vtkTypeBool);
+  vtkGetMacro(DrawYGridlines, vtkTypeBool);
+  vtkBooleanMacro(DrawYGridlines, vtkTypeBool);
 
-  vtkSetMacro(DrawZGridlines,int);
-  vtkGetMacro(DrawZGridlines,int);
-  vtkBooleanMacro(DrawZGridlines,int);
+  vtkSetMacro(DrawZGridlines, vtkTypeBool);
+  vtkGetMacro(DrawZGridlines, vtkTypeBool);
+  vtkBooleanMacro(DrawZGridlines, vtkTypeBool);
 
-  vtkSetMacro(DrawXInnerGridlines,int);
-  vtkGetMacro(DrawXInnerGridlines,int);
-  vtkBooleanMacro(DrawXInnerGridlines,int);
+  vtkSetMacro(DrawXInnerGridlines, vtkTypeBool);
+  vtkGetMacro(DrawXInnerGridlines, vtkTypeBool);
+  vtkBooleanMacro(DrawXInnerGridlines, vtkTypeBool);
 
-  vtkSetMacro(DrawYInnerGridlines,int);
-  vtkGetMacro(DrawYInnerGridlines,int);
-  vtkBooleanMacro(DrawYInnerGridlines,int);
+  vtkSetMacro(DrawYInnerGridlines, vtkTypeBool);
+  vtkGetMacro(DrawYInnerGridlines, vtkTypeBool);
+  vtkBooleanMacro(DrawYInnerGridlines, vtkTypeBool);
 
-  vtkSetMacro(DrawZInnerGridlines,int);
-  vtkGetMacro(DrawZInnerGridlines,int);
-  vtkBooleanMacro(DrawZInnerGridlines,int);
+  vtkSetMacro(DrawZInnerGridlines, vtkTypeBool);
+  vtkGetMacro(DrawZInnerGridlines, vtkTypeBool);
+  vtkBooleanMacro(DrawZInnerGridlines, vtkTypeBool);
 
-  vtkSetMacro(DrawXGridpolys,int);
-  vtkGetMacro(DrawXGridpolys,int);
-  vtkBooleanMacro(DrawXGridpolys,int);
+  vtkSetMacro(DrawXGridpolys, vtkTypeBool);
+  vtkGetMacro(DrawXGridpolys, vtkTypeBool);
+  vtkBooleanMacro(DrawXGridpolys, vtkTypeBool);
 
-  vtkSetMacro(DrawYGridpolys,int);
-  vtkGetMacro(DrawYGridpolys,int);
-  vtkBooleanMacro(DrawYGridpolys,int);
+  vtkSetMacro(DrawYGridpolys, vtkTypeBool);
+  vtkGetMacro(DrawYGridpolys, vtkTypeBool);
+  vtkBooleanMacro(DrawYGridpolys, vtkTypeBool);
 
-  vtkSetMacro(DrawZGridpolys,int);
-  vtkGetMacro(DrawZGridpolys,int);
-  vtkBooleanMacro(DrawZGridpolys,int);
+  vtkSetMacro(DrawZGridpolys, vtkTypeBool);
+  vtkGetMacro(DrawZGridpolys, vtkTypeBool);
+  vtkBooleanMacro(DrawZGridpolys, vtkTypeBool);
 
   /**
    * Returns the text property for the title on an axis.
    */
-  vtkTextProperty *GetTitleTextProperty(int);
+  vtkTextProperty* GetTitleTextProperty(int);
 
   /**
    * Returns the text property for the labels on an axis.
    */
-  vtkTextProperty *GetLabelTextProperty(int);
+  vtkTextProperty* GetLabelTextProperty(int);
 
-  //@{
+  ///@{
   /**
    * Get/Set axes actors properties.
    */
-  void SetXAxesLinesProperty(vtkProperty *);
+  void SetXAxesLinesProperty(vtkProperty*);
   vtkProperty* GetXAxesLinesProperty();
-  void SetYAxesLinesProperty(vtkProperty *);
+  void SetYAxesLinesProperty(vtkProperty*);
   vtkProperty* GetYAxesLinesProperty();
-  void SetZAxesLinesProperty(vtkProperty *);
+  void SetZAxesLinesProperty(vtkProperty*);
   vtkProperty* GetZAxesLinesProperty();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set axes (outer) gridlines actors properties.
    */
-  void SetXAxesGridlinesProperty(vtkProperty *);
+  void SetXAxesGridlinesProperty(vtkProperty*);
   vtkProperty* GetXAxesGridlinesProperty();
-  void SetYAxesGridlinesProperty(vtkProperty *);
+  void SetYAxesGridlinesProperty(vtkProperty*);
   vtkProperty* GetYAxesGridlinesProperty();
-  void SetZAxesGridlinesProperty(vtkProperty *);
+  void SetZAxesGridlinesProperty(vtkProperty*);
   vtkProperty* GetZAxesGridlinesProperty();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set axes inner gridlines actors properties.
    */
-  void SetXAxesInnerGridlinesProperty(vtkProperty *);
+  void SetXAxesInnerGridlinesProperty(vtkProperty*);
   vtkProperty* GetXAxesInnerGridlinesProperty();
-  void SetYAxesInnerGridlinesProperty(vtkProperty *);
+  void SetYAxesInnerGridlinesProperty(vtkProperty*);
   vtkProperty* GetYAxesInnerGridlinesProperty();
-  void SetZAxesInnerGridlinesProperty(vtkProperty *);
+  void SetZAxesInnerGridlinesProperty(vtkProperty*);
   vtkProperty* GetZAxesInnerGridlinesProperty();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set axes gridPolys actors properties.
    */
-  void SetXAxesGridpolysProperty(vtkProperty *);
+  void SetXAxesGridpolysProperty(vtkProperty*);
   vtkProperty* GetXAxesGridpolysProperty();
-  void SetYAxesGridpolysProperty(vtkProperty *);
+  void SetYAxesGridpolysProperty(vtkProperty*);
   vtkProperty* GetYAxesGridpolysProperty();
-  void SetZAxesGridpolysProperty(vtkProperty *);
+  void SetZAxesGridpolysProperty(vtkProperty*);
   vtkProperty* GetZAxesGridpolysProperty();
-  //@}
+  ///@}
 
   enum TickLocation
   {
@@ -466,154 +461,151 @@ public:
     VTK_TICKS_BOTH = 2
   };
 
-  //@{
+  ///@{
   /**
    * Set/Get the location of ticks marks.
    */
   vtkSetClampMacro(TickLocation, int, VTK_TICKS_INSIDE, VTK_TICKS_BOTH);
   vtkGetMacro(TickLocation, int);
-  //@}
+  ///@}
 
-  void SetTickLocationToInside(void)
-    { this->SetTickLocation(VTK_TICKS_INSIDE); };
-  void SetTickLocationToOutside(void)
-    { this->SetTickLocation(VTK_TICKS_OUTSIDE); };
-  void SetTickLocationToBoth(void)
-    { this->SetTickLocation(VTK_TICKS_BOTH); };
+  void SetTickLocationToInside() { this->SetTickLocation(VTK_TICKS_INSIDE); }
+  void SetTickLocationToOutside() { this->SetTickLocation(VTK_TICKS_OUTSIDE); }
+  void SetTickLocationToBoth() { this->SetTickLocation(VTK_TICKS_BOTH); }
 
   void SetLabelScaling(bool, int, int, int);
 
-  //@{
+  ///@{
   /**
    * Use or not vtkTextActor3D for titles and labels.
    * See Also:
    * vtkAxisActor::SetUseTextActor3D(), vtkAxisActor::GetUseTextActor3D()
    */
-  void SetUseTextActor3D( int val );
+  void SetUseTextActor3D(int val);
   int GetUseTextActor3D();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set 2D mode
    * NB: Use vtkTextActor for titles in 2D instead of vtkAxisFollower
    */
-  void SetUse2DMode( int val );
+  void SetUse2DMode(int val);
   int GetUse2DMode();
-  //@}
+  ///@}
 
   /**
    * For 2D mode only: save axis title positions for later use
    */
-  void SetSaveTitlePosition( int val );
+  void SetSaveTitlePosition(int val);
 
-  //@{
+  ///@{
   /**
    * Provide an oriented bounded box when using AxisBaseFor.
    */
-  vtkSetVector6Macro(OrientedBounds,double);
+  vtkSetVector6Macro(OrientedBounds, double);
   vtkGetVector6Macro(OrientedBounds, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable/Disable the usage of the OrientedBounds
    */
   vtkSetMacro(UseOrientedBounds, int);
   vtkGetMacro(UseOrientedBounds, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Vector that should be use as the base for X
    */
-  vtkSetVector3Macro(AxisBaseForX,double);
+  vtkSetVector3Macro(AxisBaseForX, double);
   vtkGetVector3Macro(AxisBaseForX, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Vector that should be use as the base for Y
    */
-  vtkSetVector3Macro(AxisBaseForY,double);
+  vtkSetVector3Macro(AxisBaseForY, double);
   vtkGetVector3Macro(AxisBaseForY, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Vector that should be use as the base for Z
    */
-  vtkSetVector3Macro(AxisBaseForZ,double);
+  vtkSetVector3Macro(AxisBaseForZ, double);
   vtkGetVector3Macro(AxisBaseForZ, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
-   * Provide a custom AxisOrigin. This point must be inside the bouding box and
-   * will represent the point where the 3 axes will interesect
+   * Provide a custom AxisOrigin. This point must be inside the bounding box and
+   * will represent the point where the 3 axes will intersect
    */
-  vtkSetVector3Macro(AxisOrigin,double);
+  vtkSetVector3Macro(AxisOrigin, double);
   vtkGetVector3Macro(AxisOrigin, double);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable/Disable the usage of the AxisOrigin
    */
   vtkSetMacro(UseAxisOrigin, int);
   vtkGetMacro(UseAxisOrigin, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Specify the mode in which the cube axes should render its gridLines
    */
-  vtkSetMacro(GridLineLocation,int);
-  vtkGetMacro(GridLineLocation,int);
-  //@}
+  vtkSetMacro(GridLineLocation, int);
+  vtkGetMacro(GridLineLocation, int);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable/Disable axis stickiness. When on, the axes will be adjusted to always
    * be visible in the viewport unless the original bounds of the axes are entirely
    * outside the viewport. Defaults to off.
    */
-  vtkSetMacro(StickyAxes,int);
-  vtkGetMacro(StickyAxes,int);
-  vtkBooleanMacro(StickyAxes,int);
-  //@}
+  vtkSetMacro(StickyAxes, vtkTypeBool);
+  vtkGetMacro(StickyAxes, vtkTypeBool);
+  vtkBooleanMacro(StickyAxes, vtkTypeBool);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable/Disable centering of axes when the Sticky option is
    * on. If on, the axes bounds will be centered in the
    * viewport. Otherwise, the axes can move about the longer of the
-   * horizontal or verical directions of the viewport to follow the
+   * horizontal or vertical directions of the viewport to follow the
    * data. Defaults to on.
    */
-  vtkSetMacro(CenterStickyAxes,int);
-  vtkGetMacro(CenterStickyAxes,int);
-  vtkBooleanMacro(CenterStickyAxes,int);
-  //@}
+  vtkSetMacro(CenterStickyAxes, vtkTypeBool);
+  vtkGetMacro(CenterStickyAxes, vtkTypeBool);
+  vtkBooleanMacro(CenterStickyAxes, vtkTypeBool);
+  ///@}
 
   enum GridVisibility
   {
     VTK_GRID_LINES_ALL = 0,
     VTK_GRID_LINES_CLOSEST = 1,
-    VTK_GRID_LINES_FURTHEST =  2
+    VTK_GRID_LINES_FURTHEST = 2
   };
 
 protected:
   vtkCubeAxesActor();
-  ~vtkCubeAxesActor() VTK_OVERRIDE;
+  ~vtkCubeAxesActor() override;
 
   /**
    * Computes a bounding sphere used to determine the sticky bounding box.
    * Sphere center and sphere radius are return parameters and can remain uninitialized
    * prior to calling this method.
    */
-  void ComputeStickyAxesBoundingSphere(vtkViewport* viewport, const double bounds[6],
-                                       double sphereCenter[3], double & sphereRadius);
+  void ComputeStickyAxesBoundingSphere(
+    vtkViewport* viewport, const double bounds[6], double sphereCenter[3], double& sphereRadius);
 
   /**
    * Get bounds such that the axes are entirely within a viewport
@@ -624,10 +616,8 @@ protected:
    * Get the bits for a bounds point. 0 means the lower side for a
    * coordinate, 1 means the higher side.
    */
-  static void GetBoundsPointBits(unsigned int pointIndex,
-                                 unsigned int & xBit,
-                                 unsigned int & yBit,
-                                 unsigned int & zBit);
+  static void GetBoundsPointBits(
+    unsigned int pointIndex, unsigned int& xBit, unsigned int& yBit, unsigned int& zBit);
 
   /**
    * Get a point on the bounding box by point index
@@ -643,12 +633,12 @@ protected:
 
   double FFix(double);
   double FSign(double, double);
-  int FRound( double fnt );
-  int GetNumTicks( double range, double fxt);
+  int FRound(double fnt);
+  int GetNumTicks(double range, double fxt);
 
-  void UpdateLabels(vtkAxisActor **axis, int index);
+  void UpdateLabels(vtkAxisActor** axis, int index);
 
-  vtkCamera *Camera;
+  vtkCamera* Camera;
 
   int FlyMode;
 
@@ -659,8 +649,7 @@ protected:
   int FindFurtherstAxisIndex(double pts[8][3]);
 
   // Expose internally the boundary edge fly mode axis index computation
-  void FindBoundaryEdge(int &indexOfAxisX, int &indexOfAxisY, int &indexOfAxisZ,
-                        double pts[8][3]);
+  void FindBoundaryEdge(int& indexOfAxisX, int& indexOfAxisY, int& indexOfAxisZ, double pts[8][3]);
 
   /**
    * This will Update AxisActors with GridVisibility when those should be
@@ -677,12 +666,12 @@ protected:
   /**
    * Flag for axes stickiness
    */
-  int StickyAxes;
+  vtkTypeBool StickyAxes;
 
   /**
    * Flag for centering sticky axes
    */
-  int CenterStickyAxes;
+  vtkTypeBool CenterStickyAxes;
 
   /**
    * If enabled the actor will not be visible at a certain distance from the camera.
@@ -713,70 +702,70 @@ protected:
     NUMBER_OF_ALIGNED_AXIS = 4
   };
 
-  //@{
+  ///@{
   /**
    * Control variables for all axes
    * NB: [0] always for 'Major' axis during non-static fly modes.
    */
-  vtkAxisActor *XAxes[NUMBER_OF_ALIGNED_AXIS];
-  vtkAxisActor *YAxes[NUMBER_OF_ALIGNED_AXIS];
-  vtkAxisActor *ZAxes[NUMBER_OF_ALIGNED_AXIS];
-  //@}
+  vtkAxisActor* XAxes[NUMBER_OF_ALIGNED_AXIS];
+  vtkAxisActor* YAxes[NUMBER_OF_ALIGNED_AXIS];
+  vtkAxisActor* ZAxes[NUMBER_OF_ALIGNED_AXIS];
+  ///@}
 
   bool RebuildAxes;
 
-  char *XTitle;
-  char *XUnits;
-  char *YTitle;
-  char *YUnits;
-  char *ZTitle;
-  char *ZUnits;
+  char* XTitle;
+  char* XUnits;
+  char* YTitle;
+  char* YUnits;
+  char* ZTitle;
+  char* ZUnits;
 
-  char *ActualXLabel;
-  char *ActualYLabel;
-  char *ActualZLabel;
+  char* ActualXLabel;
+  char* ActualYLabel;
+  char* ActualZLabel;
 
   int TickLocation;
 
-  int XAxisVisibility;
-  int YAxisVisibility;
-  int ZAxisVisibility;
+  vtkTypeBool XAxisVisibility;
+  vtkTypeBool YAxisVisibility;
+  vtkTypeBool ZAxisVisibility;
 
-  int XAxisTickVisibility;
-  int YAxisTickVisibility;
-  int ZAxisTickVisibility;
+  vtkTypeBool XAxisTickVisibility;
+  vtkTypeBool YAxisTickVisibility;
+  vtkTypeBool ZAxisTickVisibility;
 
-  int XAxisMinorTickVisibility;
-  int YAxisMinorTickVisibility;
-  int ZAxisMinorTickVisibility;
+  vtkTypeBool XAxisMinorTickVisibility;
+  vtkTypeBool YAxisMinorTickVisibility;
+  vtkTypeBool ZAxisMinorTickVisibility;
 
-  int XAxisLabelVisibility;
-  int YAxisLabelVisibility;
-  int ZAxisLabelVisibility;
+  vtkTypeBool XAxisLabelVisibility;
+  vtkTypeBool YAxisLabelVisibility;
+  vtkTypeBool ZAxisLabelVisibility;
 
-  int DrawXGridlines;
-  int DrawYGridlines;
-  int DrawZGridlines;
+  vtkTypeBool DrawXGridlines;
+  vtkTypeBool DrawYGridlines;
+  vtkTypeBool DrawZGridlines;
 
-  int DrawXInnerGridlines;
-  int DrawYInnerGridlines;
-  int DrawZInnerGridlines;
+  vtkTypeBool DrawXInnerGridlines;
+  vtkTypeBool DrawYInnerGridlines;
+  vtkTypeBool DrawZInnerGridlines;
 
-  int DrawXGridpolys;
-  int DrawYGridpolys;
-  int DrawZGridpolys;
+  vtkTypeBool DrawXGridpolys;
+  vtkTypeBool DrawYGridpolys;
+  vtkTypeBool DrawZGridpolys;
 
-  char  *XLabelFormat;
-  char  *YLabelFormat;
-  char  *ZLabelFormat;
+  char* XLabelFormat;
+  char* YLabelFormat;
+  char* ZLabelFormat;
 
   double CornerOffset;
 
-  int   Inertia;
+  int Inertia;
 
-  int   RenderCount;
+  int RenderCount;
 
-  int   InertiaLocs[3];
+  int InertiaLocs[3];
 
   int RenderSomething;
 
@@ -785,18 +774,18 @@ protected:
 
   vtkTextProperty* LabelTextProperty[3];
 
-  vtkProperty  *XAxesLinesProperty;
-  vtkProperty  *YAxesLinesProperty;
-  vtkProperty  *ZAxesLinesProperty;
-  vtkProperty  *XAxesGridlinesProperty;
-  vtkProperty  *YAxesGridlinesProperty;
-  vtkProperty  *ZAxesGridlinesProperty;
-  vtkProperty  *XAxesInnerGridlinesProperty;
-  vtkProperty  *YAxesInnerGridlinesProperty;
-  vtkProperty  *ZAxesInnerGridlinesProperty;
-  vtkProperty  *XAxesGridpolysProperty;
-  vtkProperty  *YAxesGridpolysProperty;
-  vtkProperty  *ZAxesGridpolysProperty;
+  vtkProperty* XAxesLinesProperty;
+  vtkProperty* YAxesLinesProperty;
+  vtkProperty* ZAxesLinesProperty;
+  vtkProperty* XAxesGridlinesProperty;
+  vtkProperty* YAxesGridlinesProperty;
+  vtkProperty* ZAxesGridlinesProperty;
+  vtkProperty* XAxesInnerGridlinesProperty;
+  vtkProperty* YAxesInnerGridlinesProperty;
+  vtkProperty* ZAxesInnerGridlinesProperty;
+  vtkProperty* XAxesGridpolysProperty;
+  vtkProperty* YAxesGridpolysProperty;
+  vtkProperty* ZAxesGridpolysProperty;
 
   double RenderedBounds[6];
   double OrientedBounds[6];
@@ -810,8 +799,8 @@ protected:
   double AxisBaseForZ[3];
 
 private:
-  vtkCubeAxesActor(const vtkCubeAxesActor&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCubeAxesActor&) VTK_DELETE_FUNCTION;
+  vtkCubeAxesActor(const vtkCubeAxesActor&) = delete;
+  void operator=(const vtkCubeAxesActor&) = delete;
 
   vtkSetStringMacro(ActualXLabel);
   vtkSetStringMacro(ActualYLabel);
@@ -838,15 +827,15 @@ private:
   double LastZRange[2];
   double LastBounds[6];
 
-  int    LastFlyMode;
+  int LastFlyMode;
 
-  int   RenderAxesX[NUMBER_OF_ALIGNED_AXIS];
-  int   RenderAxesY[NUMBER_OF_ALIGNED_AXIS];
-  int   RenderAxesZ[NUMBER_OF_ALIGNED_AXIS];
+  int RenderAxesX[NUMBER_OF_ALIGNED_AXIS];
+  int RenderAxesY[NUMBER_OF_ALIGNED_AXIS];
+  int RenderAxesZ[NUMBER_OF_ALIGNED_AXIS];
 
-  int   NumberOfAxesX;
-  int   NumberOfAxesY;
-  int   NumberOfAxesZ;
+  int NumberOfAxesX;
+  int NumberOfAxesY;
+  int NumberOfAxesZ;
 
   bool MustAdjustXValue;
   bool MustAdjustYValue;
@@ -867,41 +856,36 @@ private:
   double LabelOffset;
   double TitleOffset;
 
-  //@{
+  ///@{
   /**
    * Major start and delta values, in each direction.
    * These values are needed for inner grid lines generation
    */
   double MajorStart[3];
   double DeltaMajor[3];
-  //@}
+  ///@}
 
-  int RenderGeometry(bool &initialRender, vtkViewport *viewport, bool checkAxisVisibility,int (vtkAxisActor::*renderMethod)(vtkViewport*));
+  int RenderGeometry(bool& initialRender, vtkViewport* viewport, bool checkAxisVisibility,
+    int (vtkAxisActor::*renderMethod)(vtkViewport*));
 
-  void  TransformBounds(vtkViewport *viewport, const double bounds[6],
-                        double pts[8][3]);
-  void  AdjustAxes(double bounds[6],
-                   double xCoords[NUMBER_OF_ALIGNED_AXIS][6],
-                   double yCoords[NUMBER_OF_ALIGNED_AXIS][6],
-                   double zCoords[NUMBER_OF_ALIGNED_AXIS][6],
-                   double xRange[2], double yRange[2], double zRange[2]);
+  void TransformBounds(vtkViewport* viewport, const double bounds[6], double pts[8][3]);
+  void AdjustAxes(double bounds[6], double xCoords[NUMBER_OF_ALIGNED_AXIS][6],
+    double yCoords[NUMBER_OF_ALIGNED_AXIS][6], double zCoords[NUMBER_OF_ALIGNED_AXIS][6],
+    double xRange[2], double yRange[2], double zRange[2]);
 
-  bool  ComputeTickSize(double bounds[6]);
-  void  AdjustValues(const double xRange[2],
-                     const double yRange[2],
-                     const double zRange[2]);
-  void  AdjustRange(const double bounds[6]);
-  void  BuildAxes(vtkViewport *);
-  void  DetermineRenderAxes(vtkViewport *);
-  void  SetNonDependentAttributes(void);
-  void  BuildLabels(vtkAxisActor *axes[NUMBER_OF_ALIGNED_AXIS]);
-  void  AdjustTicksComputeRange(vtkAxisActor *axes[NUMBER_OF_ALIGNED_AXIS],
-      double rangeMin, double rangeMax);
+  bool ComputeTickSize(double bounds[6]);
+  void AdjustValues(const double xRange[2], const double yRange[2], const double zRange[2]);
+  void AdjustRange(const double bounds[6]);
+  void BuildAxes(vtkViewport*);
+  void DetermineRenderAxes(vtkViewport*);
+  void SetNonDependentAttributes();
+  void BuildLabels(vtkAxisActor* axes[NUMBER_OF_ALIGNED_AXIS]);
+  void AdjustTicksComputeRange(
+    vtkAxisActor* axes[NUMBER_OF_ALIGNED_AXIS], double rangeMin, double rangeMax);
 
-  void    AutoScale(vtkViewport *viewport);
-  void    AutoScale(vtkViewport *viewport, vtkAxisActor *axes[NUMBER_OF_ALIGNED_AXIS]);
-  double  AutoScale(vtkViewport *viewport, double screenSize, double position[3]);
+  void AutoScale(vtkViewport* viewport);
+  void AutoScale(vtkViewport* viewport, vtkAxisActor* axes[NUMBER_OF_ALIGNED_AXIS]);
+  double AutoScale(vtkViewport* viewport, double screenSize, double position[3]);
 };
-
 
 #endif

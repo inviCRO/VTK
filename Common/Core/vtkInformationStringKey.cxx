@@ -18,41 +18,37 @@
 
 #include <string>
 
-
-//----------------------------------------------------------------------------
-vtkInformationStringKey::vtkInformationStringKey(const char* name, const char* location):
-  vtkInformationKey(name, location)
+//------------------------------------------------------------------------------
+vtkInformationStringKey::vtkInformationStringKey(const char* name, const char* location)
+  : vtkInformationKey(name, location)
 {
   vtkCommonInformationKeyManager::Register(this);
 }
 
-//----------------------------------------------------------------------------
-vtkInformationStringKey::~vtkInformationStringKey()
-{
-}
+//------------------------------------------------------------------------------
+vtkInformationStringKey::~vtkInformationStringKey() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationStringKey::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
-class vtkInformationStringValue: public vtkObjectBase
+//------------------------------------------------------------------------------
+class vtkInformationStringValue : public vtkObjectBase
 {
 public:
   vtkBaseTypeMacro(vtkInformationStringValue, vtkObjectBase);
   std::string Value;
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationStringKey::Set(vtkInformation* info, const char* value)
 {
   if (value)
   {
-    if(vtkInformationStringValue* oldv =
-       static_cast<vtkInformationStringValue *>
-       (this->GetAsObjectBase(info)))
+    if (vtkInformationStringValue* oldv =
+          static_cast<vtkInformationStringValue*>(this->GetAsObjectBase(info)))
     {
       if (oldv->Value != value)
       {
@@ -76,35 +72,35 @@ void vtkInformationStringKey::Set(vtkInformation* info, const char* value)
   }
   else
   {
-    this->SetAsObjectBase(info, 0);
+    this->SetAsObjectBase(info, nullptr);
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkInformationStringKey::Set(vtkInformation *info, const std::string &s)
+//------------------------------------------------------------------------------
+void vtkInformationStringKey::Set(vtkInformation* info, const std::string& s)
 {
   this->Set(info, s.c_str());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkInformationStringKey::Get(vtkInformation* info)
 {
   vtkInformationStringValue* v =
-    static_cast<vtkInformationStringValue *>(this->GetAsObjectBase(info));
-  return v?v->Value.c_str():0;
+    static_cast<vtkInformationStringValue*>(this->GetAsObjectBase(info));
+  return v ? v->Value.c_str() : nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationStringKey::ShallowCopy(vtkInformation* from, vtkInformation* to)
 {
   this->Set(to, this->Get(from));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkInformationStringKey::Print(ostream& os, vtkInformation* info)
 {
   // Print the value.
-  if(this->Has(info))
+  if (this->Has(info))
   {
     os << this->Get(info);
   }

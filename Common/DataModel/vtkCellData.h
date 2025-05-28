@@ -21,7 +21,10 @@
  * coordinates, etc.) Special methods are provided to work with filter
  * objects, such as passing data through filter, copying data from one
  * cell to another, and interpolating data given cell interpolation weights.
-*/
+ *
+ * By default, `GhostTypesToSkip` is set to `DUPLICATECELL | HIDDENCELL | REFINEDCELL`.
+ * See `vtkDataSetAttributes` for the definition of those constants.
+ */
 
 #ifndef vtkCellData_h
 #define vtkCellData_h
@@ -32,21 +35,19 @@
 class VTKCOMMONDATAMODEL_EXPORT vtkCellData : public vtkDataSetAttributes
 {
 public:
-  static vtkCellData *New();
+  static vtkCellData* New();
+  static vtkCellData* ExtendedNew();
 
-  vtkTypeMacro(vtkCellData,vtkDataSetAttributes);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkCellData, vtkDataSetAttributes);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
-  vtkCellData() {} //make sure constructor and desctructor are protected
-  ~vtkCellData() VTK_OVERRIDE {}
+  vtkCellData(); // make sure constructor and destructor are protected
+  ~vtkCellData() override = default;
 
 private:
-  vtkCellData(const vtkCellData&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCellData&) VTK_DELETE_FUNCTION;
+  vtkCellData(const vtkCellData&) = delete;
+  void operator=(const vtkCellData&) = delete;
 };
 
 #endif
-
-
-

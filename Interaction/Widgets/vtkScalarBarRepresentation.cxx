@@ -31,10 +31,11 @@
 #include "vtkTextProperty.h"
 
 #include <algorithm>
+#include <cmath>
 
 //=============================================================================
 vtkStandardNewMacro(vtkScalarBarRepresentation);
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkScalarBarRepresentation::vtkScalarBarRepresentation()
 {
   this->PositionCoordinate->SetValue(0.82, 0.1);
@@ -42,21 +43,21 @@ vtkScalarBarRepresentation::vtkScalarBarRepresentation()
 
   this->AutoOrient = true;
 
-  this->ScalarBarActor = NULL;
-  vtkScalarBarActor *actor = vtkScalarBarActor::New();
+  this->ScalarBarActor = nullptr;
+  vtkScalarBarActor* actor = vtkScalarBarActor::New();
   this->SetScalarBarActor(actor);
   actor->Delete();
 
-  this->SetShowBorder(vtkBorderRepresentation::BORDER_ACTIVE);
+  this->SetShowBorderToActive();
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkScalarBarRepresentation::~vtkScalarBarRepresentation()
 {
-  this->SetScalarBarActor(NULL);
+  this->SetScalarBarActor(nullptr);
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkScalarBarRepresentation::SetScalarBarActor(vtkScalarBarActor* actor)
 {
   if (this->ScalarBarActor != actor)
@@ -66,7 +67,7 @@ void vtkScalarBarRepresentation::SetScalarBarActor(vtkScalarBarActor* actor)
     if (actor && oldActor)
     {
       actor->SetOrientation(oldActor->GetOrientation());
-      if(actor->GetOrientation())
+      if (actor->GetOrientation())
       {
         this->ShowHorizontalBorder = 2;
         this->ShowVerticalBorder = 0;
@@ -81,25 +82,24 @@ void vtkScalarBarRepresentation::SetScalarBarActor(vtkScalarBarActor* actor)
   }
 }
 
-//-----------------------------------------------------------------------------
-void vtkScalarBarRepresentation::PrintSelf(ostream &os, vtkIndent indent)
+//------------------------------------------------------------------------------
+void vtkScalarBarRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << "ScalarBarActor: " << this->ScalarBarActor << endl;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkScalarBarRepresentation::SetOrientation(int orientation)
 {
-  if (this->ScalarBarActor &&
-      this->ScalarBarActor->GetOrientation() != orientation)
+  if (this->ScalarBarActor && this->ScalarBarActor->GetOrientation() != orientation)
   {
     this->SwapOrientation();
   }
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkScalarBarRepresentation::GetOrientation()
 {
   if (this->ScalarBarActor)
@@ -110,7 +110,7 @@ int vtkScalarBarRepresentation::GetOrientation()
   return 0;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkScalarBarRepresentation::BuildRepresentation()
 {
   if (this->ScalarBarActor)
@@ -122,7 +122,7 @@ void vtkScalarBarRepresentation::BuildRepresentation()
   this->Superclass::BuildRepresentation();
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkScalarBarRepresentation::WidgetInteraction(double eventPos[2])
 {
   // Let superclass move things around.
@@ -131,13 +131,13 @@ void vtkScalarBarRepresentation::WidgetInteraction(double eventPos[2])
   // Check to see if we need to change the orientation.
   if (this->Moving && this->AutoOrient)
   {
-    double *fpos1 = this->PositionCoordinate->GetValue();
-    double *fpos2 = this->Position2Coordinate->GetValue();
+    double* fpos1 = this->PositionCoordinate->GetValue();
+    double* fpos2 = this->Position2Coordinate->GetValue();
     double center[2];
-    center[0] = fpos1[0] + 0.5*fpos2[0];
-    center[1] = fpos1[1] + 0.5*fpos2[1];
+    center[0] = fpos1[0] + 0.5 * fpos2[0];
+    center[1] = fpos1[1] + 0.5 * fpos2[1];
 
-    if (fabs(center[0] - 0.5) > 0.2+fabs(center[1] - 0.5))
+    if (fabs(center[0] - 0.5) > 0.2 + fabs(center[1] - 0.5))
     {
       // Close enough to left/right to be swapped to vertical
       if (this->ScalarBarActor->GetOrientation() == VTK_ORIENT_HORIZONTAL)
@@ -145,7 +145,7 @@ void vtkScalarBarRepresentation::WidgetInteraction(double eventPos[2])
         this->SwapOrientation();
       }
     }
-    else if (fabs(center[1] - 0.5) > 0.2+fabs(center[0] - 0.5))
+    else if (fabs(center[1] - 0.5) > 0.2 + fabs(center[0] - 0.5))
     {
       // Close enough to left/right to be swapped to horizontal
       if (this->ScalarBarActor->GetOrientation() == VTK_ORIENT_VERTICAL)
@@ -156,11 +156,11 @@ void vtkScalarBarRepresentation::WidgetInteraction(double eventPos[2])
   } // if this->AutoOrient
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkScalarBarRepresentation::SwapOrientation()
 {
-  double *fpos1 = this->PositionCoordinate->GetValue();
-  double *fpos2 = this->Position2Coordinate->GetValue();
+  double* fpos1 = this->PositionCoordinate->GetValue();
+  double* fpos2 = this->Position2Coordinate->GetValue();
   double par1[2];
   double par2[2];
   par1[0] = fpos1[0];
@@ -168,14 +168,14 @@ void vtkScalarBarRepresentation::SwapOrientation()
   par2[0] = fpos1[0] + fpos2[0];
   par2[1] = fpos1[1] + fpos2[1];
   double center[2];
-  center[0] = fpos1[0] + 0.5*fpos2[0];
-  center[1] = fpos1[1] + 0.5*fpos2[1];
+  center[0] = fpos1[0] + 0.5 * fpos2[0];
+  center[1] = fpos1[1] + 0.5 * fpos2[1];
 
   // Change the corners to effectively rotate 90 degrees.
   par2[0] = center[0] + center[1] - par1[1];
   par2[1] = center[1] + center[0] - par1[0];
-  par1[0] = 2*center[0] - par2[0];
-  par1[1] = 2*center[1] - par2[1];
+  par1[0] = 2 * center[0] - par2[0];
+  par1[1] = 2 * center[1] - par2[1];
 
   if (this->ScalarBarActor->GetOrientation() == VTK_ORIENT_HORIZONTAL)
   {
@@ -186,7 +186,7 @@ void vtkScalarBarRepresentation::SwapOrientation()
     this->ScalarBarActor->SetOrientation(VTK_ORIENT_HORIZONTAL);
   }
 
-  this->PositionCoordinate->SetValue(par1[0],par1[1]);
+  this->PositionCoordinate->SetValue(par1[0], par1[1]);
   this->Position2Coordinate->SetValue(par2[0] - par1[0], par2[1] - par1[1]);
 
   std::swap(this->ShowHorizontalBorder, this->ShowVerticalBorder);
@@ -196,21 +196,21 @@ void vtkScalarBarRepresentation::SwapOrientation()
   this->BuildRepresentation();
 }
 
-//-----------------------------------------------------------------------------
-int vtkScalarBarRepresentation::GetVisibility()
+//------------------------------------------------------------------------------
+vtkTypeBool vtkScalarBarRepresentation::GetVisibility() VTK_FUTURE_CONST
 {
   return this->ScalarBarActor->GetVisibility();
 }
 
-//-----------------------------------------------------------------------------
-void vtkScalarBarRepresentation::SetVisibility(int vis)
+//------------------------------------------------------------------------------
+void vtkScalarBarRepresentation::SetVisibility(vtkTypeBool vis)
 {
   this->ScalarBarActor->SetVisibility(vis);
   this->Superclass::SetVisibility(vis);
 }
 
-//-----------------------------------------------------------------------------
-void vtkScalarBarRepresentation::GetActors2D(vtkPropCollection *collection)
+//------------------------------------------------------------------------------
+void vtkScalarBarRepresentation::GetActors2D(vtkPropCollection* collection)
 {
   if (this->ScalarBarActor)
   {
@@ -219,8 +219,8 @@ void vtkScalarBarRepresentation::GetActors2D(vtkPropCollection *collection)
   this->Superclass::GetActors2D(collection);
 }
 
-//-----------------------------------------------------------------------------
-void vtkScalarBarRepresentation::ReleaseGraphicsResources(vtkWindow *w)
+//------------------------------------------------------------------------------
+void vtkScalarBarRepresentation::ReleaseGraphicsResources(vtkWindow* w)
 {
   if (this->ScalarBarActor)
   {
@@ -229,8 +229,8 @@ void vtkScalarBarRepresentation::ReleaseGraphicsResources(vtkWindow *w)
   this->Superclass::ReleaseGraphicsResources(w);
 }
 
-//-------------------------------------------------------------------------
-int vtkScalarBarRepresentation::RenderOverlay(vtkViewport *w)
+//------------------------------------------------------------------------------
+int vtkScalarBarRepresentation::RenderOverlay(vtkViewport* w)
 {
   int count = this->Superclass::RenderOverlay(w);
   if (this->ScalarBarActor)
@@ -240,8 +240,8 @@ int vtkScalarBarRepresentation::RenderOverlay(vtkViewport *w)
   return count;
 }
 
-//-------------------------------------------------------------------------
-int vtkScalarBarRepresentation::RenderOpaqueGeometry(vtkViewport *w)
+//------------------------------------------------------------------------------
+int vtkScalarBarRepresentation::RenderOpaqueGeometry(vtkViewport* w)
 {
   int count = this->Superclass::RenderOpaqueGeometry(w);
   if (this->ScalarBarActor)
@@ -251,9 +251,8 @@ int vtkScalarBarRepresentation::RenderOpaqueGeometry(vtkViewport *w)
   return count;
 }
 
-//-------------------------------------------------------------------------
-int vtkScalarBarRepresentation::RenderTranslucentPolygonalGeometry(
-                                                                 vtkViewport *w)
+//------------------------------------------------------------------------------
+int vtkScalarBarRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* w)
 {
   int count = this->Superclass::RenderTranslucentPolygonalGeometry(w);
   if (this->ScalarBarActor)
@@ -263,8 +262,8 @@ int vtkScalarBarRepresentation::RenderTranslucentPolygonalGeometry(
   return count;
 }
 
-//-------------------------------------------------------------------------
-int vtkScalarBarRepresentation::HasTranslucentPolygonalGeometry()
+//------------------------------------------------------------------------------
+vtkTypeBool vtkScalarBarRepresentation::HasTranslucentPolygonalGeometry()
 {
   int result = this->Superclass::HasTranslucentPolygonalGeometry();
   if (this->ScalarBarActor)

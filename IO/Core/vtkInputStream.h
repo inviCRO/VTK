@@ -22,7 +22,7 @@
  * Data lengths for Seek and Read calls refer to the length of the
  * input data.  The actual length in the stream may differ for
  * subclasses that implement an encoding scheme.
-*/
+ */
 
 #ifndef vtkInputStream_h
 #define vtkInputStream_h
@@ -33,17 +33,17 @@
 class VTKIOCORE_EXPORT vtkInputStream : public vtkObject
 {
 public:
-  vtkTypeMacro(vtkInputStream,vtkObject);
-  static vtkInputStream *New();
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  vtkTypeMacro(vtkInputStream, vtkObject);
+  static vtkInputStream* New();
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Get/Set the real input stream.
    */
   vtkSetMacro(Stream, istream*);
   vtkGetMacro(Stream, istream*);
-  //@}
+  ///@}
 
   /**
    * Called after the stream position has been set by the caller, but
@@ -74,7 +74,7 @@ public:
 
 protected:
   vtkInputStream();
-  ~vtkInputStream() VTK_OVERRIDE;
+  ~vtkInputStream() override;
 
   // The real input stream.
   istream* Stream;
@@ -84,8 +84,8 @@ protected:
   vtkTypeInt64 StreamStartPosition;
 
 private:
-  vtkInputStream(const vtkInputStream&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkInputStream&) VTK_DELETE_FUNCTION;
+  vtkInputStream(const vtkInputStream&) = delete;
+  void operator=(const vtkInputStream&) = delete;
 };
 
 #endif

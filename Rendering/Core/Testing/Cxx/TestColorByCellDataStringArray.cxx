@@ -13,8 +13,8 @@
 
 =========================================================================*/
 
-#include "vtkTestUtilities.h"
 #include "vtkRegressionTestImage.h"
+#include "vtkTestUtilities.h"
 
 #include <vtkActor.h>
 #include <vtkCellData.h>
@@ -22,13 +22,11 @@
 #include <vtkNew.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 #include <vtkSphereSource.h>
-#include <vtkStdString.h>
 #include <vtkStringArray.h>
-
 
 int TestColorByCellDataStringArray(int argc, char* argv[])
 {
@@ -58,7 +56,7 @@ int TestColorByCellDataStringArray(int argc, char* argv[])
   }
 
   vtkCellData* cd = polydata->GetCellData();
-  cd->AddArray(sArray.Get());
+  cd->AddArray(sArray);
 
   // Set up transfer function
   vtkNew<vtkDiscretizableColorTransferFunction> tfer;
@@ -70,39 +68,39 @@ int TestColorByCellDataStringArray(int argc, char* argv[])
   tfer->SetIndexedColor(3, 1.0, 1.0, 0.0);
   tfer->SetIndexedColor(4, 0.0, 1.0, 1.0);
 
-  vtkStdString red("red");
+  std::string red("red");
   tfer->SetAnnotation(red, red);
-  vtkStdString blue("blue");
+  std::string blue("blue");
   tfer->SetAnnotation(blue, blue);
-  vtkStdString green("green");
+  std::string green("green");
   tfer->SetAnnotation(green, green);
-  vtkStdString yellow("yellow");
+  std::string yellow("yellow");
   tfer->SetAnnotation(yellow, yellow);
-  vtkStdString cyan("cyan");
+  std::string cyan("cyan");
   tfer->SetAnnotation(cyan, cyan);
 
   vtkNew<vtkPolyDataMapper> mapper;
-  mapper->SetInputDataObject(polydata.Get());
-  mapper->SetLookupTable(tfer.Get());
+  mapper->SetInputDataObject(polydata);
+  mapper->SetLookupTable(tfer);
   mapper->ScalarVisibilityOn();
   mapper->SetScalarModeToUseCellFieldData();
   mapper->SelectColorArray("color");
 
   vtkNew<vtkActor> actor;
-  actor->SetMapper(mapper.Get());
+  actor->SetMapper(mapper);
 
   vtkNew<vtkRenderer> renderer;
-  renderer->AddActor(actor.Get());
+  renderer->AddActor(actor);
 
   vtkNew<vtkRenderWindow> renderWindow;
-  renderWindow->AddRenderer(renderer.Get());
+  renderWindow->AddRenderer(renderer);
 
   vtkNew<vtkRenderWindowInteractor> iren;
-  iren->SetRenderWindow(renderWindow.Get());
+  iren->SetRenderWindow(renderWindow);
 
   renderWindow->Render();
 
-  int retVal = vtkRegressionTestImage(renderWindow.Get());
+  int retVal = vtkRegressionTestImage(renderWindow);
   if (retVal == vtkRegressionTester::DO_INTERACTOR)
   {
     iren->Start();

@@ -25,57 +25,67 @@
  * vtkColorTransferFunctionItem
  * vtkCompositeTransferFunctionItem
  * vtkPiecewiseItemFunctionItem
-*/
+ */
 
 #ifndef vtkScalarsToColorsItem_h
 #define vtkScalarsToColorsItem_h
 
 #include "vtkChartsCoreModule.h" // For export macro
+#include "vtkNew.h"              // For vtkNew
 #include "vtkPlot.h"
 
 class vtkCallbackCommand;
 class vtkImageData;
+class vtkPlotBar;
 class vtkPoints2D;
 
-class VTKCHARTSCORE_EXPORT vtkScalarsToColorsItem: public vtkPlot
+class VTKCHARTSCORE_EXPORT vtkScalarsToColorsItem : public vtkPlot
 {
 public:
   vtkTypeMacro(vtkScalarsToColorsItem, vtkPlot);
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Bounds of the item, use the UserBounds if valid otherwise compute
    * the bounds of the item (based on the transfer function range).
    */
-  void GetBounds(double bounds[4]) VTK_OVERRIDE;
+  void GetBounds(double bounds[4]) override;
 
-  //@{
+  ///@{
   /**
    * Set custom bounds, except if bounds are invalid, bounds will be
    * automatically computed based on the range of the control points
    * Invalid bounds by default.
    */
   vtkSetVector4Macro(UserBounds, double);
-  vtkGetVector4Macro(UserBounds, double)
-  //@}
+  vtkGetVector4Macro(UserBounds, double);
+  ///@}
 
   /**
    * Paint the texture into a rectangle defined by the bounds. If
    * MaskAboveCurve is true and a shape has been provided by a subclass, it
    * draws the texture into the shape
    */
-  bool Paint(vtkContext2D *painter) VTK_OVERRIDE;
+  bool Paint(vtkContext2D* painter) override;
 
-  //@{
+  ///@{
   /**
    * Get a pointer to the vtkPen object that controls the drawing of the edge
    * of the shape if any.
    * PolyLinePen type is vtkPen::NO_PEN by default.
    */
   vtkGetObjectMacro(PolyLinePen, vtkPen);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
+  /**
+   * Set/Get the vtkTable displayed as an histogram using a vtkPlotBar
+   */
+  void SetHistogramTable(vtkTable* histogramTable);
+  vtkGetObjectMacro(HistogramTable, vtkTable);
+  ///@}
+
+  ///@{
   /**
    * Don't fill in the part above the transfer function.
    * If true texture is not visible above the shape provided by subclasses,
@@ -85,11 +95,29 @@ public:
    */
   vtkSetMacro(MaskAboveCurve, bool);
   vtkGetMacro(MaskAboveCurve, bool);
-  //@}
+  ///@}
+
+  /**
+   * Function to query a plot for the nearest point to the specified coordinate.
+   * Returns the index of the data series with which the point is associated or
+   * -1.
+   * If a vtkIdType* is passed, its referent will be set to index of the bar
+   * segment with which a point is associated, or -1.
+   */
+  vtkIdType GetNearestPoint(const vtkVector2f& point, const vtkVector2f&, vtkVector2f* location,
+    vtkIdType* segmentIndex) override;
+  using vtkPlot::GetNearestPoint;
+
+  /**
+   * Generate and return the tooltip label string for this plot
+   * The segmentIndex is implemented here.
+   */
+  vtkStdString GetTooltipLabel(
+    const vtkVector2d& plotPos, vtkIdType seriesIndex, vtkIdType segmentIndex) override;
 
 protected:
   vtkScalarsToColorsItem();
-  ~vtkScalarsToColorsItem() VTK_OVERRIDE;
+  ~vtkScalarsToColorsItem() override;
 
   /**
    * Bounds of the item, by default (0, 1, 0, 1) but it depends on the
@@ -107,28 +135,39 @@ protected:
 
   vtkGetMacro(TextureWidth, int);
 
-  //@{
+  /**
+   * Method to configure the plotbar histogram before painting it
+   * can be reimplemented by subclasses.
+   * Return true if the histogram should be painted, false otherwise.
+   */
+  virtual bool ConfigurePlotBar();
+
+  ///@{
   /**
    * Called whenever the ScalarsToColors function(s) is modified. It internally
    * calls Modified(). Can be reimplemented by subclasses
    */
   virtual void ScalarsToColorsModified(vtkObject* caller, unsigned long eid, void* calldata);
-  static void OnScalarsToColorsModified(vtkObject* caller, unsigned long eid, void *clientdata, void* calldata);
-  //@}
+  static void OnScalarsToColorsModified(
+    vtkObject* caller, unsigned long eid, void* clientdata, void* calldata);
+  ///@}
 
-  double              UserBounds[4];
+  double UserBounds[4];
 
-  int                 TextureWidth;
-  vtkImageData*       Texture;
-  bool                Interpolate;
-  vtkPoints2D*        Shape;
-  vtkCallbackCommand* Callback;
+  bool Interpolate = true;
+  int TextureWidth;
+  vtkImageData* Texture = nullptr;
+  vtkTable* HistogramTable = nullptr;
 
-  vtkPen*             PolyLinePen;
-  bool                MaskAboveCurve;
+  vtkNew<vtkPoints2D> Shape;
+  vtkNew<vtkCallbackCommand> Callback;
+  vtkNew<vtkPlotBar> PlotBar;
+  vtkNew<vtkPen> PolyLinePen;
+  bool MaskAboveCurve;
+
 private:
-  vtkScalarsToColorsItem(const vtkScalarsToColorsItem &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkScalarsToColorsItem &) VTK_DELETE_FUNCTION;
+  vtkScalarsToColorsItem(const vtkScalarsToColorsItem&) = delete;
+  void operator=(const vtkScalarsToColorsItem&) = delete;
 };
 
 #endif

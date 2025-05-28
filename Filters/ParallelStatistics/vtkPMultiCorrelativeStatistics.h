@@ -26,8 +26,9 @@
  * individual data points on the node that owns it.
  *
  * @par Thanks:
- * Thanks to Philippe Pebay and David Thompson from Sandia National Laboratories for implementing this class.
-*/
+ * Thanks to Philippe Pebay and David Thompson from Sandia National Laboratories for implementing
+ * this class.
+ */
 
 #ifndef vtkPMultiCorrelativeStatistics_h
 #define vtkPMultiCorrelativeStatistics_h
@@ -37,44 +38,42 @@
 
 class vtkMultiProcessController;
 
-class VTKFILTERSPARALLELSTATISTICS_EXPORT vtkPMultiCorrelativeStatistics : public vtkMultiCorrelativeStatistics
+class VTKFILTERSPARALLELSTATISTICS_EXPORT vtkPMultiCorrelativeStatistics
+  : public vtkMultiCorrelativeStatistics
 {
 public:
   static vtkPMultiCorrelativeStatistics* New();
   vtkTypeMacro(vtkPMultiCorrelativeStatistics, vtkMultiCorrelativeStatistics);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Get/Set the multiprocess controller. If no controller is set,
    * single process is assumed.
    */
   virtual void SetController(vtkMultiProcessController*);
   vtkGetObjectMacro(Controller, vtkMultiProcessController);
-  //@}
+  ///@}
 
   /**
    * Performs Reduction
    */
-  static void GatherStatistics( vtkMultiProcessController *curController,
-                                vtkTable *sparseCov );
+  static void GatherStatistics(vtkMultiProcessController* curController, vtkTable* sparseCov);
 
 protected:
   vtkPMultiCorrelativeStatistics();
-  ~vtkPMultiCorrelativeStatistics();
+  ~vtkPMultiCorrelativeStatistics() override;
 
   vtkMultiProcessController* Controller;
 
   // Execute the parallel calculations required by the Learn option.
-  virtual void Learn( vtkTable* inData,
-                      vtkTable* inParameters,
-                      vtkMultiBlockDataSet* outMeta ) VTK_OVERRIDE;
+  void Learn(vtkTable* inData, vtkTable* inParameters, vtkMultiBlockDataSet* outMeta) override;
 
-  virtual vtkOrderStatistics* CreateOrderStatisticsInstance() VTK_OVERRIDE;
+  vtkOrderStatistics* CreateOrderStatisticsInstance() override;
 
 private:
-  vtkPMultiCorrelativeStatistics(const vtkPMultiCorrelativeStatistics&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPMultiCorrelativeStatistics&) VTK_DELETE_FUNCTION;
+  vtkPMultiCorrelativeStatistics(const vtkPMultiCorrelativeStatistics&) = delete;
+  void operator=(const vtkPMultiCorrelativeStatistics&) = delete;
 };
 
 #endif

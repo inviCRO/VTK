@@ -22,49 +22,43 @@
  *
  * @sa
  * vtkImageWrapPad vtkImageMirrorPad
-*/
+ */
 
 #ifndef vtkImageConstantPad_h
 #define vtkImageConstantPad_h
 
-
-#include "vtkImagingCoreModule.h" // For export macro
 #include "vtkImagePadFilter.h"
+#include "vtkImagingCoreModule.h" // For export macro
 
 class VTKIMAGINGCORE_EXPORT vtkImageConstantPad : public vtkImagePadFilter
 {
 public:
-  static vtkImageConstantPad *New();
-  vtkTypeMacro(vtkImageConstantPad,vtkImagePadFilter);
+  static vtkImageConstantPad* New();
+  vtkTypeMacro(vtkImageConstantPad, vtkImagePadFilter);
 
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Set/Get the pad value.
    */
   vtkSetMacro(Constant, double);
   vtkGetMacro(Constant, double);
-  //@}
-
+  ///@}
 
 protected:
   vtkImageConstantPad();
-  ~vtkImageConstantPad() VTK_OVERRIDE {}
+  ~vtkImageConstantPad() override = default;
 
   double Constant;
 
-  void ThreadedRequestData (vtkInformation* request,
-                            vtkInformationVector** inputVector,
-                            vtkInformationVector* outputVector,
-                            vtkImageData ***inData, vtkImageData **outData,
-                            int ext[6], int id) VTK_OVERRIDE;
+  void ThreadedRequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector, vtkImageData*** inData, vtkImageData** outData, int ext[6],
+    int id) override;
+
 private:
-  vtkImageConstantPad(const vtkImageConstantPad&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkImageConstantPad&) VTK_DELETE_FUNCTION;
+  vtkImageConstantPad(const vtkImageConstantPad&) = delete;
+  void operator=(const vtkImageConstantPad&) = delete;
 };
 
 #endif
-
-
-

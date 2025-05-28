@@ -29,13 +29,12 @@
 #include "vtkFiltersHybridModule.h" // For export macro
 #include "vtkMultiTimeStepAlgorithm.h"
 
-class VTKFILTERSHYBRID_EXPORT vtkTemporalArrayOperatorFilter :
-  public vtkMultiTimeStepAlgorithm
+class VTKFILTERSHYBRID_EXPORT vtkTemporalArrayOperatorFilter : public vtkMultiTimeStepAlgorithm
 {
 public:
   static vtkTemporalArrayOperatorFilter* New();
   vtkTypeMacro(vtkTemporalArrayOperatorFilter, vtkMultiTimeStepAlgorithm);
-  virtual void PrintSelf(ostream &OS, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   enum OperatorType
   {
@@ -45,55 +44,52 @@ public:
     DIV = 3
   };
 
-  //@{
+  ///@{
   /**
    * @brief Set/Get the operator to apply. Default is ADD (0).
    */
   vtkSetMacro(Operator, int);
   vtkGetMacro(Operator, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * @brief Set/Get the first time step.
    */
   vtkSetMacro(FirstTimeStepIndex, int);
   vtkGetMacro(FirstTimeStepIndex, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * @brief Set/Get the second time step.
    */
   vtkSetMacro(SecondTimeStepIndex, int);
   vtkGetMacro(SecondTimeStepIndex, int);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * @brief Set/Get the suffix to be append to the output array name.
-   * If not specified, ouput will be suffixed with '_' and the operation
+   * If not specified, output will be suffixed with '_' and the operation
    * type (eg. myarrayname_add).
    */
   vtkSetStringMacro(OutputArrayNameSuffix);
   vtkGetStringMacro(OutputArrayNameSuffix);
-  //@}
+  ///@}
 
 protected:
   vtkTemporalArrayOperatorFilter();
-  virtual ~vtkTemporalArrayOperatorFilter() VTK_OVERRIDE;
+  ~vtkTemporalArrayOperatorFilter() override;
 
-  virtual int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
-  virtual int FillOutputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  int FillInputPortInformation(int, vtkInformation*) override;
+  int FillOutputPortInformation(int, vtkInformation*) override;
 
-  virtual int RequestDataObject(vtkInformation*, vtkInformationVector**,
-                                vtkInformationVector*) VTK_OVERRIDE;
-  virtual int RequestInformation(vtkInformation*, vtkInformationVector**,
-                                 vtkInformationVector*) VTK_OVERRIDE;
-  virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector**,
-                                  vtkInformationVector*) VTK_OVERRIDE;
-  virtual int RequestData(vtkInformation*, vtkInformationVector**,
-                          vtkInformationVector*) VTK_OVERRIDE;
+  int RequestDataObject(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int Execute(vtkInformation* request, const std::vector<vtkSmartPointer<vtkDataObject>>& inputs,
+    vtkInformationVector* outputVector) override;
 
   int GetInputArrayAssociation();
   virtual vtkDataObject* Process(vtkDataObject*, vtkDataObject*);
@@ -107,8 +103,8 @@ protected:
   char* OutputArrayNameSuffix;
 
 private:
-  vtkTemporalArrayOperatorFilter(const vtkTemporalArrayOperatorFilter &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTemporalArrayOperatorFilter &) VTK_DELETE_FUNCTION;
+  vtkTemporalArrayOperatorFilter(const vtkTemporalArrayOperatorFilter&) = delete;
+  void operator=(const vtkTemporalArrayOperatorFilter&) = delete;
 };
 
 #endif

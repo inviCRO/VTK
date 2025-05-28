@@ -33,7 +33,7 @@ contours = vtk.vtkFlyingEdges2D()
 contours.SetInputConnection(demReader.GetOutputPort())
 contours.SetValue(0, (hi + lo)/2.0)
 
-# Contruct loops
+# Construct loops
 loops = vtk.vtkContourLoopExtraction()
 loops.SetInputConnection(contours.GetOutputPort())
 loops.Update()
@@ -109,6 +109,8 @@ ids.Update()
 cookie = vtk.vtkCookieCutter()
 cookie.SetInputConnection(ids.GetOutputPort())
 cookie.SetLoopsConnection(loops.GetOutputPort())
+cookie.PassPointDataOff()
+cookie.PassCellDataOff()
 
 tri = vtk.vtkTriangleFilter()
 tri.SetInputConnection(cookie.GetOutputPort())
@@ -132,4 +134,4 @@ ren.AddActor(actor)
 ren.AddActor(loopActor)
 
 renWin.Render()
-#iren.Start()
+iren.Start()

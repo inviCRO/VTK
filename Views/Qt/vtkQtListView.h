@@ -27,17 +27,17 @@
  * @par Thanks:
  * Thanks to Brian Wylie from Sandia National Laboratories for implementing
  * this class
-*/
+ */
 
 #ifndef vtkQtListView_h
 #define vtkQtListView_h
 
-#include "vtkViewsQtModule.h" // For export macro
 #include "vtkQtView.h"
+#include "vtkViewsQtModule.h" // For export macro
 
-#include <QPointer> // Needed for the internal list view
-#include <QImage> // Needed for the icon methods
 #include "vtkSmartPointer.h" // Needed for member variables
+#include <QImage>            // Needed for the icon methods
+#include <QPointer>          // Needed for the internal list view
 
 class vtkApplyColors;
 class vtkDataObjectToTable;
@@ -48,12 +48,12 @@ class vtkQtTableModelAdapter;
 
 class VTKVIEWSQT_EXPORT vtkQtListView : public vtkQtView
 {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-  static vtkQtListView *New();
+  static vtkQtListView* New();
   vtkTypeMacro(vtkQtListView, vtkQtView);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Get the main container of this view (a  QWidget).
@@ -61,7 +61,7 @@ public:
    * to GetWidget(): something like this
    * this->ui->box->layout()->addWidget(this->View->GetWidget());
    */
-  QWidget* GetWidget() VTK_OVERRIDE;
+  QWidget* GetWidget() override;
 
   enum
   {
@@ -73,14 +73,14 @@ public:
     ROW_DATA = 5,
   };
 
-  //@{
+  ///@{
   /**
    * The field type to copy into the output table.
    * Should be one of FIELD_DATA, POINT_DATA, CELL_DATA, VERTEX_DATA, EDGE_DATA.
    */
   vtkGetMacro(FieldType, int);
   void SetFieldType(int);
-  //@}
+  ///@}
 
   /**
    * Enable drag and drop on this widget
@@ -100,22 +100,22 @@ public:
    */
   void SetDecorationStrategy(int);
 
-  //@{
+  ///@{
   /**
    * The array to use for coloring items in view.  Default is "color".
    */
   void SetColorArrayName(const char* name);
   const char* GetColorArrayName();
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Whether to color vertices.  Default is off.
    */
   void SetColorByArray(bool vis);
   bool GetColorByArray();
   vtkBooleanMacro(ColorByArray, bool);
-  //@}
+  ///@}
 
   /**
    * The column to display
@@ -125,9 +125,13 @@ public:
   /**
    * The column used to filter on
    */
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 12, 0))
+  void SetFilterRegExp(const QRegularExpression& pattern);
+#else
   void SetFilterRegExp(const QRegExp& pattern);
+#endif
 
-  //@{
+  ///@{
   /**
    * Set the icon ivars. Only used if the decoration strategy is set to ICONS.
    */
@@ -135,24 +139,24 @@ public:
   void SetIconSize(int w, int h);
   void SetIconSheetSize(int w, int h);
   void SetIconArrayName(const char* name);
-  //@}
+  ///@}
 
-  void ApplyViewTheme(vtkViewTheme* theme) VTK_OVERRIDE;
+  void ApplyViewTheme(vtkViewTheme* theme) override;
 
   /**
    * Updates the view.
    */
-  void Update() VTK_OVERRIDE;
+  void Update() override;
 
 protected:
   vtkQtListView();
-  ~vtkQtListView() VTK_OVERRIDE;
+  ~vtkQtListView() override;
 
-  void AddRepresentationInternal(vtkDataRepresentation* rep) VTK_OVERRIDE;
-  void RemoveRepresentationInternal(vtkDataRepresentation* rep) VTK_OVERRIDE;
+  void AddRepresentationInternal(vtkDataRepresentation* rep) override;
+  void RemoveRepresentationInternal(vtkDataRepresentation* rep) override;
 
-private slots:
-  void slotQtSelectionChanged(const QItemSelection&,const QItemSelection&);
+private Q_SLOTS:
+  void slotQtSelectionChanged(const QItemSelection&, const QItemSelection&);
 
 private:
   void SetVTKSelection();
@@ -180,9 +184,8 @@ private:
   vtkSmartPointer<vtkDataObjectToTable> DataObjectToTable;
   vtkSmartPointer<vtkApplyColors> ApplyColors;
 
-  vtkQtListView(const vtkQtListView&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkQtListView&) VTK_DELETE_FUNCTION;
-
+  vtkQtListView(const vtkQtListView&) = delete;
+  void operator=(const vtkQtListView&) = delete;
 };
 
 #endif

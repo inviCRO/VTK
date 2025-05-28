@@ -16,38 +16,39 @@
 #include "vtkObjectFactory.h"
 #include "vtk_expat.h"
 
+#include "vtksys/FStream.hxx"
 #include <vtksys/SystemTools.hxx>
 
 #include <cctype>
 
 vtkStandardNewMacro(vtkXMLParser);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLParser::vtkXMLParser()
 {
-  this->Stream            = 0;
-  this->Parser            = 0;
-  this->FileName          = 0;
-  this->Encoding          = 0;
-  this->InputString       = 0;
+  this->Stream = nullptr;
+  this->Parser = nullptr;
+  this->FileName = nullptr;
+  this->Encoding = nullptr;
+  this->InputString = nullptr;
   this->InputStringLength = 0;
-  this->ParseError        = 0;
+  this->ParseError = 0;
   this->IgnoreCharacterData = 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLParser::~vtkXMLParser()
 {
-  this->SetStream(0);
-  this->SetFileName(0);
-  this->SetEncoding(0);
+  this->SetStream(nullptr);
+  this->SetFileName(nullptr);
+  this->SetEncoding(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLParser::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  if(this->Stream)
+  if (this->Stream)
   {
     os << indent << "Stream: " << this->Stream << "\n";
   }
@@ -55,77 +56,72 @@ void vtkXMLParser::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << indent << "Stream: (none)\n";
   }
-  os << indent << "FileName: " << (this->FileName? this->FileName : "(none)")
-     << "\n";
-  os << indent << "IgnoreCharacterData: "
-     << (this->IgnoreCharacterData?"On":"Off")
-     << endl;
-  os << indent << "Encoding: " << (this->Encoding? this->Encoding : "(none)")
-     << "\n";
+  os << indent << "FileName: " << (this->FileName ? this->FileName : "(none)") << "\n";
+  os << indent << "IgnoreCharacterData: " << (this->IgnoreCharacterData ? "On" : "Off") << endl;
+  os << indent << "Encoding: " << (this->Encoding ? this->Encoding : "(none)") << "\n";
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 static int vtkXMLParserFail(istream* stream)
 {
   // The fail() method returns true if either the failbit or badbit is set.
 #if defined(__HP_aCC)
   // The HP compiler sets the badbit too often, so we ignore it.
-  return (stream->rdstate() & ios::failbit)? 1:0;
+  return (stream->rdstate() & ios::failbit) ? 1 : 0;
 #else
-  return stream->fail()? 1:0;
+  return stream->fail() ? 1 : 0;
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTypeInt64 vtkXMLParser::TellG()
 {
   // Standard tellg returns -1 if fail() is true.
-  if(!this->Stream || vtkXMLParserFail(this->Stream))
+  if (!this->Stream || vtkXMLParserFail(this->Stream))
   {
     return -1;
   }
   return this->Stream->tellg();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLParser::SeekG(vtkTypeInt64 position)
 {
   // Standard seekg does nothing if fail() is true.
-  if(!this->Stream || vtkXMLParserFail(this->Stream))
+  if (!this->Stream || vtkXMLParserFail(this->Stream))
   {
     return;
   }
   this->Stream->seekg(std::streampos(position));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::Parse(const char* inputString)
 {
   this->InputString = inputString;
   this->InputStringLength = -1;
   int result = this->Parse();
-  this->InputString = 0;
+  this->InputString = nullptr;
   return result;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::Parse(const char* inputString, unsigned int length)
 {
   this->InputString = inputString;
   this->InputStringLength = length;
   int result = this->Parse();
-  this->InputString = 0;
+  this->InputString = nullptr;
   this->InputStringLength = -1;
   return result;
 }
 
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::Parse()
 {
   // Select source of XML
-  ifstream ifs;
-  if ( !this->InputString && !this->Stream && this->FileName )
+  vtksys::ifstream ifs;
+  if (!this->InputString && !this->Stream && this->FileName)
   {
     // If it is file, open it and set the appropriate stream
     vtksys::SystemTools::Stat_t fs;
@@ -139,7 +135,7 @@ int vtkXMLParser::Parse()
 #else
     ifs.open(this->FileName, ios::in);
 #endif
-    if ( !ifs )
+    if (!ifs)
     {
       vtkErrorMacro("Cannot open XML file: " << this->FileName);
       return 0;
@@ -150,27 +146,26 @@ int vtkXMLParser::Parse()
   // Create the expat XML parser.
   this->CreateParser();
 
-  XML_SetElementHandler(static_cast<XML_Parser>(this->Parser),
-                        &vtkXMLParserStartElement,
-                        &vtkXMLParserEndElement);
+  XML_SetElementHandler(
+    static_cast<XML_Parser>(this->Parser), &vtkXMLParserStartElement, &vtkXMLParserEndElement);
   if (!this->IgnoreCharacterData)
   {
-    XML_SetCharacterDataHandler(static_cast<XML_Parser>(this->Parser),
-                                &vtkXMLParserCharacterDataHandler);
+    XML_SetCharacterDataHandler(
+      static_cast<XML_Parser>(this->Parser), &vtkXMLParserCharacterDataHandler);
   }
   else
   {
-    XML_SetCharacterDataHandler(static_cast<XML_Parser>(this->Parser), NULL);
+    XML_SetCharacterDataHandler(static_cast<XML_Parser>(this->Parser), nullptr);
   }
   XML_SetUserData(static_cast<XML_Parser>(this->Parser), this);
 
   // Parse the input.
   int result = this->ParseXML();
 
-  if(result)
+  if (result)
   {
     // Tell the expat XML parser about the end-of-input.
-    if(!XML_Parse(static_cast<XML_Parser>(this->Parser), "", 0, 1))
+    if (!XML_Parse(static_cast<XML_Parser>(this->Parser), "", 0, 1))
     {
       this->ReportXmlParseError();
       result = 0;
@@ -179,18 +174,18 @@ int vtkXMLParser::Parse()
 
   // Clean up the parser.
   XML_ParserFree(static_cast<XML_Parser>(this->Parser));
-  this->Parser = 0;
+  this->Parser = nullptr;
 
   // If the source was a file, reset the stream
-  if ( this->Stream == &ifs )
+  if (this->Stream == &ifs)
   {
-    this->Stream = 0;
+    this->Stream = nullptr;
   }
 
   return result;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::CreateParser()
 {
   if (this->Parser)
@@ -203,7 +198,7 @@ int vtkXMLParser::CreateParser()
   return this->Parser ? 1 : 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::InitializeParser()
 {
   // Create the expat XML parser.
@@ -214,27 +209,26 @@ int vtkXMLParser::InitializeParser()
     return 0;
   }
 
-  XML_SetElementHandler(static_cast<XML_Parser>(this->Parser),
-                        &vtkXMLParserStartElement,
-                        &vtkXMLParserEndElement);
+  XML_SetElementHandler(
+    static_cast<XML_Parser>(this->Parser), &vtkXMLParserStartElement, &vtkXMLParserEndElement);
   if (!this->IgnoreCharacterData)
   {
-    XML_SetCharacterDataHandler(static_cast<XML_Parser>(this->Parser),
-                                &vtkXMLParserCharacterDataHandler);
+    XML_SetCharacterDataHandler(
+      static_cast<XML_Parser>(this->Parser), &vtkXMLParserCharacterDataHandler);
   }
   else
   {
-    XML_SetCharacterDataHandler(static_cast<XML_Parser>(this->Parser), NULL);
+    XML_SetCharacterDataHandler(static_cast<XML_Parser>(this->Parser), nullptr);
   }
   XML_SetUserData(static_cast<XML_Parser>(this->Parser), this);
   this->ParseError = 0;
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::ParseChunk(const char* inputString, unsigned int length)
 {
-  if ( !this->Parser )
+  if (!this->Parser)
   {
     vtkErrorMacro("Parser not initialized");
     this->ParseError = 1;
@@ -242,27 +236,27 @@ int vtkXMLParser::ParseChunk(const char* inputString, unsigned int length)
   }
   int res;
   res = this->ParseBuffer(inputString, length);
-  if ( res == 0 )
+  if (res == 0)
   {
     this->ParseError = 1;
   }
   return res;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::CleanupParser()
 {
-  if ( !this->Parser )
+  if (!this->Parser)
   {
     vtkErrorMacro("Parser not initialized");
     this->ParseError = 1;
     return 0;
   }
   int result = !this->ParseError;
-  if(result)
+  if (result)
   {
     // Tell the expat XML parser about the end-of-input.
-    if(!XML_Parse(static_cast<XML_Parser>(this->Parser), "", 0, 1))
+    if (!XML_Parse(static_cast<XML_Parser>(this->Parser), "", 0, 1))
     {
       this->ReportXmlParseError();
       result = 0;
@@ -271,18 +265,18 @@ int vtkXMLParser::CleanupParser()
 
   // Clean up the parser.
   XML_ParserFree(static_cast<XML_Parser>(this->Parser));
-  this->Parser = 0;
+  this->Parser = nullptr;
 
   return result;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::ParseXML()
 {
   // Parsing of message
-  if ( this->InputString )
+  if (this->InputString)
   {
-    if ( this->InputStringLength >= 0 )
+    if (this->InputStringLength >= 0)
     {
       return this->ParseBuffer(this->InputString, this->InputStringLength);
     }
@@ -293,7 +287,7 @@ int vtkXMLParser::ParseXML()
   }
 
   // Make sure we have input.
-  if(!this->Stream)
+  if (!this->Stream)
   {
     vtkErrorMacro("Parse() called with no Stream set.");
     return 0;
@@ -310,12 +304,12 @@ int vtkXMLParser::ParseXML()
   // to not check the error condition on the fin.read() before using
   // the data, but the fin.gcount() will be zero if an error occurred.
   // Therefore, the loop should be safe everywhere.
-  while(!this->ParseError && !this->ParsingComplete() && in)
+  while (!this->ParseError && !this->ParsingComplete() && in)
   {
     in.read(buffer, bufferSize);
-    if(in.gcount())
+    if (in.gcount())
     {
-      if(!this->ParseBuffer(buffer, in.gcount()))
+      if (!this->ParseBuffer(buffer, in.gcount()))
       {
         return 0;
       }
@@ -330,86 +324,72 @@ int vtkXMLParser::ParseXML()
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::ParsingComplete()
 {
   // Default behavior is to parse to end of stream.
   return 0;
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParser::StartElement(const char *name,
-                                const char ** vtkNotUsed(atts))
+//------------------------------------------------------------------------------
+void vtkXMLParser::StartElement(const char* name, const char** vtkNotUsed(atts))
 {
   this->ReportUnknownElement(name);
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParser::EndElement(const char * vtkNotUsed(name))
+//------------------------------------------------------------------------------
+void vtkXMLParser::EndElement(const char* vtkNotUsed(name)) {}
+
+//------------------------------------------------------------------------------
+void vtkXMLParser::CharacterDataHandler(const char* vtkNotUsed(inData), int vtkNotUsed(inLength)) {}
+
+//------------------------------------------------------------------------------
+void vtkXMLParser::ReportStrayAttribute(const char* element, const char* attr, const char* value)
 {
+  vtkWarningMacro("Stray attribute in XML stream: Element " << element << " has " << attr << "=\""
+                                                            << value << "\"");
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParser::CharacterDataHandler(const char* vtkNotUsed(inData),
-                                        int vtkNotUsed(inLength))
+//------------------------------------------------------------------------------
+void vtkXMLParser::ReportMissingAttribute(const char* element, const char* attr)
 {
+  vtkErrorMacro("Missing attribute in XML stream: Element " << element << " is missing " << attr);
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParser::ReportStrayAttribute(const char* element, const char* attr,
-                                        const char* value)
+//------------------------------------------------------------------------------
+void vtkXMLParser::ReportBadAttribute(const char* element, const char* attr, const char* value)
 {
-  vtkWarningMacro("Stray attribute in XML stream: Element " << element
-                  << " has " << attr << "=\"" << value << "\"");
+  vtkErrorMacro("Bad attribute value in XML stream: Element " << element << " has " << attr << "=\""
+                                                              << value << "\"");
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParser::ReportMissingAttribute(const char* element,
-                                          const char* attr)
-{
-  vtkErrorMacro("Missing attribute in XML stream: Element " << element
-                << " is missing " << attr);
-}
-
-//----------------------------------------------------------------------------
-void vtkXMLParser::ReportBadAttribute(const char* element, const char* attr,
-                                      const char* value)
-{
-  vtkErrorMacro("Bad attribute value in XML stream: Element " << element
-                << " has " << attr << "=\"" << value << "\"");
-}
-
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLParser::ReportUnknownElement(const char* element)
 {
   vtkErrorMacro("Unknown element in XML stream: " << element);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLParser::ReportXmlParseError()
 {
-  vtkErrorMacro(
-    "Error parsing XML in stream at line "
-    << XML_GetCurrentLineNumber(static_cast<XML_Parser>(this->Parser))
-    << ", column "
-    << XML_GetCurrentColumnNumber(static_cast<XML_Parser>(this->Parser))
-    << ", byte index "
-    << XML_GetCurrentByteIndex(static_cast<XML_Parser>(this->Parser))
-    << ": "
+  vtkErrorMacro("Error parsing XML in stream at line "
+    << XML_GetCurrentLineNumber(static_cast<XML_Parser>(this->Parser)) << ", column "
+    << XML_GetCurrentColumnNumber(static_cast<XML_Parser>(this->Parser)) << ", byte index "
+    << XML_GetCurrentByteIndex(static_cast<XML_Parser>(this->Parser)) << ": "
     << XML_ErrorString(XML_GetErrorCode(static_cast<XML_Parser>(this->Parser))));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTypeInt64 vtkXMLParser::GetXMLByteIndex()
 {
   return XML_GetCurrentByteIndex(static_cast<XML_Parser>(this->Parser));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::ParseBuffer(const char* buffer, unsigned int count)
 {
   // Pass the buffer to the expat XML parser.
-  if(!XML_Parse(static_cast<XML_Parser>(this->Parser), buffer, count, 0))
+  if (!XML_Parse(static_cast<XML_Parser>(this->Parser), buffer, count, 0))
   {
     this->ReportXmlParseError();
     return 0;
@@ -417,21 +397,20 @@ int vtkXMLParser::ParseBuffer(const char* buffer, unsigned int count)
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::ParseBuffer(const char* buffer)
 {
   return this->ParseBuffer(buffer, static_cast<int>(strlen(buffer)));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLParser::IsSpace(char c)
 {
   return isspace(c);
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParserStartElement(void* parser, const char *name,
-                              const char **atts)
+//------------------------------------------------------------------------------
+void vtkXMLParserStartElement(void* parser, const char* name, const char** atts)
 {
   // Begin element handler that is registered with the XML_Parser.
   // This just casts the user data to a vtkXMLParser and calls
@@ -439,8 +418,8 @@ void vtkXMLParserStartElement(void* parser, const char *name,
   static_cast<vtkXMLParser*>(parser)->StartElement(name, atts);
 }
 
-//----------------------------------------------------------------------------
-void vtkXMLParserEndElement(void* parser, const char *name)
+//------------------------------------------------------------------------------
+void vtkXMLParserEndElement(void* parser, const char* name)
 {
   // End element handler that is registered with the XML_Parser.  This
   // just casts the user data to a vtkXMLParser and calls EndElement.

@@ -18,22 +18,22 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkFieldData.h"
 #include "vtkGarbageCollector.h"
 #include "vtkInformation.h"
-#include "vtkObjectFactory.h"
 #include "vtkInformationDataObjectKey.h"
 #include "vtkInformationDoubleKey.h"
 #include "vtkInformationDoubleVectorKey.h"
+#include "vtkInformationInformationVectorKey.h"
 #include "vtkInformationIntegerKey.h"
 #include "vtkInformationIntegerPointerKey.h"
 #include "vtkInformationIntegerVectorKey.h"
-#include "vtkInformationInformationVectorKey.h"
 #include "vtkInformationStringKey.h"
 #include "vtkInformationVector.h"
-#include "vtkDataSetAttributes.h"
+#include "vtkObjectFactory.h"
+#include "vtkUnsignedCharArray.h"
 
 vtkStandardNewMacro(vtkDataObject);
 
-vtkCxxSetObjectMacro(vtkDataObject,Information,vtkInformation);
-vtkCxxSetObjectMacro(vtkDataObject,FieldData,vtkFieldData);
+vtkCxxSetObjectMacro(vtkDataObject, Information, vtkInformation);
+vtkCxxSetObjectMacro(vtkDataObject, FieldData, vtkFieldData);
 
 vtkInformationKeyMacro(vtkDataObject, DATA_TYPE_NAME, String);
 vtkInformationKeyMacro(vtkDataObject, DATA_OBJECT, DataObject);
@@ -60,6 +60,7 @@ vtkInformationKeyRestrictedMacro(vtkDataObject, ALL_PIECES_EXTENT, IntegerVector
 vtkInformationKeyRestrictedMacro(vtkDataObject, DATA_EXTENT, IntegerPointer, 6);
 vtkInformationKeyRestrictedMacro(vtkDataObject, ORIGIN, DoubleVector, 3);
 vtkInformationKeyRestrictedMacro(vtkDataObject, SPACING, DoubleVector, 3);
+vtkInformationKeyRestrictedMacro(vtkDataObject, DIRECTION, DoubleVector, 9);
 vtkInformationKeyMacro(vtkDataObject, SIL, DataObject);
 vtkInformationKeyRestrictedMacro(vtkDataObject, BOUNDING_BOX, DoubleVector, 6);
 
@@ -68,28 +69,17 @@ vtkInformationKeyRestrictedMacro(vtkDataObject, BOUNDING_BOX, DoubleVector, 6);
 static int vtkDataObjectGlobalReleaseDataFlag = 0;
 
 // this list must be kept in-sync with the FieldAssociations enum
-static const char *FieldAssociationsNames[] = {
-  "vtkDataObject::FIELD_ASSOCIATION_POINTS",
-  "vtkDataObject::FIELD_ASSOCIATION_CELLS",
-  "vtkDataObject::FIELD_ASSOCIATION_NONE",
-  "vtkDataObject::FIELD_ASSOCIATION_POINTS_THEN_CELLS",
-  "vtkDataObject::FIELD_ASSOCIATION_VERTICES",
-  "vtkDataObject::FIELD_ASSOCIATION_EDGES",
-  "vtkDataObject::FIELD_ASSOCIATION_ROWS"
-};
+static const char* FieldAssociationsNames[] = { "vtkDataObject::FIELD_ASSOCIATION_POINTS",
+  "vtkDataObject::FIELD_ASSOCIATION_CELLS", "vtkDataObject::FIELD_ASSOCIATION_NONE",
+  "vtkDataObject::FIELD_ASSOCIATION_POINTS_THEN_CELLS", "vtkDataObject::FIELD_ASSOCIATION_VERTICES",
+  "vtkDataObject::FIELD_ASSOCIATION_EDGES", "vtkDataObject::FIELD_ASSOCIATION_ROWS" };
 
 // this list must be kept in-sync with the AttributeTypes enum
-static const char *AttributeTypesNames[] = {
-  "vtkDataObject::POINT",
-  "vtkDataObject::CELL",
-  "vtkDataObject::FIELD",
-  "vtkDataObject::POINT_THEN_CELL",
-  "vtkDataObject::VERTEX",
-  "vtkDataObject::EDGE",
-  "vtkDataObject::ROW"
-};
+static const char* AttributeTypesNames[] = { "vtkDataObject::POINT", "vtkDataObject::CELL",
+  "vtkDataObject::FIELD", "vtkDataObject::POINT_THEN_CELL", "vtkDataObject::VERTEX",
+  "vtkDataObject::EDGE", "vtkDataObject::ROW" };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject::vtkDataObject()
 {
   this->Information = vtkInformation::New();
@@ -98,25 +88,25 @@ vtkDataObject::vtkDataObject()
   // then they will fill it with valid data.
   this->DataReleased = 0;
 
-  this->FieldData = NULL;
-  vtkFieldData *fd = vtkFieldData::New();
+  this->FieldData = nullptr;
+  vtkFieldData* fd = vtkFieldData::New();
   this->SetFieldData(fd);
   fd->FastDelete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject::~vtkDataObject()
 {
-  this->SetInformation(0);
-  this->SetFieldData(NULL);
+  this->SetInformation(nullptr);
+  this->SetFieldData(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataObject::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
-  if ( this->Information )
+  if (this->Information)
   {
     os << indent << "Information: " << this->Information << "\n";
   }
@@ -125,34 +115,33 @@ void vtkDataObject::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Information: (none)\n";
   }
 
-  os << indent << "Data Released: "
-     << (this->DataReleased ? "True\n" : "False\n");
-  os << indent << "Global Release Data: "
-     << (vtkDataObjectGlobalReleaseDataFlag ? "On\n" : "Off\n");
+  os << indent << "Data Released: " << (this->DataReleased ? "True\n" : "False\n");
+  os << indent
+     << "Global Release Data: " << (vtkDataObjectGlobalReleaseDataFlag ? "On\n" : "Off\n");
 
   os << indent << "UpdateTime: " << this->UpdateTime << endl;
 
   os << indent << "Field Data:\n";
-  this->FieldData->PrintSelf(os,indent.GetNextIndent());
+  this->FieldData->PrintSelf(os, indent.GetNextIndent());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Determine the modified time of this object
 vtkMTimeType vtkDataObject::GetMTime()
 {
   vtkMTimeType result;
 
   result = vtkObject::GetMTime();
-  if ( this->FieldData )
+  if (this->FieldData)
   {
     vtkMTimeType mtime = this->FieldData->GetMTime();
-    result = ( mtime > result ? mtime : result);
+    result = (mtime > result ? mtime : result);
   }
 
   return result;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataObject::Initialize()
 {
   if (this->FieldData)
@@ -173,7 +162,7 @@ void vtkDataObject::Initialize()
   this->Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataObject::SetGlobalReleaseDataFlag(int val)
 {
   if (val == vtkDataObjectGlobalReleaseDataFlag)
@@ -183,13 +172,13 @@ void vtkDataObject::SetGlobalReleaseDataFlag(int val)
   vtkDataObjectGlobalReleaseDataFlag = val;
 }
 
-//----------------------------------------------------------------------------
-vtkInformation *vtkDataObject::GetActiveFieldInformation(vtkInformation *info,
-    int fieldAssociation, int attributeType)
+//------------------------------------------------------------------------------
+vtkInformation* vtkDataObject::GetActiveFieldInformation(
+  vtkInformation* info, int fieldAssociation, int attributeType)
 {
   int i;
-  vtkInformation *fieldDataInfo;
-  vtkInformationVector *fieldDataInfoVector;
+  vtkInformation* fieldDataInfo;
+  vtkInformationVector* fieldDataInfoVector;
 
   if (fieldAssociation == FIELD_ASSOCIATION_POINTS)
   {
@@ -210,34 +199,33 @@ vtkInformation *vtkDataObject::GetActiveFieldInformation(vtkInformation *info,
   else
   {
     vtkGenericWarningMacro("Unrecognized field association!");
-    return NULL;
+    return nullptr;
   }
 
   if (!fieldDataInfoVector)
   {
-    return NULL;
+    return nullptr;
   }
 
   for (i = 0; i < fieldDataInfoVector->GetNumberOfInformationObjects(); i++)
   {
     fieldDataInfo = fieldDataInfoVector->GetInformationObject(i);
-    if ( fieldDataInfo->Has(FIELD_ACTIVE_ATTRIBUTE()) &&
-      (fieldDataInfo->Get(FIELD_ACTIVE_ATTRIBUTE()) & (1 << attributeType )) )
+    if (fieldDataInfo->Has(FIELD_ACTIVE_ATTRIBUTE()) &&
+      (fieldDataInfo->Get(FIELD_ACTIVE_ATTRIBUTE()) & (1 << attributeType)))
     {
       return fieldDataInfo;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
-//----------------------------------------------------------------------------
-vtkInformation *vtkDataObject::GetNamedFieldInformation(vtkInformation *info,
-                                                        int fieldAssociation,
-                                                        const char *name)
+//------------------------------------------------------------------------------
+vtkInformation* vtkDataObject::GetNamedFieldInformation(
+  vtkInformation* info, int fieldAssociation, const char* name)
 {
   int i;
-  vtkInformation *fieldDataInfo;
-  vtkInformationVector *fieldDataInfoVector;
+  vtkInformation* fieldDataInfo;
+  vtkInformationVector* fieldDataInfoVector;
 
   if (fieldAssociation == FIELD_ASSOCIATION_POINTS)
   {
@@ -258,34 +246,32 @@ vtkInformation *vtkDataObject::GetNamedFieldInformation(vtkInformation *info,
   else
   {
     vtkGenericWarningMacro("Unrecognized field association!");
-    return NULL;
+    return nullptr;
   }
 
   if (!fieldDataInfoVector)
   {
-    return NULL;
+    return nullptr;
   }
 
   for (i = 0; i < fieldDataInfoVector->GetNumberOfInformationObjects(); i++)
   {
     fieldDataInfo = fieldDataInfoVector->GetInformationObject(i);
-    if ( fieldDataInfo->Has(FIELD_NAME()) &&
-         !strcmp(fieldDataInfo->Get(FIELD_NAME()),name))
+    if (fieldDataInfo->Has(FIELD_NAME()) && !strcmp(fieldDataInfo->Get(FIELD_NAME()), name))
     {
       return fieldDataInfo;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
-//----------------------------------------------------------------------------
-void vtkDataObject::RemoveNamedFieldInformation(vtkInformation *info,
-                                                int fieldAssociation,
-                                                const char *name)
+//------------------------------------------------------------------------------
+void vtkDataObject::RemoveNamedFieldInformation(
+  vtkInformation* info, int fieldAssociation, const char* name)
 {
   int i;
-  vtkInformation *fieldDataInfo;
-  vtkInformationVector *fieldDataInfoVector;
+  vtkInformation* fieldDataInfo;
+  vtkInformationVector* fieldDataInfoVector;
 
   if (fieldAssociation == FIELD_ASSOCIATION_POINTS)
   {
@@ -317,25 +303,21 @@ void vtkDataObject::RemoveNamedFieldInformation(vtkInformation *info,
   for (i = 0; i < fieldDataInfoVector->GetNumberOfInformationObjects(); i++)
   {
     fieldDataInfo = fieldDataInfoVector->GetInformationObject(i);
-    if ( fieldDataInfo->Has(FIELD_NAME()) &&
-         !strcmp(fieldDataInfo->Get(FIELD_NAME()),name))
+    if (fieldDataInfo->Has(FIELD_NAME()) && !strcmp(fieldDataInfo->Get(FIELD_NAME()), name))
     {
       fieldDataInfoVector->Remove(fieldDataInfo);
       return;
     }
   }
-  return;
 }
 
-//----------------------------------------------------------------------------
-vtkInformation *vtkDataObject::SetActiveAttribute(vtkInformation *info,
-                                                  int fieldAssociation,
-                                                  const char *attributeName,
-                                                  int attributeType)
+//------------------------------------------------------------------------------
+vtkInformation* vtkDataObject::SetActiveAttribute(
+  vtkInformation* info, int fieldAssociation, const char* attributeName, int attributeType)
 {
   int i;
-  vtkInformation *fieldDataInfo;
-  vtkInformationVector *fieldDataInfoVector;
+  vtkInformation* fieldDataInfo;
+  vtkInformationVector* fieldDataInfoVector;
 
   if (fieldAssociation == FIELD_ASSOCIATION_POINTS)
   {
@@ -356,7 +338,7 @@ vtkInformation *vtkDataObject::SetActiveAttribute(vtkInformation *info,
   else
   {
     vtkGenericWarningMacro("Unrecognized field association!");
-    return NULL;
+    return nullptr;
   }
   if (!fieldDataInfoVector)
   {
@@ -382,26 +364,26 @@ vtkInformation *vtkDataObject::SetActiveAttribute(vtkInformation *info,
 
   // if we find a matching field, turn it on (active);  if another field of same
   // attribute type was active, turn it off (not active)
-  vtkInformation *activeField = NULL;
+  vtkInformation* activeField = nullptr;
   int activeAttribute;
-  const char *fieldName;
+  const char* fieldName;
   for (i = 0; i < fieldDataInfoVector->GetNumberOfInformationObjects(); i++)
   {
     fieldDataInfo = fieldDataInfoVector->GetInformationObject(i);
-    activeAttribute = fieldDataInfo->Get( FIELD_ACTIVE_ATTRIBUTE() );
+    activeAttribute = fieldDataInfo->Get(FIELD_ACTIVE_ATTRIBUTE());
     fieldName = fieldDataInfo->Get(FIELD_NAME());
     // if names match (or both empty... no field name), then set active
-    if ( (attributeName && fieldName && !strcmp(attributeName, fieldName)) ||
-      (!attributeName && !fieldName) )
+    if ((attributeName && fieldName && !strcmp(attributeName, fieldName)) ||
+      (!attributeName && !fieldName))
     {
       activeAttribute |= 1 << attributeType;
-      fieldDataInfo->Set( FIELD_ACTIVE_ATTRIBUTE(), activeAttribute );
+      fieldDataInfo->Set(FIELD_ACTIVE_ATTRIBUTE(), activeAttribute);
       activeField = fieldDataInfo;
     }
-    else if ( activeAttribute & (1 << attributeType) )
+    else if (activeAttribute & (1 << attributeType))
     {
       activeAttribute &= ~(1 << attributeType);
-      fieldDataInfo->Set( FIELD_ACTIVE_ATTRIBUTE(), activeAttribute );
+      fieldDataInfo->Set(FIELD_ACTIVE_ATTRIBUTE(), activeAttribute);
     }
   }
 
@@ -409,11 +391,11 @@ vtkInformation *vtkDataObject::SetActiveAttribute(vtkInformation *info,
   if (!activeField)
   {
     activeField = vtkInformation::New();
-    activeField->Set( FIELD_ACTIVE_ATTRIBUTE(), 1 << attributeType);
+    activeField->Set(FIELD_ACTIVE_ATTRIBUTE(), 1 << attributeType);
     activeField->Set(FIELD_ASSOCIATION(), fieldAssociation);
     if (attributeName)
     {
-      activeField->Set( FIELD_NAME(), attributeName );
+      activeField->Set(FIELD_NAME(), attributeName);
     }
     fieldDataInfoVector->Append(activeField);
     activeField->FastDelete();
@@ -422,17 +404,12 @@ vtkInformation *vtkDataObject::SetActiveAttribute(vtkInformation *info,
   return activeField;
 }
 
-//----------------------------------------------------------------------------
-void vtkDataObject::SetActiveAttributeInfo(vtkInformation *info,
-                                          int fieldAssociation,
-                                          int attributeType,
-                                          const char *name,
-                                          int arrayType,
-                                          int numComponents,
-                                          int numTuples)
+//------------------------------------------------------------------------------
+void vtkDataObject::SetActiveAttributeInfo(vtkInformation* info, int fieldAssociation,
+  int attributeType, const char* name, int arrayType, int numComponents, int numTuples)
 {
-  vtkInformation *attrInfo = vtkDataObject::GetActiveFieldInformation(info,
-    fieldAssociation, attributeType);
+  vtkInformation* attrInfo =
+    vtkDataObject::GetActiveFieldInformation(info, fieldAssociation, attributeType);
   if (!attrInfo)
   {
     // create an entry and set it as active
@@ -450,7 +427,7 @@ void vtkDataObject::SetActiveAttributeInfo(vtkInformation *info,
   {
     attrInfo->Set(FIELD_ARRAY_TYPE(), arrayType);
   }
-  else if(!attrInfo->Has(FIELD_ARRAY_TYPE()))
+  else if (!attrInfo->Has(FIELD_ARRAY_TYPE()))
   {
     attrInfo->Set(FIELD_ARRAY_TYPE(), VTK_DOUBLE);
   }
@@ -462,7 +439,7 @@ void vtkDataObject::SetActiveAttributeInfo(vtkInformation *info,
   {
     attrInfo->Set(FIELD_NUMBER_OF_COMPONENTS(), numComponents);
   }
-  else if(!attrInfo->Has(FIELD_NUMBER_OF_COMPONENTS()))
+  else if (!attrInfo->Has(FIELD_NUMBER_OF_COMPONENTS()))
   {
     attrInfo->Set(FIELD_NUMBER_OF_COMPONENTS(), 1);
   }
@@ -473,49 +450,49 @@ void vtkDataObject::SetActiveAttributeInfo(vtkInformation *info,
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkDataObject::SetPointDataActiveScalarInfo(vtkInformation *info,
-                                        int arrayType, int numComponents)
+//------------------------------------------------------------------------------
+void vtkDataObject::SetPointDataActiveScalarInfo(
+  vtkInformation* info, int arrayType, int numComponents)
 {
   vtkDataObject::SetActiveAttributeInfo(info, FIELD_ASSOCIATION_POINTS,
-    vtkDataSetAttributes::SCALARS, NULL, arrayType, numComponents, -1);
+    vtkDataSetAttributes::SCALARS, nullptr, arrayType, numComponents, -1);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataObject::DataHasBeenGenerated()
 {
   this->DataReleased = 0;
   this->UpdateTime.Modified();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataObject::GetGlobalReleaseDataFlag()
 {
   return vtkDataObjectGlobalReleaseDataFlag;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataObject::ReleaseData()
 {
   this->Initialize();
   this->DataReleased = 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkDataObject::GetUpdateTime()
 {
   return this->UpdateTime.GetMTime();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 unsigned long vtkDataObject::GetActualMemorySize()
 {
   return this->FieldData->GetActualMemorySize();
 }
 
-//----------------------------------------------------------------------------
-void vtkDataObject::ShallowCopy(vtkDataObject *src)
+//------------------------------------------------------------------------------
+void vtkDataObject::ShallowCopy(vtkDataObject* src)
 {
   if (!src)
   {
@@ -527,7 +504,7 @@ void vtkDataObject::ShallowCopy(vtkDataObject *src)
 
   if (!src->FieldData)
   {
-    this->SetFieldData(0);
+    this->SetFieldData(nullptr);
   }
   else
   {
@@ -545,28 +522,28 @@ void vtkDataObject::ShallowCopy(vtkDataObject *src)
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkDataObject::DeepCopy(vtkDataObject *src)
+//------------------------------------------------------------------------------
+void vtkDataObject::DeepCopy(vtkDataObject* src)
 {
-  vtkFieldData *srcFieldData = src->GetFieldData();
+  vtkFieldData* srcFieldData = src->GetFieldData();
 
   this->InternalDataObjectCopy(src);
 
   if (srcFieldData)
   {
-    vtkFieldData *newFieldData = vtkFieldData::New();
+    vtkFieldData* newFieldData = vtkFieldData::New();
     newFieldData->DeepCopy(srcFieldData);
     this->SetFieldData(newFieldData);
     newFieldData->FastDelete();
   }
   else
   {
-    this->SetFieldData(NULL);
+    this->SetFieldData(nullptr);
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkDataObject::InternalDataObjectCopy(vtkDataObject *src)
+//------------------------------------------------------------------------------
+void vtkDataObject::InternalDataObjectCopy(vtkDataObject* src)
 {
   this->DataReleased = src->DataReleased;
 
@@ -592,7 +569,7 @@ void vtkDataObject::InternalDataObjectCopy(vtkDataObject *src)
                            src->Information->Get(DATA_NUMBER_OF_GHOST_LEVELS()));
     }
   */
-  if(src->Information->Has(DATA_TIME_STEP()))
+  if (src->Information->Has(DATA_TIME_STEP()))
   {
     this->Information->CopyEntry(src->Information, DATA_TIME_STEP(), 1);
   }
@@ -600,62 +577,60 @@ void vtkDataObject::InternalDataObjectCopy(vtkDataObject *src)
   // This also caused a pipeline problem.
   // An input pipelineMTime was copied to output.  Pipeline did not execute...
   // We do not copy MTime of object, so why should we copy these.
-  //this->PipelineMTime = src->PipelineMTime;
-  //this->UpdateTime = src->UpdateTime;
-  //this->Locality = src->Locality;
+  // this->PipelineMTime = src->PipelineMTime;
+  // this->UpdateTime = src->UpdateTime;
+  // this->Locality = src->Locality;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This should be a pure virtual method.
-void vtkDataObject::Crop(const int*)
-{
-}
+void vtkDataObject::Crop(const int*) {}
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject* vtkDataObject::GetData(vtkInformation* info)
 {
-  return info? info->Get(DATA_OBJECT()) : 0;
+  return info ? info->Get(DATA_OBJECT()) : nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject* vtkDataObject::GetData(vtkInformationVector* v, int i)
 {
   return vtkDataObject::GetData(v->GetInformationObject(i));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkDataObject::GetAssociationTypeAsString(int associationType)
 {
   if (associationType < 0 || associationType >= NUMBER_OF_ASSOCIATIONS)
   {
     vtkGenericWarningMacro("Bad association type.");
-    return NULL;
+    return nullptr;
   }
   return FieldAssociationsNames[associationType];
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataObject::GetAssociationTypeFromString(const char* associationName)
 {
   if (!associationName)
   {
-    vtkGenericWarningMacro("NULL association name.");
+    vtkGenericWarningMacro("nullptr association name.");
     return -1;
   }
 
   // check for the name in the FieldAssociations enum
-  for(int i = 0; i < NUMBER_OF_ASSOCIATIONS; i++)
+  for (int i = 0; i < NUMBER_OF_ASSOCIATIONS; i++)
   {
-    if(!strcmp(associationName, FieldAssociationsNames[i]))
+    if (!strcmp(associationName, FieldAssociationsNames[i]))
     {
       return i;
     }
   }
 
   // check for the name in the AttributeTypes enum
-  for(int i = 0; i < NUMBER_OF_ATTRIBUTE_TYPES; i++)
+  for (int i = 0; i < NUMBER_OF_ATTRIBUTE_TYPES; i++)
   {
-    if(!strcmp(associationName, AttributeTypesNames[i]))
+    if (!strcmp(associationName, AttributeTypesNames[i]))
     {
       return i;
     }
@@ -665,13 +640,22 @@ int vtkDataObject::GetAssociationTypeFromString(const char* associationName)
   return -1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataSetAttributes* vtkDataObject::GetAttributes(int type)
 {
   return vtkDataSetAttributes::SafeDownCast(this->GetAttributesAsFieldData(type));
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+vtkUnsignedCharArray* vtkDataObject::GetGhostArray(int type)
+{
+  vtkFieldData* fieldData = this->GetAttributesAsFieldData(type);
+  return fieldData ? vtkArrayDownCast<vtkUnsignedCharArray>(
+                       fieldData->GetArray(vtkDataSetAttributes::GhostArrayName()))
+                   : nullptr;
+}
+
+//------------------------------------------------------------------------------
 vtkFieldData* vtkDataObject::GetAttributesAsFieldData(int type)
 {
   switch (type)
@@ -679,10 +663,10 @@ vtkFieldData* vtkDataObject::GetAttributesAsFieldData(int type)
     case FIELD:
       return this->FieldData;
   }
-  return 0;
+  return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataObject::GetAttributeTypeForArray(vtkAbstractArray* arr)
 {
   for (int i = 0; i < NUMBER_OF_ATTRIBUTE_TYPES; ++i)
@@ -702,7 +686,7 @@ int vtkDataObject::GetAttributeTypeForArray(vtkAbstractArray* arr)
   return -1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDataObject::GetNumberOfElements(int type)
 {
   switch (type)

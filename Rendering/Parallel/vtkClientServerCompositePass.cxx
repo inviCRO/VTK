@@ -14,35 +14,35 @@
 =========================================================================*/
 #include "vtkClientServerCompositePass.h"
 
-#include "vtkObjectFactory.h"
 #include "vtkMultiProcessController.h"
-#include "vtkSynchronizedRenderers.h"
+#include "vtkObjectFactory.h"
 #include "vtkRenderState.h"
+#include "vtkSynchronizedRenderers.h"
 
 vtkStandardNewMacro(vtkClientServerCompositePass);
 vtkCxxSetObjectMacro(vtkClientServerCompositePass, Controller, vtkMultiProcessController);
 vtkCxxSetObjectMacro(vtkClientServerCompositePass, RenderPass, vtkRenderPass);
 vtkCxxSetObjectMacro(vtkClientServerCompositePass, PostProcessingRenderPass, vtkRenderPass);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkClientServerCompositePass::vtkClientServerCompositePass()
 {
-  this->Controller = 0;
-  this->RenderPass = 0;
-  this->PostProcessingRenderPass = 0;
+  this->Controller = nullptr;
+  this->RenderPass = nullptr;
+  this->PostProcessingRenderPass = nullptr;
   this->ServerSideRendering = true;
   this->ProcessIsServer = false;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkClientServerCompositePass::~vtkClientServerCompositePass()
 {
-  this->SetController(0);
-  this->SetRenderPass(0);
-  this->SetPostProcessingRenderPass(0);
+  this->SetController(nullptr);
+  this->SetRenderPass(nullptr);
+  this->SetPostProcessingRenderPass(nullptr);
 }
 
-//----------------------------------------------------------------------------
-void vtkClientServerCompositePass::ReleaseGraphicsResources(vtkWindow *w)
+//------------------------------------------------------------------------------
+void vtkClientServerCompositePass::ReleaseGraphicsResources(vtkWindow* w)
 {
   this->Superclass::ReleaseGraphicsResources(w);
   if (this->RenderPass)
@@ -55,10 +55,10 @@ void vtkClientServerCompositePass::ReleaseGraphicsResources(vtkWindow *w)
   }
 }
 
-//----------------------------------------------------------------------------
-void vtkClientServerCompositePass::Render(const vtkRenderState *s)
+//------------------------------------------------------------------------------
+void vtkClientServerCompositePass::Render(const vtkRenderState* s)
 {
-  if (!this->ServerSideRendering  || this->ProcessIsServer)
+  if (!this->ServerSideRendering || this->ProcessIsServer)
   {
     if (this->RenderPass)
     {
@@ -82,11 +82,10 @@ void vtkClientServerCompositePass::Render(const vtkRenderState *s)
       vtkSynchronizedRenderers::vtkRawImage rawImage;
       rawImage.Capture(s->GetRenderer());
       int header[4];
-      header[0] = rawImage.IsValid()? 1 : 0;
+      header[0] = rawImage.IsValid() ? 1 : 0;
       header[1] = rawImage.GetWidth();
       header[2] = rawImage.GetHeight();
-      header[3] = rawImage.IsValid()?
-        rawImage.GetRawPtr()->GetNumberOfComponents() : 0;
+      header[3] = rawImage.IsValid() ? rawImage.GetRawPtr()->GetNumberOfComponents() : 0;
       // send the image to the client.
       this->Controller->Send(header, 4, 1, 0x023430);
       if (rawImage.IsValid())
@@ -116,12 +115,12 @@ void vtkClientServerCompositePass::Render(const vtkRenderState *s)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkClientServerCompositePass::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "Controller: ";
-  if(this->Controller==0)
+  if (this->Controller == nullptr)
   {
     os << "(none)" << endl;
   }
@@ -134,7 +133,7 @@ void vtkClientServerCompositePass::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ProcessIsServer: " << this->ProcessIsServer << endl;
 
   os << indent << "RenderPass: ";
-  if(this->RenderPass==0)
+  if (this->RenderPass == nullptr)
   {
     os << "(none)" << endl;
   }
@@ -143,7 +142,7 @@ void vtkClientServerCompositePass::PrintSelf(ostream& os, vtkIndent indent)
     os << this->RenderPass << endl;
   }
   os << indent << "PostProcessingRenderPass: ";
-  if(this->PostProcessingRenderPass==0)
+  if (this->PostProcessingRenderPass == nullptr)
   {
     os << "(none)" << endl;
   }
@@ -151,6 +150,4 @@ void vtkClientServerCompositePass::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << this->PostProcessingRenderPass << endl;
   }
-
 }
-

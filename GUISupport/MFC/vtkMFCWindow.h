@@ -16,20 +16,18 @@
 #ifndef vtkMFCWindow_h
 #define vtkMFCWindow_h
 
-#include "vtkGUISupportMFCModule.h" // For export macro
 #include "afxwin.h"
+#include "vtkGUISupportMFCModule.h" // For export macro
 
 class vtkWin32OpenGLRenderWindow;
 class vtkRenderWindowInteractor;
-
-#include "vtkMFCConfigure.h"
 
 //! class to display a VTK window in an MFC window
 class VTKGUISUPPORTMFC_EXPORT vtkMFCWindow : public CWnd
 {
 public:
   //! constructor requires a parent
-  vtkMFCWindow(CWnd *pcWnd);
+  vtkMFCWindow(CWnd* pcWnd);
   //! destructor
   virtual ~vtkMFCWindow();
 
@@ -49,7 +47,6 @@ public:
   virtual vtkRenderWindowInteractor* GetInteractor();
 
 protected:
-
   //! handle size events
   afx_msg void OnSize(UINT nType, int cx, int cy);
   //! handle paint events

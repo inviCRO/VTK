@@ -47,6 +47,8 @@ public class vtkAbstractJoglComponent<T extends java.awt.Component> extends vtkA
         vtkAbstractJoglComponent.this.glRenderWindow.SetMapped(1);
         vtkAbstractJoglComponent.this.glRenderWindow.SetPosition(0, 0);
         vtkAbstractJoglComponent.this.setSize(drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
+        vtkAbstractJoglComponent.this.glRenderWindow.SetOwnContext(0);
+        vtkAbstractJoglComponent.this.glRenderWindow.SetFrameBlitModeToBlitToCurrent();
         vtkAbstractJoglComponent.this.glRenderWindow.OpenGLInit();
       }
 
@@ -73,7 +75,7 @@ public class vtkAbstractJoglComponent<T extends java.awt.Component> extends vtkA
     this.uiComponent.addMouseWheelListener(forwarder);
     this.uiComponent.addKeyListener(forwarder);
 
-    // Make sure when VTK internaly request a Render, the Render get
+    // Make sure when VTK internally request a Render, the Render get
     // properly triggered
     renderWindowToUse.AddObserver("WindowFrameEvent", this, "Render");
     renderWindowToUse.GetInteractor().AddObserver("RenderEvent", this, "Render");

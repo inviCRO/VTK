@@ -22,7 +22,7 @@
  * @class   vtkDelimitedTextWriter
  * @brief   Delimited text writer for vtkTable
  * Writes a vtkTable as a delimited text file (such as CSV).
-*/
+ */
 
 #ifndef vtkDelimitedTextWriter_h
 #define vtkDelimitedTextWriter_h
@@ -38,56 +38,56 @@ class VTKIOCORE_EXPORT vtkDelimitedTextWriter : public vtkWriter
 public:
   static vtkDelimitedTextWriter* New();
   vtkTypeMacro(vtkDelimitedTextWriter, vtkWriter);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  //@{
+  ///@{
   /**
    * Get/Set the delimiter use to separate fields ("," by default.)
    */
   vtkSetStringMacro(FieldDelimiter);
   vtkGetStringMacro(FieldDelimiter);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the delimiter used for string data, if any
    * eg. double quotes(").
    */
   vtkSetStringMacro(StringDelimiter);
   vtkGetStringMacro(StringDelimiter);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set the filename for the file.
    */
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
-  //@}
+  vtkSetFilePathMacro(FileName);
+  vtkGetFilePathMacro(FileName);
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Get/Set if StringDelimiter must be used for string data.
    * True by default.
    */
   vtkSetMacro(UseStringDelimiter, bool);
   vtkGetMacro(UseStringDelimiter, bool);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /**
    * Enable writing to an OutputString instead of the default, a file.
    */
-  vtkSetMacro(WriteToOutputString,bool);
-  vtkGetMacro(WriteToOutputString,bool);
-  vtkBooleanMacro(WriteToOutputString,bool);
-  //@}
+  vtkSetMacro(WriteToOutputString, bool);
+  vtkGetMacro(WriteToOutputString, bool);
+  vtkBooleanMacro(WriteToOutputString, bool);
+  ///@}
 
   /**
-   * This convenience method returns the string, sets the IVAR to NULL,
+   * This convenience method returns the string, sets the IVAR to nullptr,
    * so that the user is responsible for deleting the string.
    */
-  char *RegisterAndGetOutputString();
+  char* RegisterAndGetOutputString();
 
   /**
    * Internal method: Returns the "string" with the "StringDelimiter" if
@@ -97,19 +97,19 @@ public:
 
 protected:
   vtkDelimitedTextWriter();
-  ~vtkDelimitedTextWriter() VTK_OVERRIDE;
+  ~vtkDelimitedTextWriter() override;
 
   bool WriteToOutputString;
   char* OutputString;
 
   bool OpenStream();
 
-  void WriteData() VTK_OVERRIDE;
-  virtual void WriteTable(vtkTable* rectilinearGrid);
+  void WriteData() override;
+  virtual void WriteTable(vtkTable* table);
 
   // see algorithm for more info.
   // This writer takes in vtkTable.
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
   char* FileName;
   char* FieldDelimiter;
@@ -119,11 +119,8 @@ protected:
   ostream* Stream;
 
 private:
-  vtkDelimitedTextWriter(const vtkDelimitedTextWriter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkDelimitedTextWriter&) VTK_DELETE_FUNCTION;
+  vtkDelimitedTextWriter(const vtkDelimitedTextWriter&) = delete;
+  void operator=(const vtkDelimitedTextWriter&) = delete;
 };
 
-
-
 #endif
-

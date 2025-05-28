@@ -18,11 +18,11 @@
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSliderRepresentation::vtkSliderRepresentation()
 {
   this->MinimumValue = 0.0;
-  this->Value   = 0.0;
+  this->Value = 0.0;
   this->MaximumValue = 1.0;
   this->CurrentT = 0.0;
   this->PickedT = 0.0;
@@ -37,102 +37,101 @@ vtkSliderRepresentation::vtkSliderRepresentation()
   this->ShowSliderLabel = 1;
 
   this->LabelFormat = new char[8];
-  snprintf( this->LabelFormat,8,"%s","%0.3g" );
+  snprintf(this->LabelFormat, 8, "%s", "%0.3g");
 
   this->LabelHeight = 0.05;
   this->TitleHeight = 0.15;
 }
 
-
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSliderRepresentation::~vtkSliderRepresentation()
 {
-  delete [] this->LabelFormat;
-  this->LabelFormat = NULL;
+  delete[] this->LabelFormat;
+  this->LabelFormat = nullptr;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSliderRepresentation::SetMinimumValue(double minValue)
 {
-  if ( minValue == this->MinimumValue )
+  if (minValue == this->MinimumValue)
   {
     return;
   }
 
-  if ( minValue >= this->MaximumValue )
+  if (minValue >= this->MaximumValue)
   {
     this->MaximumValue = minValue + 1;
   }
 
   this->MinimumValue = minValue;
 
-  if ( this->Value < this->MinimumValue )
+  if (this->Value < this->MinimumValue)
   {
     this->Value = this->MinimumValue;
     this->CurrentT = 0.0;
   }
-  else if ( this->Value > this->MaximumValue )
+  else if (this->Value > this->MaximumValue)
   {
     this->Value = this->MaximumValue;
     this->CurrentT = 1.0;
   }
 
-  this->InvokeEvent(vtkCommand::WidgetValueChangedEvent,NULL);
-  if ( this->Renderer )
+  this->InvokeEvent(vtkCommand::WidgetValueChangedEvent, nullptr);
+  if (this->Renderer)
   {
     this->BuildRepresentation();
   }
   this->Modified();
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSliderRepresentation::SetMaximumValue(double maxValue)
 {
-  if ( maxValue == this->MaximumValue )
+  if (maxValue == this->MaximumValue)
   {
     return;
   }
 
-  if ( maxValue <= this->MinimumValue )
+  if (maxValue <= this->MinimumValue)
   {
     this->MinimumValue = maxValue - 1;
   }
 
   this->MaximumValue = maxValue;
 
-  if ( this->Value < this->MinimumValue )
+  if (this->Value < this->MinimumValue)
   {
     this->Value = this->MinimumValue;
     this->CurrentT = 0.0;
   }
-  else if ( this->Value > this->MaximumValue )
+  else if (this->Value > this->MaximumValue)
   {
     this->Value = this->MaximumValue;
     this->CurrentT = 1.0;
   }
 
-  this->InvokeEvent(vtkCommand::WidgetValueChangedEvent,NULL);
-  if ( this->Renderer )
+  this->InvokeEvent(vtkCommand::WidgetValueChangedEvent, nullptr);
+  if (this->Renderer)
   {
     this->BuildRepresentation();
   }
   this->Modified();
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSliderRepresentation::SetValue(double value)
 {
-  if ( value == this->Value )
+  if (value == this->Value)
   {
     return;
   }
 
-  if ( value < this->MinimumValue )
+  if (value < this->MinimumValue)
   {
     value = this->MinimumValue;
   }
 
-  if ( value > this->MaximumValue )
+  if (value > this->MaximumValue)
   {
     value = this->MaximumValue;
   }
@@ -140,19 +139,19 @@ void vtkSliderRepresentation::SetValue(double value)
   this->Value = value;
   this->CurrentT = (value - this->MinimumValue) / (this->MaximumValue - this->MinimumValue);
 
-  this->InvokeEvent(vtkCommand::WidgetValueChangedEvent,NULL);
-  if ( this->Renderer )
+  this->InvokeEvent(vtkCommand::WidgetValueChangedEvent, nullptr);
+  if (this->Renderer)
   {
     this->BuildRepresentation();
   }
   this->Modified();
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSliderRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
+  // Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Minimum Value: " << this->MinimumValue << "\n";
   os << indent << "Maximum Value: " << this->MaximumValue << "\n";
@@ -164,8 +163,7 @@ void vtkSliderRepresentation::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "End Cap Width: " << this->EndCapWidth << "\n";
   os << indent << "Tube Width: " << this->TubeWidth << "\n";
 
-  os << indent << "Show Slider Label: "
-     << (this->ShowSliderLabel ? "On\n" : "Off\n");
+  os << indent << "Show Slider Label: " << (this->ShowSliderLabel ? "On\n" : "Off\n");
   os << indent << "Label Format: " << this->LabelFormat << "\n";
   os << indent << "Label Height: " << this->LabelHeight << "\n";
   os << indent << "Title Height: " << this->TitleHeight << "\n";

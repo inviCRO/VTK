@@ -66,16 +66,16 @@
  *   vtkCommand::InteractionEvent (on vtkWidgetEvent::Move)
  * </pre>
  *
-*/
+ */
 
 #ifndef vtkCenteredSliderWidget_h
 #define vtkCenteredSliderWidget_h
 
-#include "vtkInteractionWidgetsModule.h" // For export macro
 #include "vtkAbstractWidget.h"
+#include "vtkDeprecation.h"              // For VTK_DEPRECATED_IN_9_2_0
+#include "vtkInteractionWidgetsModule.h" // For export macro
 
 class vtkSliderRepresentation;
-
 
 class VTKINTERACTIONWIDGETS_EXPORT vtkCenteredSliderWidget : public vtkAbstractWidget
 {
@@ -83,43 +83,47 @@ public:
   /**
    * Instantiate the class.
    */
-  static vtkCenteredSliderWidget *New();
+  static vtkCenteredSliderWidget* New();
 
-  //@{
+  ///@{
   /**
    * Standard macros.
    */
-  vtkTypeMacro(vtkCenteredSliderWidget,vtkAbstractWidget);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-  //@}
+  vtkTypeMacro(vtkCenteredSliderWidget, vtkAbstractWidget);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Specify an instance of vtkWidgetRepresentation used to represent this
    * widget in the scene. Note that the representation is a subclass of vtkProp
    * so it can be added to the renderer independent of the widget.
    */
-  void SetRepresentation(vtkSliderRepresentation *r)
-    {this->Superclass::SetWidgetRepresentation(reinterpret_cast<vtkWidgetRepresentation*>(r));}
+  void SetRepresentation(vtkSliderRepresentation* r)
+  {
+    this->Superclass::SetWidgetRepresentation(reinterpret_cast<vtkWidgetRepresentation*>(r));
+  }
 
   /**
    * Return the representation as a vtkSliderRepresentation.
    */
-  vtkSliderRepresentation *GetSliderRepresentation()
-    {return reinterpret_cast<vtkSliderRepresentation*>(this->WidgetRep);}
+  vtkSliderRepresentation* GetSliderRepresentation()
+  {
+    return reinterpret_cast<vtkSliderRepresentation*>(this->WidgetRep);
+  }
 
   /**
    * Create the default widget representation if one is not set.
    */
-  void CreateDefaultRepresentation() VTK_OVERRIDE;
+  void CreateDefaultRepresentation() override;
 
   /**
    * Get the value fo this widget.
    */
-  double GetValue() { return this->Value; };
+  double GetValue() { return this->Value; }
 
 protected:
   vtkCenteredSliderWidget();
-  ~vtkCenteredSliderWidget() VTK_OVERRIDE {}
+  ~vtkCenteredSliderWidget() override = default;
 
   // These are the events that are handled
   static void SelectAction(vtkAbstractWidget*);
@@ -129,11 +133,15 @@ protected:
 
   // Manage the state of the widget
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
-    Start=0,
+    Start = 0,
     Sliding
   };
+#if !defined(VTK_LEGACY_REMOVE)
+  VTK_DEPRECATED_IN_9_2_0("because leading underscore is reserved")
+  typedef WidgetStateType _WidgetState;
+#endif
 
   int TimerId;
   int TimerDuration;
@@ -141,8 +149,8 @@ protected:
   double Value;
 
 private:
-  vtkCenteredSliderWidget(const vtkCenteredSliderWidget&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkCenteredSliderWidget&) VTK_DELETE_FUNCTION;
+  vtkCenteredSliderWidget(const vtkCenteredSliderWidget&) = delete;
+  void operator=(const vtkCenteredSliderWidget&) = delete;
 };
 
 #endif

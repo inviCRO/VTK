@@ -14,7 +14,7 @@
 =========================================================================*/
 /**
  * @class   vtkTupleInterpolator
- * @brief   interpolate a tuple of arbitray size
+ * @brief   interpolate a tuple of arbitrary size
  *
  * This class is used to interpolate a tuple which may have an arbitrary
  * number of components (but at least one component). The interpolation may
@@ -39,37 +39,36 @@
  * causes the list of tuples to be reset, so any data inserted up to that
  * point is lost. Bisection methods are used to speed up the search for the
  * interpolation interval.
-*/
+ */
 
 #ifndef vtkTupleInterpolator_h
 #define vtkTupleInterpolator_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkObject.h"
+#include "vtkRenderingCoreModule.h" // For export macro
 
 class vtkSpline;
 class vtkPiecewiseFunction;
-
 
 class VTKRENDERINGCORE_EXPORT vtkTupleInterpolator : public vtkObject
 {
 public:
   vtkTypeMacro(vtkTupleInterpolator, vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Instantiate the class.
    */
   static vtkTupleInterpolator* New();
 
-  //@{
+  ///@{
   /**
    * Specify the number of tuple components to interpolate. Note that setting
    * this value discards any previously inserted data.
    */
   void SetNumberOfComponents(int numComp);
-  vtkGetMacro(NumberOfComponents,int);
-  //@}
+  vtkGetMacro(NumberOfComponents, int);
+  ///@}
 
   /**
    * Return the number of tuples in the list of tuples to be
@@ -77,7 +76,7 @@ public:
    */
   int GetNumberOfTuples();
 
-  //@{
+  ///@{
   /**
    * Obtain some information about the interpolation range. The numbers
    * returned (corresponding to parameter t, usually thought of as time)
@@ -86,7 +85,7 @@ public:
    */
   double GetMinimumT();
   double GetMaximumT();
-  //@}
+  ///@}
 
   /**
    * Reset the class so that it contains no (t,tuple) information.
@@ -118,11 +117,13 @@ public:
   /**
    * Enums to control the type of interpolation to use.
    */
-  enum {INTERPOLATION_TYPE_LINEAR=0,
-        INTERPOLATION_TYPE_SPLINE
+  enum
+  {
+    INTERPOLATION_TYPE_LINEAR = 0,
+    INTERPOLATION_TYPE_SPLINE
   };
 
-  //@{
+  ///@{
   /**
    * Specify which type of function to use for interpolation. By default
    * spline interpolation (SetInterpolationFunctionToSpline()) is used
@@ -134,14 +135,12 @@ public:
    * to be discarded.
    */
   void SetInterpolationType(int type);
-  vtkGetMacro(InterpolationType,int);
-  void SetInterpolationTypeToLinear()
-    {this->SetInterpolationType(INTERPOLATION_TYPE_LINEAR);}
-  void SetInterpolationTypeToSpline()
-    {this->SetInterpolationType(INTERPOLATION_TYPE_SPLINE);}
-  //@}
+  vtkGetMacro(InterpolationType, int);
+  void SetInterpolationTypeToLinear() { this->SetInterpolationType(INTERPOLATION_TYPE_LINEAR); }
+  void SetInterpolationTypeToSpline() { this->SetInterpolationType(INTERPOLATION_TYPE_SPLINE); }
+  ///@}
 
-  //@{
+  ///@{
   /**
    * If the InterpolationType is set to spline, then this method applies. By
    * default Kochanek interpolation is used, but you can specify any instance
@@ -151,12 +150,12 @@ public:
    * interpolate.
    */
   void SetInterpolatingSpline(vtkSpline*);
-  vtkGetObjectMacro(InterpolatingSpline,vtkSpline);
-  //@}
+  vtkGetObjectMacro(InterpolatingSpline, vtkSpline);
+  ///@}
 
 protected:
   vtkTupleInterpolator();
-  ~vtkTupleInterpolator() VTK_OVERRIDE;
+  ~vtkTupleInterpolator() override;
 
   // The number of components being interpolated
   int NumberOfComponents;
@@ -165,18 +164,16 @@ protected:
   int InterpolationType;
 
   // This is the default 1D spline to use
-  vtkSpline *InterpolatingSpline;
+  vtkSpline* InterpolatingSpline;
 
   // Internal variables for interpolation functions
   void InitializeInterpolation();
-  vtkPiecewiseFunction    **Linear;
-  vtkSpline               **Spline;
-
+  vtkPiecewiseFunction** Linear;
+  vtkSpline** Spline;
 
 private:
-  vtkTupleInterpolator(const vtkTupleInterpolator&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkTupleInterpolator&) VTK_DELETE_FUNCTION;
-
+  vtkTupleInterpolator(const vtkTupleInterpolator&) = delete;
+  void operator=(const vtkTupleInterpolator&) = delete;
 };
 
 #endif

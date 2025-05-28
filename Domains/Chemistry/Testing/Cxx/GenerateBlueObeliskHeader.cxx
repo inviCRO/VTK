@@ -13,17 +13,21 @@
 =========================================================================*/
 
 #include "vtkBlueObeliskData.h"
-#include "vtkChemistryConfigure.h"
 
-#include <fstream>
+#include "vtksys/FStream.hxx"
 
-int GenerateBlueObeliskHeader(int, char *[])
+int main(int argc, char* argv[])
 {
-  std::ifstream xml(VTK_BODR_DATA_PATH_BUILD "/elements.xml");
+  if (argc < 2)
+  {
+    return EXIT_FAILURE;
+  }
+  std::string srcdir = argv[1];
+
+  vtksys::ifstream xml(srcdir + "/elements.xml");
   if (!xml)
   {
-    std::cerr << "Error opening file " VTK_BODR_DATA_PATH_BUILD
-                 "/elements.xml.\n";
+    std::cerr << "Error opening file " VTK_BODR_DATA_PATH_BUILD "/elements.xml.\n";
     return EXIT_FAILURE;
   }
 

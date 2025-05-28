@@ -27,17 +27,18 @@
 #include <sstream>
 #include <stdexcept>
 
-#define test_expression(expression) \
-{ \
-  if(!(expression)) \
-  { \
-    std::ostringstream buffer; \
-    buffer << "Expression failed at line " << __LINE__ << ": " << #expression; \
-    throw std::runtime_error(buffer.str()); \
-  } \
-}
+#define test_expression(expression)                                                                \
+  do                                                                                               \
+  {                                                                                                \
+    if (!(expression))                                                                             \
+    {                                                                                              \
+      std::ostringstream buffer;                                                                   \
+      buffer << "Expression failed at line " << __LINE__ << ": " << #expression;                   \
+      throw std::runtime_error(buffer.str());                                                      \
+    }                                                                                              \
+  } while (false)
 
-int TestArrayAPI(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
+int TestArrayAPI(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   try
   {
@@ -63,29 +64,31 @@ int TestArrayAPI(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
     value_types.push_back(VTK_VARIANT);
 
     std::vector<vtkVariant> sample_values;
-    sample_values.push_back(static_cast<char>(1));
-    sample_values.push_back(static_cast<unsigned char>(2));
-    sample_values.push_back(static_cast<short>(3));
-    sample_values.push_back(static_cast<unsigned short>(4));
-    sample_values.push_back(static_cast<int>(5));
-    sample_values.push_back(static_cast<unsigned int>(6));
-    sample_values.push_back(static_cast<long>(7));
-    sample_values.push_back(static_cast<unsigned long>(8));
-    sample_values.push_back(static_cast<double>(9.0));
-    sample_values.push_back(static_cast<vtkIdType>(10));
-    sample_values.push_back(vtkStdString("11"));
-    sample_values.push_back(vtkVariant(12.0));
+    sample_values.emplace_back(static_cast<char>(1));
+    sample_values.emplace_back(static_cast<unsigned char>(2));
+    sample_values.emplace_back(static_cast<short>(3));
+    sample_values.emplace_back(static_cast<unsigned short>(4));
+    sample_values.emplace_back(static_cast<int>(5));
+    sample_values.emplace_back(static_cast<unsigned int>(6));
+    sample_values.emplace_back(static_cast<long>(7));
+    sample_values.emplace_back(static_cast<unsigned long>(8));
+    sample_values.emplace_back(static_cast<double>(9.0));
+    sample_values.emplace_back(static_cast<vtkIdType>(10));
+    sample_values.emplace_back(vtkStdString("11"));
+    sample_values.emplace_back(12.0);
 
-    for(std::vector<int>::const_iterator storage_type = storage_types.begin(); storage_type != storage_types.end(); ++storage_type)
+    for (std::vector<int>::const_iterator storage_type = storage_types.begin();
+         storage_type != storage_types.end(); ++storage_type)
     {
-      for(size_t value_type = 0; value_type != value_types.size(); ++value_type)
+      for (size_t value_type = 0; value_type != value_types.size(); ++value_type)
       {
-        cerr << "creating array with storage type " << *storage_type << " and value type " << vtkImageScalarTypeNameMacro(value_types[value_type]) << endl;
+        cerr << "creating array with storage type " << *storage_type << " and value type "
+             << vtkImageScalarTypeNameMacro(value_types[value_type]) << endl;
 
         array.TakeReference(vtkArray::CreateArray(*storage_type, value_types[value_type]));
         test_expression(array);
 
-        test_expression(array->GetName() == "");
+        test_expression(array->GetName().empty());
         array->SetName("foo");
         test_expression(array->GetName() == "foo");
 
@@ -105,7 +108,7 @@ int TestArrayAPI(int vtkNotUsed(argc), char *vtkNotUsed(argv)[])
 
     return 0;
   }
-  catch(std::exception& e)
+  catch (std::exception& e)
   {
     cerr << e.what() << endl;
     return 1;
