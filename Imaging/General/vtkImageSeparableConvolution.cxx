@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkImageSeparableConvolution.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkImageSeparableConvolution.h"
 
 #include "vtkFloatArray.h"
@@ -21,6 +9,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImageSeparableConvolution);
 vtkCxxSetObjectMacro(vtkImageSeparableConvolution, XKernel, vtkFloatArray);
 vtkCxxSetObjectMacro(vtkImageSeparableConvolution, YKernel, vtkFloatArray);
@@ -212,8 +201,16 @@ void vtkImageSeparableConvolutionExecute(vtkImageSeparableConvolution* self, vtk
   // (see intercept cache update)
   self->PermuteExtent(outExt, outMin0, outMax0, outMin1, outMax1, outMin2, outMax2);
   self->PermuteExtent(inExt, inMin0, inMax0, inMin1, inMax1, inMin2, inMax2);
-  self->PermuteIncrements(inData->GetIncrements(), inInc0, inInc1, inInc2);
-  self->PermuteIncrements(outData->GetIncrements(), outInc0, outInc1, outInc2);
+
+  // Compute the increments into a local array as `GetIncrements()` introduces
+  // a data race on `vtkImageData::Increments`.
+  vtkIdType inIncrements[3];
+  vtkIdType outIncrements[3];
+  inData->GetIncrements(inIncrements);
+  outData->GetIncrements(outIncrements);
+
+  self->PermuteIncrements(inIncrements, inInc0, inInc1, inInc2);
+  self->PermuteIncrements(outIncrements, outInc0, outInc1, outInc2);
 
   target = static_cast<unsigned long>((inMax2 - inMin2 + 1) * (inMax1 - inMin1 + 1) / 50.0);
   target++;
@@ -407,3 +404,4 @@ void vtkImageSeparableConvolution::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "ZKernel: (not defined)\n";
   }
 }
+VTK_ABI_NAMESPACE_END

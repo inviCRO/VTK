@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkMagnifierRepresentation.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkMagnifierRepresentation.h"
 #include "vtkActor2D.h"
 #include "vtkCamera.h"
@@ -25,6 +13,7 @@
 #include "vtkRenderer.h"
 #include "vtkWindow.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMagnifierRepresentation);
 
 //------------------------------------------------------------------------------
@@ -124,8 +113,8 @@ void vtkMagnifierRepresentation::WidgetInteraction(double eventPos[2])
   viewPort[1] = eventPos[1] / winSize[1];
   viewPort[2] = viewPort[0] + static_cast<double>(this->Size[0]) / winSize[0];
   viewPort[3] = viewPort[1] + static_cast<double>(this->Size[1]) / winSize[1];
-  viewPort[2] = (viewPort[2] > vpxMax ? vpxMax : viewPort[2]);
-  viewPort[3] = (viewPort[3] > vpyMax ? vpyMax : viewPort[3]);
+  viewPort[2] = ((viewPort[2] - viewPort[0]) > vpxMax ? vpxMax : viewPort[2]);
+  viewPort[3] = ((viewPort[3] - viewPort[1]) > vpyMax ? vpyMax : viewPort[3]);
 
   this->MagnificationRenderer->SetViewport(viewPort);
 
@@ -315,3 +304,4 @@ void vtkMagnifierRepresentation::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Border Property: (none)\n";
   }
 }
+VTK_ABI_NAMESPACE_END

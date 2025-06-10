@@ -1,24 +1,14 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkAppendSelection.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*----------------------------------------------------------------------------
- Copyright (c) Sandia Corporation
- See Copyright.txt or http://www.paraview.org/HTML/Copyright.html for details.
-----------------------------------------------------------------------------*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-FileCopyrightText: Copyright (c) Sandia Corporation
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkAppendSelection.h"
 
 #include "vtkAlgorithmOutput.h"
+#include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkDataSetAttributes.h"
+#include "vtkDoubleArray.h"
+#include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkNew.h"
@@ -26,24 +16,39 @@
 #include "vtkSelection.h"
 #include "vtkSelectionNode.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkUnsignedCharArray.h"
+
+#include <vtksys/RegularExpression.hxx>
 
 #include <algorithm>
-#include <regex>
+#include <array>
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 //------------------------------------------------------------------------------
-void ReplaceStringUsingRegex(
-  std::string& source, const std::regex& regex, const std::string& replace, const std::string& with)
+void ReplaceStringUsingRegex(std::string& source, vtksys::RegularExpression& regex,
+  const std::string& replace, const std::string& with)
 {
-  for (auto match = std::sregex_iterator(source.begin(), source.end(), regex);
-       match != std::sregex_iterator(); ++match)
+  // find all matches
+  std::vector<std::string> matches;
+  for (size_t next = 0; regex.find(source.substr(next)); next += regex.end())
   {
-    if (match->str() == replace)
+    const auto mathWord = source.substr(next + regex.start(), regex.end() - regex.start());
+    if (mathWord == replace)
     {
-      source.replace(match->position(), match->length(), with);
+      matches.push_back(mathWord);
+    }
+  }
+  // replace all matches
+  for (const auto& match : matches)
+  {
+    const auto pos = source.find(match);
+    if (pos != std::string::npos)
+    {
+      source.replace(pos, match.length(), with);
     }
   }
 }
@@ -54,8 +59,9 @@ class vtkAppendSelection::vtkInternals
 {
 public:
   std::vector<std::string> Names;
-  const std::regex RegExNodeId;
-  const std::regex RegExNodeIdInExpression;
+  std::vector<std::array<double, 3>> Colors;
+  vtksys::RegularExpression RegExNodeId;
+  vtksys::RegularExpression RegExNodeIdInExpression;
 
   vtkInternals()
     : RegExNodeId("^[a-zA-Z0-9]+$")
@@ -93,7 +99,7 @@ void vtkAppendSelection::SetInputName(int index, const char* name)
     vtkErrorMacro("Empty input selection name");
     return;
   }
-  else if (!std::regex_match(safeInputSelectionName, this->Internals->RegExNodeId))
+  else if (!this->Internals->RegExNodeId.find(safeInputSelectionName))
   {
     vtkErrorMacro("`" << safeInputSelectionName << "` is not in the expected form.");
     return;
@@ -148,6 +154,47 @@ void vtkAppendSelection::RemoveAllInputNames()
   if (!this->Internals->Names.empty())
   {
     this->Internals->Names.clear();
+    this->Modified();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkAppendSelection::SetInputColor(int index, double r, double g, double b)
+{
+  if (index < 0)
+  {
+    vtkErrorMacro("Invalid index specified '" << index << "'.");
+    return;
+  }
+
+  if (this->Internals->Colors.size() <= static_cast<size_t>(index))
+  {
+    this->Internals->Colors.resize(index + 1);
+  }
+
+  this->Internals->Colors[index][0] = r;
+  this->Internals->Colors[index][1] = g;
+  this->Internals->Colors[index][2] = b;
+  this->Modified();
+}
+
+//------------------------------------------------------------------------------
+double* vtkAppendSelection::GetInputColor(int index) const
+{
+  if (index < 0 || static_cast<size_t>(index) >= this->Internals->Colors.size())
+  {
+    vtkErrorMacro("Invalid index: " << index);
+    return nullptr;
+  }
+  return this->Internals->Colors[index].data();
+}
+
+//------------------------------------------------------------------------------
+void vtkAppendSelection::RemoveAllInputColors()
+{
+  if (!this->Internals->Colors.empty())
+  {
+    this->Internals->Colors.clear();
     this->Modified();
   }
 }
@@ -218,6 +265,50 @@ void vtkAppendSelection::SetInputConnectionByNumber(int num, vtkAlgorithmOutput*
 }
 
 //------------------------------------------------------------------------------
+void vtkAppendSelection::SetColorArray(vtkSelectionNode* node, double* color)
+{
+  if (!node || !color)
+  {
+    return;
+  }
+
+  const char* colorArrayName = vtkAppendSelection::GetColorArrayName();
+
+  auto* selectionData = node->GetSelectionData();
+  auto* arr = selectionData->GetArray(colorArrayName);
+  if (arr)
+  {
+    return;
+  }
+
+  vtkNew<vtkUnsignedCharArray> colorArray;
+  colorArray->SetName(colorArrayName);
+  colorArray->SetNumberOfComponents(3);
+
+  int length = selectionData->GetNumberOfTuples();
+  colorArray->SetNumberOfTuples(length);
+  for (int i = 0; i < length; i++)
+  {
+    colorArray->SetTuple3(i, color[0] * 255, color[1] * 255, color[2] * 255);
+  }
+
+  if (length > 0)
+  {
+    colorArray->CreateDefaultLookupTable();
+    selectionData->AddArray(colorArray);
+
+    selectionData->SetAttribute(colorArray, vtkDataSetAttributes::SCALARS);
+    selectionData->SetActiveAttribute(colorArrayName, vtkDataSetAttributes::SCALARS);
+
+    selectionData->SetScalars(colorArray);
+
+    selectionData->CopyScalarsOn();
+    selectionData->Modified();
+    selectionData->Update();
+  }
+}
+
+//------------------------------------------------------------------------------
 int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -232,6 +323,7 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
     return 1;
   }
 
+  int checkAbortInterval = std::min(numInputs / 10 + 1, 1000);
   if (!this->AppendByUnion)
   {
     // Expression is not set, so the vtkSelection automatically merges the nodes
@@ -243,6 +335,10 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
       // iterate over all the selection inputs
       for (int inputId = 0; inputId < numInputs; ++inputId)
       {
+        if (inputId % checkAbortInterval == 0 && this->CheckAbort())
+        {
+          break;
+        }
         vtkSelection* sel = vtkSelection::GetData(inputVector[0]->GetInformationObject(inputId));
         if (sel == nullptr)
         {
@@ -255,6 +351,11 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
           vtkSelectionNode* inputNode = sel->GetNode(subNodeId);
           vtkNew<vtkSelectionNode> outputNode;
           outputNode->ShallowCopy(inputNode);
+          bool canAddColorArray = this->Internals->Colors.size() == static_cast<size_t>(numInputs);
+          if (canAddColorArray)
+          {
+            this->SetColorArray(outputNode, this->Internals->Colors[inputId].data());
+          }
           const std::string subNodeName = sel->GetNodeNameAtIndex(subNodeId);
           const std::string combinedNodeName = subSelectionName + subNodeName;
           output->SetNode(combinedNodeName, outputNode);
@@ -284,6 +385,10 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
       // iterate over all the selection inputs
       for (int inputId = 0; inputId < numInputs; ++inputId)
       {
+        if (inputId % checkAbortInterval == 0 && this->CheckAbort())
+        {
+          break;
+        }
         vtkSelection* sel = vtkSelection::GetData(inputVector[0]->GetInformationObject(inputId));
         if (sel == nullptr || sel->GetNumberOfNodes() == 0)
         {
@@ -305,6 +410,14 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
             vtkSelectionNode* inputNode = sel->GetNode(subNodeId);
             vtkNew<vtkSelectionNode> outputNode;
             outputNode->ShallowCopy(inputNode);
+
+            bool canAddColorArray =
+              this->Internals->Colors.size() == static_cast<size_t>(numInputs);
+            if (canAddColorArray)
+            {
+              this->SetColorArray(outputNode, this->Internals->Colors[inputId].data());
+            }
+
             const std::string subNodeName = sel->GetNodeNameAtIndex(subNodeId);
             const std::string combinedNodeName = subSelectionName + subNodeName;
             output->SetNode(combinedNodeName, outputNode);
@@ -324,6 +437,14 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
             vtkSelectionNode* inputNode = sel->GetNode(subNodeId);
             vtkNew<vtkSelectionNode> outputNode;
             outputNode->ShallowCopy(inputNode);
+
+            bool canAddColorArray =
+              this->Internals->Colors.size() == static_cast<size_t>(numInputs);
+            if (canAddColorArray)
+            {
+              this->SetColorArray(outputNode, this->Internals->Colors[inputId].data());
+            }
+
             const std::string subNodeName = sel->GetNodeNameAtIndex(subNodeId);
             const std::string combinedNodeName = subSelectionName + subNodeName;
             output->SetNode(combinedNodeName, outputNode);
@@ -356,6 +477,10 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
     vtkSelection* first = nullptr;
     while (first == nullptr && idx < numInputs)
     {
+      if (idx % checkAbortInterval == 0 && this->CheckAbort())
+      {
+        break;
+      }
       first = vtkSelection::GetData(inputVector[0]->GetInformationObject(idx));
       idx++;
     }
@@ -371,6 +496,10 @@ int vtkAppendSelection::RequestData(vtkInformation* vtkNotUsed(request),
     // Take the union of all non-null selections
     for (; idx < numInputs; ++idx)
     {
+      if (idx % checkAbortInterval == 0 && this->CheckAbort())
+      {
+        break;
+      }
       vtkSelection* s = vtkSelection::GetData(inputVector[0]->GetInformationObject(idx));
       if (s != nullptr)
       {
@@ -411,4 +540,11 @@ void vtkAppendSelection::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << "InputName " << i << ": " << this->Internals->Names[i] << endl;
   }
+
+  for (size_t i = 0; i < this->Internals->Colors.size(); ++i)
+  {
+    os << "InputColor " << i << ": {" << this->Internals->Colors[i][0] << ","
+       << this->Internals->Colors[i][1] << "," << this->Internals->Colors[i][2] << "}" << endl;
+  }
 }
+VTK_ABI_NAMESPACE_END

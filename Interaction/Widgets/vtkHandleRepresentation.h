@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkHandleRepresentation.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @class   vtkHandleRepresentation
  * @brief   abstract class for representing widget handles
@@ -47,8 +35,10 @@
 
 #include "vtkDeprecation.h"              // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkInteractionWidgetsModule.h" // For export macro
+#include "vtkLegacy.h"                   // for VTK_LEGACY_REMOVE
 #include "vtkWidgetRepresentation.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCoordinate;
 class vtkRenderer;
 class vtkPointPlacer;
@@ -73,9 +63,9 @@ public:
    * methods are often subclassed because special constraint operations can
    * be used to control the actual positioning.
    */
-  virtual void SetDisplayPosition(double pos[3]);
-  virtual void GetDisplayPosition(double pos[3]);
-  virtual double* GetDisplayPosition() VTK_SIZEHINT(3);
+  virtual void SetDisplayPosition(double pos[2]);
+  virtual void GetDisplayPosition(double pos[2]);
+  virtual double* GetDisplayPosition() VTK_SIZEHINT(2);
   virtual void SetWorldPosition(double pos[3]);
   virtual void GetWorldPosition(double pos[3]);
   virtual double* GetWorldPosition() VTK_SIZEHINT(3);
@@ -269,4 +259,5 @@ private:
   void operator=(const vtkHandleRepresentation&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

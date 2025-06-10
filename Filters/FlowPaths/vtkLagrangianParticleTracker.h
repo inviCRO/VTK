@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkLagrangianParticleTracker.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-    This software is distributed WITHOUT ANY WARRANTY; without even
-    the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-    PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @class   vtkLagrangianParticleTracker
  * @brief   Filter to inject and track particles in a flow
@@ -36,7 +24,7 @@
  * * port 1 : ParticleInteractions : empty if no surface input, contains a
  *     a multiblock with as many children as the number of threads, each children containing a
  * multiblock with the same structure as the surfaces. The leafs of these structures contain a
- * polydata of vertexes corresponding to the interactions. with the same composite layout of surface
+ * polydata of vertices corresponding to the interactions. with the same composite layout of surface
  * input if any, showing all interactions between particles and the surface input.
  *
  * It has a parallel implementation which streams particle between domains.
@@ -91,11 +79,13 @@
 #include "vtkBoundingBox.h" // For cached bounds
 #include "vtkDataObjectAlgorithm.h"
 #include "vtkFiltersFlowPathsModule.h" // For export macro
+#include "vtkSmartPointer.h"           // For smart pointer
 
 #include <atomic> // for atomic
 #include <mutex>  // for mutexes
 #include <queue>  // for particle queue
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkBoundingBox;
 class vtkCellArray;
 class vtkDataSet;
@@ -134,7 +124,7 @@ public:
    * Default is vtkLagrangianMatidaIntegrationModel
    */
   void SetIntegrationModel(vtkLagrangianBasicIntegrationModel* integrationModel);
-  vtkGetObjectMacro(IntegrationModel, vtkLagrangianBasicIntegrationModel);
+  vtkLagrangianBasicIntegrationModel* GetIntegrationModel();
   ///@}
 
   ///@{
@@ -143,7 +133,7 @@ public:
    * Default is vtkRungeKutta2
    */
   void SetIntegrator(vtkInitialValueProblemSolver* integrator);
-  vtkGetObjectMacro(Integrator, vtkInitialValueProblemSolver);
+  vtkInitialValueProblemSolver* GetIntegrator();
   ///@}
 
   ///@{
@@ -372,8 +362,8 @@ protected:
    */
   virtual void DeleteParticle(vtkLagrangianParticle* particle);
 
-  vtkLagrangianBasicIntegrationModel* IntegrationModel;
-  vtkInitialValueProblemSolver* Integrator;
+  vtkSmartPointer<vtkLagrangianBasicIntegrationModel> IntegrationModel;
+  vtkSmartPointer<vtkInitialValueProblemSolver> Integrator;
 
   int CellLengthComputationMode;
   double StepFactor;
@@ -397,8 +387,10 @@ protected:
   vtkDataObject* FlowCache;
   vtkMTimeType FlowTime;
   vtkBoundingBox FlowBoundsCache;
+  bool FlowCacheInvalid = true;
   vtkDataObject* SurfacesCache;
   vtkMTimeType SurfacesTime;
+  bool SurfaceCacheInvalid = true;
 
   std::mutex ProgressMutex;
   friend struct IntegratingFunctor;
@@ -410,4 +402,5 @@ private:
   void operator=(const vtkLagrangianParticleTracker&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

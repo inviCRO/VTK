@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkAbstractInterpolatedVelocityField.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @class   vtkAbstractInterpolatedVelocityField
  * @brief   An abstract class for
@@ -84,6 +72,7 @@
 
 #include <vector> // for weights
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellLocatorStrategy;
 class vtkClosestPointStrategy;
 class vtkClosestNPointsStrategy;
@@ -214,6 +203,8 @@ public:
    * If set to true, the first three point of the cell will be used to compute a normal to the cell,
    * this normal will then be removed from the vorticity so the resulting vector in tangent to the
    * cell.
+   *
+   * This means that the input dataset should only contains 2D planar cells.
    */
   vtkSetMacro(ForceSurfaceTangentVector, bool);
   vtkGetMacro(ForceSurfaceTangentVector, bool);
@@ -222,6 +213,7 @@ public:
   ///@{
   /**
    * If set to true, cell within tolerance factor will always be found, except for edges.
+   * Please note 2D planar cells are expected.
    */
   vtkSetMacro(SurfaceDataset, bool);
   vtkGetMacro(SurfaceDataset, bool);
@@ -388,4 +380,5 @@ private:
   void operator=(const vtkAbstractInterpolatedVelocityField&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

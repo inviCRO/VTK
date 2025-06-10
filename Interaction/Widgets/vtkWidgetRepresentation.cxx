@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkWidgetRepresentation.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkWidgetRepresentation.h"
 
 #include "vtkAbstractPropPicker.h"
@@ -25,6 +13,7 @@
 #include "vtkTransform.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkWidgetRepresentation::vtkWidgetRepresentation()
 {
   this->Renderer = nullptr;
@@ -368,7 +357,7 @@ bool vtkWidgetRepresentation::NearbyEvent(int X, int Y, double bounds[6])
 
   // Compare, in screen space, the position of the cursor relative to the center of the bounds
   int threshold = 10;
-  if (abs(dFocus[0] - X) < threshold && abs(dFocus[1] - Y) < threshold)
+  if (std::abs(dFocus[0] - X) < threshold && std::abs(dFocus[1] - Y) < threshold)
   {
     return true;
   }
@@ -388,3 +377,4 @@ void vtkWidgetRepresentation::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Need to Render: " << (this->NeedToRender ? "On\n" : "Off\n");
   os << indent << "Place Factor: " << this->PlaceFactor << "\n";
 }
+VTK_ABI_NAMESPACE_END

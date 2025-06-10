@@ -1,21 +1,10 @@
-/*==================================================================
-
-  Program:   Visualization Toolkit
-  Module:    TestHyperTreeGridBinary3DContour.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-===================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 // .SECTION Thanks
 // This test was written by Philippe Pebay, NexGen Analytics 2017
 // This work was supported by Commissariat a l'Energie Atomique (CEA/DIF)
 
+#include "vtkBitArray.h"
 #include "vtkCamera.h"
 #include "vtkCellData.h"
 #include "vtkHyperTreeGrid.h"
@@ -49,6 +38,17 @@ int TestHyperTreeGridBinary3DContour(int argc, char* argv[])
   htGrid->Update();
   vtkHyperTreeGrid* htg = vtkHyperTreeGrid::SafeDownCast(htGrid->GetOutput());
   htg->GetCellData()->SetScalars(htg->GetCellData()->GetArray("Depth"));
+
+  // Create a mask array, fill it with 0s
+  vtkNew<vtkBitArray> mask;
+  mask->SetNumberOfValues(338);
+  for (int i = 0; i < mask->GetNumberOfValues(); i++)
+  {
+    mask->SetValue(i, 0);
+  }
+  // Mask a refined cell, small enough that the baseline does not change
+  mask->SetValue(130, 1);
+  htg->SetMask(mask);
 
   // Contour
   vtkNew<vtkHyperTreeGridContour> contour;
