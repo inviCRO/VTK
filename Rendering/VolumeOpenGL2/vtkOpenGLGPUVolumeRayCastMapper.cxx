@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkOpenGLGPUVolumeRayCastMapper.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "vtkOpenGLGPUVolumeRayCastMapper.h"
 
@@ -26,6 +14,7 @@
 
 // VTK includes
 #include "vtkInformation.h"
+#include "vtkInformationVector.h"
 #include "vtkOpenGLActor.h"
 #include "vtkOpenGLResourceFreeCallback.h"
 #include "vtkOpenGLState.h"
@@ -101,6 +90,7 @@
 #include <sstream>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenGLGPUVolumeRayCastMapper);
 
 //------------------------------------------------------------------------------
@@ -253,7 +243,7 @@ public:
 
   void UpdateTransfer2DYAxisArray(vtkRenderer* ren, vtkVolume* vol);
 
-  bool LoadMask(vtkRenderer* ren);
+  bool LoadMask(vtkRenderer* ren, vtkVolume* vol);
 
   // Update the depth sampler with the current state of the z-buffer. The
   // sampler is used for z-buffer compositing with opaque geometry during
@@ -521,7 +511,7 @@ public:
   vtkMultiVolume* MultiVolume = nullptr;
 
   std::vector<float> VolMatVec, InvMatVec, TexMatVec, InvTexMatVec, TexEyeMatVec, CellToPointVec,
-    TexMinVec, TexMaxVec, ScaleVec, BiasVec, StepVec, SpacingVec, RangeVec;
+    TexMinVec, TexMaxVec, EyePosVec, ScaleVec, BiasVec, StepVec, SpacingVec, RangeVec;
 };
 
 //------------------------------------------------------------------------------
@@ -677,7 +667,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateTransferFunctions(vtkRe
 }
 
 //------------------------------------------------------------------------------
-bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadMask(vtkRenderer* ren)
+bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadMask(vtkRenderer* ren, vtkVolume* vol)
 {
   bool result = true;
   auto maskInput = this->Parent->MaskInput;
@@ -699,6 +689,16 @@ bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadMask(vtkRenderer* ren)
       this->CurrentMask->GetLoadedScalars() != arr ||
       (arr && arr->GetMTime() > this->MaskUpdateTime))
     {
+      // Setup the scalar range of the mask volume based on the number of transfer functions in the
+      // property. This is done so that the value for texture lookup in the shader is scaled and
+      // biased based on the range of the texture created by the label transfer functions.
+      vtkVolumeProperty* volumeProperty = vol->GetProperty();
+      auto const numLabels = volumeProperty->GetLabelMapLabels().size();
+      double maskRange[2] = { 0.0, (numLabels > 0.0 ? numLabels : 1.0) };
+      vtkNew<vtkInformationVector> infoVec;
+      infoVec->SetNumberOfInformationObjects(1);
+      infoVec->GetInformationObject(0)->Set(vtkDataArray::COMPONENT_RANGE(), maskRange, 2);
+      arr->GetInformation()->Set(vtkDataArray::PER_FINITE_COMPONENT(), infoVec);
       result =
         this->CurrentMask->LoadVolume(ren, maskInput, arr, isCellData, VTK_NEAREST_INTERPOLATION);
 
@@ -887,7 +887,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetLightingShaderParameters(
     // sqrt(3) corresponds to the maximum (the diagonal of the cube)
     float* invTexMat = this->InvTexMatVec.data();
     float minCoef = VTK_FLOAT_MAX;
-    // only take 3x3 sub-matrix because it will be multplied by a vec4(..., 0.0) normalized vec
+    // only take 3x3 sub-matrix because it will be multiplied by a vec4(..., 0.0) normalized vec
     for (int i = 0; i < 3; i++)
     {
       // diagonal coefficient
@@ -3165,6 +3165,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
 {
   vtkOpenGLClearErrorMacro();
 
+  const bool isInteractive = vol->GetAllocatedRenderTime() < 1.0;
+  const auto previousVolumetricScatteringBlending = this->VolumetricScatteringBlending;
+  if (isInteractive)
+  {
+    // Turn off volumetric multi-scattering for interactive renders
+    this->VolumetricScatteringBlending = 0;
+  }
+
   vtkOpenGLCamera* cam = vtkOpenGLCamera::SafeDownCast(ren->GetActiveCamera());
 
   if (this->GetBlendMode() == vtkVolumeMapper::ISOSURFACE_BLEND &&
@@ -3224,7 +3232,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
   // Masks are only supported on single-input rendering.
   if (!this->Impl->MultiVolume)
   {
-    this->Impl->LoadMask(ren);
+    this->Impl->LoadMask(ren, vol);
   }
 
   // Get the shader cache. This is important to make sure that shader cache
@@ -3281,6 +3289,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
   }
 
   glFinish();
+
+  // Restore the previous scattering blending settings
+  this->VolumetricScatteringBlending = previousVolumetricScatteringBlending;
 }
 
 //------------------------------------------------------------------------------
@@ -3405,10 +3416,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
   this->CellToPointVec.resize(numVolumes * 16, 0);
   this->TexMinVec.resize(numVolumes * 3, 0);
   this->TexMaxVec.resize(numVolumes * 3, 0);
+  this->EyePosVec.resize(numVolumes * 3, 0);
 
-  vtkNew<vtkMatrix4x4> dataToWorld, texToDataMat, texToViewMat, cellToPointMat;
+  vtkNew<vtkMatrix4x4> dataToWorld, dataToView, texToDataMat, texToViewMat, cellToPointMat;
   float defaultTexMin[3] = { 0.f, 0.f, 0.f };
   float defaultTexMax[3] = { 1.f, 1.f, 1.f };
+  float eyePos[3] = { 0.f, 0.f, 0.f };
 
   auto it = this->Parent->AssembledInputs.begin();
   for (int i = 0; i < numVolumes; i++)
@@ -3472,6 +3485,18 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
 
     // Volume matrices (dataset to world)
     dataToWorld->Transpose();
+
+    // Get the effective position of the eye in world coordinates for this
+    // volume (or the bbox).
+    // This multiply may look backwards, but dataToWorld and modelViewMat are
+    // both already transposed to send to OpenGL.
+    vtkMatrix4x4::Multiply4x4(dataToWorld.GetPointer(), modelViewMat, dataToView.GetPointer());
+    dataToView->Invert();
+    eyePos[0] = dataToView->GetElement(3, 0);
+    eyePos[1] = dataToView->GetElement(3, 1);
+    eyePos[2] = dataToView->GetElement(3, 2);
+    vtkInternal::CopyVector<float, 3>(eyePos, this->EyePosVec.data(), i * 3);
+
     vtkInternal::CopyMatrixToVector<vtkMatrix4x4, 4, 4>(
       dataToWorld.GetPointer(), this->VolMatVec.data(), vecOffset);
 
@@ -3516,6 +3541,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
     "in_texMin", numVolumes, reinterpret_cast<const float(*)[3]>(this->TexMinVec.data()));
   prog->SetUniform3fv(
     "in_texMax", numVolumes, reinterpret_cast<const float(*)[3]>(this->TexMaxVec.data()));
+  prog->SetUniform3fv(
+    "in_eyePosObjs", numVolumes, reinterpret_cast<const float(*)[3]>(this->EyePosVec.data()));
 }
 
 //------------------------------------------------------------------------------
@@ -3662,17 +3689,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCameraShaderParameters(
   prog->SetUniformMatrix("in_modelViewMatrix", modelViewMatrix);
   prog->SetUniformMatrix("in_inverseModelViewMatrix", this->InverseModelViewMat.GetPointer());
 
-  float fvalue3[3];
   if (cam->GetParallelProjection())
   {
+    float fvalue3[3];
     double dir[4];
     cam->GetDirectionOfProjection(dir);
     vtkInternal::ToFloat(dir[0], dir[1], dir[2], fvalue3);
     prog->SetUniform3fv("in_projectionDirection", 1, &fvalue3);
   }
-
-  vtkInternal::ToFloat(cam->GetPosition(), fvalue3, 3);
-  prog->SetUniform3fv("in_cameraPos", 1, &fvalue3);
 
   // TODO Take consideration of reduction factor
   float fvalue2[2];
@@ -4139,3 +4163,4 @@ void vtkOpenGLGPUVolumeRayCastMapper::setNumberOfData(int num)
 
     m_numData = num;
 }
+VTK_ABI_NAMESPACE_END

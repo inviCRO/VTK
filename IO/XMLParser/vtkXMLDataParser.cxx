@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkXMLDataParser.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkXMLDataParser.h"
 
 #include "vtkBase64InputStream.h"
@@ -35,6 +23,7 @@
 
 #include "vtkXMLUtilities.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkXMLDataParser);
 vtkCxxSetObjectMacro(vtkXMLDataParser, Compressor, vtkDataCompressor);
 
@@ -47,6 +36,7 @@ vtkXMLDataParser::vtkXMLDataParser()
   this->RootElement = nullptr;
   this->AppendedDataPosition = 0;
   this->AppendedDataMatched = 0;
+  this->AppendedDataFound = false;
   this->DataStream = nullptr;
   this->InlineDataStream = vtkBase64InputStream::New();
   this->AppendedDataStream = vtkBase64InputStream::New();
@@ -99,6 +89,7 @@ void vtkXMLDataParser::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "AppendedDataPosition: " << this->AppendedDataPosition << "\n";
+  os << indent << "AppendedDataFound: " << this->AppendedDataFound << "\n";
   if (this->RootElement)
   {
     this->RootElement->PrintXML(os, indent);
@@ -225,7 +216,7 @@ int vtkXMLDataParser::ParsingComplete()
   // If we have reached the appended data section, we stop parsing.
   // This prevents the XML parser from having to walk over the entire
   // appended data section.
-  if (this->AppendedDataPosition)
+  if (this->AppendedDataPosition || this->AppendedDataFound)
   {
     return 1;
   }
@@ -444,6 +435,8 @@ int vtkXMLDataParser::ParseBuffer(const char* buffer, unsigned int count)
     {
       return 0;
     }
+
+    this->AppendedDataFound = true;
   }
 
   return 1;
@@ -1339,3 +1332,4 @@ void vtkXMLDataParser::UpdateProgress(float progress)
   double dProgress = progress;
   this->InvokeEvent(vtkCommand::ProgressEvent, &dProgress);
 }
+VTK_ABI_NAMESPACE_END

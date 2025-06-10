@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkCompositeInterpolatedVelocityField.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @class   vtkCompositeInterpolatedVelocityField
  * @brief   An abstract class for
@@ -41,6 +29,7 @@
 #include <array>  // For array
 #include <vector> // For vector
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 
 class VTKFILTERSFLOWPATHS_EXPORT vtkCompositeInterpolatedVelocityField
@@ -82,6 +71,11 @@ public:
 
   /**
    * Project the provided point on current cell, current dataset.
+   * The found cell is expected to be planar and contains at least
+   * three non-aligned points. If not, the point will not be snapped.
+   *
+   * Return 1 and fill pProj if snap has been performed,
+   * return 0 otherwise.
    */
   virtual int SnapPointOnCell(double* pOrigin, double* pProj);
 
@@ -154,4 +148,5 @@ private:
   void operator=(const vtkCompositeInterpolatedVelocityField&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

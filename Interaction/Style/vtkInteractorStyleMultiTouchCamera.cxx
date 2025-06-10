@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkInteractorStyleMultiTouchCamera.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkInteractorStyleMultiTouchCamera.h"
 
 #include "vtkCallbackCommand.h"
@@ -24,6 +12,7 @@
 #include "vtkRenderer.h"
 #include "vtkTransform.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyleMultiTouchCamera);
 
 //------------------------------------------------------------------------------
@@ -199,10 +188,11 @@ void vtkInteractorStyleMultiTouchCamera::OnPan()
     return;
   }
 
-  int pointer = this->Interactor->GetPointerIndex();
+  vtkRenderWindowInteractor* rwi = this->Interactor;
+  int pointer = rwi->GetPointerIndex();
 
-  this->FindPokedRenderer(this->Interactor->GetEventPositions(pointer)[0],
-    this->Interactor->GetEventPositions(pointer)[1]);
+  int* eventPos = rwi->GetEventPositions(pointer);
+  this->FindPokedRenderer(eventPos[0], eventPos[1]);
 
   if (this->CurrentRenderer == nullptr)
   {
@@ -210,7 +200,6 @@ void vtkInteractorStyleMultiTouchCamera::OnPan()
   }
 
   vtkCamera* camera = this->CurrentRenderer->GetActiveCamera();
-  vtkRenderWindowInteractor* rwi = this->Interactor;
 
   // handle panning - 2 DOF
   double viewFocus[4], focalDepth, viewPoint[3];
@@ -221,13 +210,12 @@ void vtkInteractorStyleMultiTouchCamera::OnPan()
   this->ComputeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2], viewFocus);
   focalDepth = viewFocus[2];
 
-  double* trans = this->Interactor->GetTranslation();
-  this->ComputeDisplayToWorld(
-    viewFocus[0] + trans[0], viewFocus[1] + trans[1], focalDepth, newPickPoint);
+  this->ComputeDisplayToWorld(eventPos[0], eventPos[1], focalDepth, newPickPoint);
 
   // Has to recalc old mouse point since the viewport has moved,
   // so can't move it outside the loop
-  this->ComputeDisplayToWorld(viewFocus[0], viewFocus[1], focalDepth, oldPickPoint);
+  int* lastEventPos = rwi->GetLastEventPositions(pointer);
+  this->ComputeDisplayToWorld(lastEventPos[0], lastEventPos[1], focalDepth, oldPickPoint);
 
   // Camera motion is reversed
   motionVector[0] = oldPickPoint[0] - newPickPoint[0];
@@ -247,7 +235,6 @@ void vtkInteractorStyleMultiTouchCamera::OnPan()
   {
     this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
   }
-  camera->OrthogonalizeViewUp();
 
   rwi->Render();
 }
@@ -263,3 +250,4 @@ void vtkInteractorStyleMultiTouchCamera::PrintSelf(ostream& os, vtkIndent indent
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

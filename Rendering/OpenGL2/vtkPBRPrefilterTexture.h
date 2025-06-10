@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkPBRPrefilterTexture.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @class   vtkPBRPrefilterTexture
  * @brief   precompute prefilter texture used in physically based rendering
@@ -28,6 +16,7 @@
 #include "vtkOpenGLTexture.h"
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkOpenGLFramebufferObject;
 class vtkOpenGLRenderWindow;
 class vtkOpenGLTexture;
@@ -96,6 +85,18 @@ public:
   vtkBooleanMacro(ConvertToLinear, bool);
   ///@}
 
+  ///@{
+  /**
+   * Set/Get the precision of the texture.
+   * If HalfPrecision is enabled, each channel uses 16-bits values instead of 32-bits floating point
+   * values.
+   * Default is true.
+   */
+  vtkGetMacro(HalfPrecision, bool);
+  vtkSetMacro(HalfPrecision, bool);
+  vtkBooleanMacro(HalfPrecision, bool);
+  ///@}
+
   /**
    * Release any graphics resources that are being consumed by this texture.
    * The parameter window could be used to determine which graphic
@@ -113,10 +114,12 @@ protected:
   unsigned int PrefilterMaxSamples = 512;
   vtkOpenGLTexture* InputTexture = nullptr;
   bool ConvertToLinear = false;
+  bool HalfPrecision = true;
 
 private:
   vtkPBRPrefilterTexture(const vtkPBRPrefilterTexture&) = delete;
   void operator=(const vtkPBRPrefilterTexture&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

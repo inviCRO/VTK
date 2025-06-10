@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkFidesReader.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "vtkFidesReader.h"
 
@@ -24,6 +12,7 @@
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPartitionedDataSet.h"
+#include "vtkPartitionedDataSetCollection.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkStringArray.h"
 #include "vtkUnstructuredGrid.h"
@@ -39,7 +28,7 @@
 #include <numeric>
 #include <utility>
 
-vtkInformationKeyMacro(vtkFidesReader, NUMBER_OF_BLOCKS, Integer);
+VTK_ABI_NAMESPACE_BEGIN
 
 vtkStandardNewMacro(vtkFidesReader);
 
@@ -50,8 +39,24 @@ struct vtkFidesReader::vtkFidesReaderImpl
   bool HasParsedDataModel{ false };
   bool AllDataSourcesSet{ false };
   bool UsePresetModel{ false };
+  bool SkipNextPrepareCall{ false };
   int NumberOfDataSources{ 0 };
+  bool UseInlineEngine{ false };
+  fides::Params AllParams;
   vtkNew<vtkStringArray> SourceNames;
+
+  // Metadata of an individual group in ADIOS file
+  // This metadata is populated in RequestInformation.
+  // and subsequently used in RequestData
+  struct GroupMetaData
+  {
+    std::size_t NumberOfBlocks;
+    std::string Name;
+    std::set<std::string> PointDataArrays;
+    std::set<std::string> CellDataArrays;
+    std::set<std::string> FieldDataArrays;
+  };
+  std::vector<GroupMetaData> GroupMetaDataCollection;
 
   // first -> source name, second -> address of IO object
   std::pair<std::string, std::string> IOObjectInfo;
@@ -90,6 +95,7 @@ struct vtkFidesReader::vtkFidesReaderImpl
     params["engine_type"] = "Inline";
     this->Reader->SetDataSourceParameters(this->IOObjectInfo.first, params);
     this->Reader->SetDataSourceIO(this->IOObjectInfo.first, this->IOObjectInfo.second);
+    this->UseInlineEngine = true;
   }
 };
 
@@ -100,15 +106,18 @@ vtkFidesReader::vtkFidesReader()
   this->SetNumberOfOutputPorts(1);
   this->PointDataArraySelection = vtkDataArraySelection::New();
   this->CellDataArraySelection = vtkDataArraySelection::New();
+  this->FieldDataArraySelection = vtkDataArraySelection::New();
   this->ConvertToVTK = false;
   this->StreamSteps = false;
   this->NextStepStatus = static_cast<StepStatus>(fides::StepStatus::NotReady);
+  this->CreateSharedPoints = true;
 }
 
 vtkFidesReader::~vtkFidesReader()
 {
   this->PointDataArraySelection->Delete();
   this->CellDataArraySelection->Delete();
+  this->FieldDataArraySelection->Delete();
 }
 
 int vtkFidesReader::CanReadFile(const std::string& name)
@@ -117,7 +126,9 @@ int vtkFidesReader::CanReadFile(const std::string& name)
   {
     return 0;
   }
-  if (vtksys::SystemTools::StringEndsWith(name, ".bp"))
+  if (vtksys::SystemTools::StringEndsWith(name, ".bp") ||
+    vtksys::SystemTools::StringEndsWith(name, ".bp4") ||
+    vtksys::SystemTools::StringEndsWith(name, ".bp5"))
   {
     if (fides::io::DataSetReader::CheckForDataModelAttribute(name))
     {
@@ -135,7 +146,9 @@ int vtkFidesReader::CanReadFile(const std::string& name)
 void vtkFidesReader::SetFileName(const std::string& fname)
 {
   this->FileName = fname;
-  if (vtksys::SystemTools::StringEndsWith(fname, ".bp"))
+  if (vtksys::SystemTools::StringEndsWith(fname, ".bp") ||
+    vtksys::SystemTools::StringEndsWith(fname, ".bp4") ||
+    vtksys::SystemTools::StringEndsWith(fname, ".bp5"))
   {
     if (fides::io::DataSetReader::CheckForDataModelAttribute(fname))
     {
@@ -147,25 +160,55 @@ void vtkFidesReader::SetFileName(const std::string& fname)
 
 void vtkFidesReader::SetDataSourceIO(const std::string& name, const std::string& ioAddress)
 {
+  if (name.empty() || ioAddress.empty())
+  {
+    return;
+  }
   // can't call SetDataSourceIO in Fides yet, so just save the address for now
   this->Impl->IOObjectInfo = std::make_pair(name, ioAddress);
   this->StreamSteps = true;
+  this->Impl->UseInlineEngine = true;
   this->Modified();
 }
 
 // This version is used when a json file with the data model is provided
 void vtkFidesReader::ParseDataModel(const std::string& fname)
 {
-  this->Impl->Reader.reset(new fides::io::DataSetReader(fname));
-  this->Impl->HasParsedDataModel = true;
-  this->Impl->SetupInlineEngine();
+  // Should no longer be used; use ParseDataModel() instead
+  this->FileName = fname;
+  this->ParseDataModel();
 }
 
 // This version is used when a pre-defined data model is being used
 void vtkFidesReader::ParseDataModel()
 {
-  this->Impl->Reader.reset(
-    new fides::io::DataSetReader(this->FileName, fides::io::DataSetReader::DataModelInput::BPFile));
+  // If we have the minimum required info (basically just FileName), then we'll
+  // go ahead and create the reader.
+  // This opens the reader in a random access mode.
+  // If RequestInformation is called again, we may end up deleting it and making
+  // a new reader because we have new information about how the reader should
+  // actually be opened (e.g., with some type of streaming engine)
+  fides::io::DataSetReader::DataModelInput inputType =
+    fides::io::DataSetReader::DataModelInput::JSONFile;
+  if (this->Impl->UsePresetModel)
+  {
+    inputType = fides::io::DataSetReader::DataModelInput::BPFile;
+  }
+  try
+  {
+    this->Impl->Reader.reset(new fides::io::DataSetReader(this->FileName, inputType,
+      this->StreamSteps, this->Impl->AllParams, this->CreateSharedPoints));
+  }
+  catch (std::exception& e)
+  {
+    // In some cases it's expected that reading will fail (e.g., not all properties have been set
+    // yet), so we don't always want to output the exception. We'll just put it in vtkDebugMacro,
+    // so we can just turn it on when we're experiencing some issue.
+    vtkDebugMacro(<< "Exception encountered when trying to set up Fides DataSetReader: "
+                  << e.what());
+    this->Impl->HasParsedDataModel = false;
+    return;
+  }
   this->Impl->HasParsedDataModel = true;
   this->Impl->SetupInlineEngine();
 }
@@ -187,6 +230,19 @@ void vtkFidesReader::SetDataSourcePath(const std::string& name, const std::strin
   }
 }
 
+void vtkFidesReader::SetDataSourceEngine(const std::string& name, const std::string& engine)
+{
+  if (name.empty() || engine.empty())
+  {
+    return;
+  }
+  fides::DataSourceParams params;
+  params["engine_type"] = engine;
+  vtkDebugMacro(<< "for data source " << name << ", setting ADIOS engine to " << engine);
+  this->Impl->AllParams.insert(std::make_pair(name, params));
+  this->Modified();
+}
+
 void vtkFidesReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -198,6 +254,7 @@ void vtkFidesReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Has parsed data model: " << this->Impl->HasParsedDataModel << "\n";
   os << indent << "All data sources set: " << this->Impl->AllDataSourcesSet << "\n";
   os << indent << "Number of data sources: " << this->Impl->NumberOfDataSources << "\n";
+  os << indent << "Create shared points: " << this->CreateSharedPoints << "\n";
 }
 
 int vtkFidesReader::ProcessRequest(
@@ -227,11 +284,11 @@ int vtkFidesReader::RequestDataObject(
   vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  vtkPartitionedDataSet* output =
-    vtkPartitionedDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPartitionedDataSetCollection* output =
+    vtkPartitionedDataSetCollection::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
   if (!output)
   {
-    output = vtkPartitionedDataSet::New();
+    output = vtkPartitionedDataSetCollection::New();
     outInfo->Set(vtkDataObject::DATA_OBJECT(), output);
     output->Delete();
   }
@@ -241,33 +298,59 @@ int vtkFidesReader::RequestDataObject(
 int vtkFidesReader::RequestInformation(
   vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
-  vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  if (this->Impl->NumberOfDataSources == 0)
+  if (this->StreamSteps && this->NextStepStatus != StepStatus::NotReady)
   {
-    this->Impl->SetNumberOfDataSources();
-    if (this->Impl->Paths.size() == static_cast<size_t>(this->Impl->NumberOfDataSources))
-    {
-      vtkDebugMacro(<< "All data sources have now been set");
-      this->Impl->AllDataSourcesSet = true;
-    }
+    // if we're in StreamSteps mode, updating the step status could cause
+    // RequestInformation to be called again. In this case, we'll assume
+    // that if NextStepStatus is good, that we'll just return here instead
+    // of resetting the DataSetReader
+    return 1;
+  }
+  if (this->Impl->UseInlineEngine && this->Impl->HasParsedDataModel)
+  {
+    // If we're using the Inline engine, we may get unnecessary
+    // RequestInformation calls, but we don't want to actually reset the
+    // reader
+    return 1;
   }
 
-  if (!this->Impl->UsePresetModel && !this->Impl->HasParsedDataModel)
+  if (this->Impl->UseInlineEngine)
   {
-    this->ParseDataModel(this->FileName);
-    if (this->StreamSteps)
-    {
-      // when streaming UpdateInformation() should be called to get Fides set
-      // up, but don't read metadata yet.
-      return 1;
-    }
+    // ranks can only access their own data with the inline engine, so
+    // we have to set CreateSharedPoints to false. GhostCellsGenerator
+    // is currently having a feature added to it, that will fix the gap
+    // without Fides needing to do it, that should work for the inline case
+    this->CreateSharedPoints = false;
   }
-  else if (this->Impl->UsePresetModel && !this->Impl->HasParsedDataModel)
+
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+
+  // okay so basically we will reset our reader on any call to RequestInfo
+  // (except for the situations described above)
+  // because we may later get new metadata that determines how we should actually
+  // have created the reader, configured adios, etc
+  // at bare minimum, FileName has been set, so we can go ahead and call this
+  this->ParseDataModel();
+
+  if (!this->Impl->HasParsedDataModel)
   {
-    vtkDebugMacro(<< "using preset model but hasn't been parsed yet");
-    this->ParseDataModel();
+    // for some reason we weren't able to set up the fides reader, so just return
+    return 1;
+  }
+
+  // reset the number of data sources
+  this->Impl->SetNumberOfDataSources();
+  if (!this->Impl->Paths.empty() &&
+    this->Impl->Paths.size() == static_cast<size_t>(this->Impl->NumberOfDataSources))
+  {
+    vtkDebugMacro(<< "All data sources have now been set");
+    this->Impl->AllDataSourcesSet = true;
+  }
+
+  // for generated data model, we have to set the paths for sources
+  if (this->Impl->UsePresetModel)
+  {
     vtkStringArray* sourceNames = this->Impl->GetDataSourceNames();
-    this->Impl->NumberOfDataSources = sourceNames->GetNumberOfValues();
     vtkDebugMacro(<< this->Impl->NumberOfDataSources << " data sources were found");
     for (int i = 0; i < this->Impl->NumberOfDataSources; ++i)
     {
@@ -290,39 +373,95 @@ int vtkFidesReader::RequestInformation(
       this->SetDataSourcePath(sourceNames->GetValue(i), path);
     }
   }
-  else if (!this->Impl->HasParsedDataModel || !this->Impl->AllDataSourcesSet)
+
+  if (this->Impl->NumberOfDataSources == 0 || this->Impl->Paths.empty())
   {
-    vtkErrorMacro(
-      << "RequestInfo() has not parsed data model and all data sources have not been set");
+    // no reason to keep going
+    // this can happen when using a JSON file instead of a BP file
     return 1;
   }
 
-  auto metaData = this->Impl->Reader->ReadMetaData(this->Impl->Paths);
-  vtkDebugMacro(<< "MetaData has been read by Fides");
-
-  auto nBlocks = metaData.Get<fides::metadata::Size>(fides::keys::NUMBER_OF_BLOCKS());
-  outInfo->Set(NUMBER_OF_BLOCKS(), nBlocks.NumberOfItems);
-  vtkDebugMacro(<< "Number of blocks found in metadata: " << nBlocks.NumberOfItems);
-  outInfo->Set(vtkAlgorithm::CAN_HANDLE_PIECE_REQUEST(), 1);
-
-  if (metaData.Has(fides::keys::FIELDS()))
+  if (this->StreamSteps)
   {
-    vtkDebugMacro(<< "Metadata has fields info");
-    auto fields = metaData.Get<fides::metadata::Vector<fides::metadata::FieldInformation>>(
-      fides::keys::FIELDS());
-    for (auto& field : fields.Data)
-    {
-      if (field.Association == vtkm::cont::Field::Association::Points)
-      {
-        this->PointDataArraySelection->AddArray(field.Name.c_str());
-      }
-      else if (field.Association == vtkm::cont::Field::Association::Cells)
-      {
-        this->CellDataArraySelection->AddArray(field.Name.c_str());
-      }
-    }
+    // This isn't as relevant for earlier BP versions, but for BP5 streaming
+    // as well as staging engines, we need to do the BeginStep() call before
+    // we can read anything, or even just inquire variables/attributes.
+    // Fides does need to get some information about variables/attributes
+    // in ReadMetaData()
+    this->PrepareNextStep();
+    this->Impl->SkipNextPrepareCall = true;
   }
 
+  // collection of group metadata will be rebuilt
+  this->Impl->GroupMetaDataCollection.clear();
+  // get all group names
+  auto groupNames = this->Impl->Reader->GetGroupNames(this->Impl->Paths);
+  if (groupNames.empty())
+  {
+    // this is fine. there are no groups in the file.
+    // insert a placeholder empty group name, so that the for loop runs once.
+    groupNames.insert("");
+  }
+  for (const auto& groupName : groupNames)
+  {
+    fides::metadata::MetaData metaData;
+    try
+    {
+      metaData = this->Impl->Reader->ReadMetaData(this->Impl->Paths, groupName);
+    }
+    catch (...)
+    {
+      // it's possible that we were able to set Fides up, but reading metadata
+      // failed, indicating that not all properties have been set before this
+      // RequestInformation call.
+      return 1;
+    }
+    vtkDebugMacro(<< "MetaData has been read by Fides " << (groupName.empty() ? "for group " : "")
+                  << groupName);
+
+    vtkFidesReaderImpl::GroupMetaData groupMetaData;
+    groupMetaData.Name = groupName;
+    groupMetaData.NumberOfBlocks =
+      metaData.Get<fides::metadata::Size>(fides::keys::NUMBER_OF_BLOCKS()).NumberOfItems;
+    vtkDebugMacro(<< "Number of blocks found in metadata: " << groupMetaData.NumberOfBlocks);
+
+    if (metaData.Has(fides::keys::FIELDS()))
+    {
+      vtkDebugMacro(<< "Metadata has fields info");
+      auto fields = metaData.Get<fides::metadata::Vector<fides::metadata::FieldInformation>>(
+        fides::keys::FIELDS());
+      for (auto& field : fields.Data)
+      {
+        if (field.Association == vtkm::cont::Field::Association::Points)
+        {
+          groupMetaData.PointDataArrays.insert(field.Name);
+          this->PointDataArraySelection->AddArray(field.Name.c_str());
+        }
+        else if (field.Association == vtkm::cont::Field::Association::Cells)
+        {
+          groupMetaData.CellDataArrays.insert(field.Name);
+          this->CellDataArraySelection->AddArray(field.Name.c_str());
+        }
+        else if (field.Association == vtkm::cont::Field::Association::WholeDataSet)
+        {
+          groupMetaData.FieldDataArrays.insert(field.Name);
+          this->FieldDataArraySelection->AddArray(field.Name.c_str());
+        }
+      }
+    }
+    this->Impl->GroupMetaDataCollection.emplace_back(std::move(groupMetaData));
+  } // for groupName in groupNames
+
+  fides::metadata::MetaData metaData;
+  try
+  {
+    metaData = this->Impl->Reader->ReadMetaData(this->Impl->Paths);
+  }
+  catch (...)
+  {
+    // shouldn't happen, cheap insurance.
+    return 1;
+  }
   if (!this->StreamSteps && metaData.Has(fides::keys::NUMBER_OF_STEPS()))
   {
     // If there's a time array provided, we'll use that, otherwise, just create an array
@@ -345,10 +484,12 @@ int vtkFidesReader::RequestInformation(
     double timeRange[2];
     timeRange[0] = times[0];
     timeRange[1] = times[nSteps - 1];
+    vtkDebugMacro(<< "time min: " << timeRange[0] << ", time max: " << timeRange[1]);
 
     outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(), times.data(), nSteps);
     outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(), timeRange, 2);
   }
+  outInfo->Set(vtkAlgorithm::CAN_HANDLE_PIECE_REQUEST(), 1);
 
   return 1;
 }
@@ -441,8 +582,20 @@ void vtkFidesReader::PrepareNextStep()
     this->NextStepStatus = static_cast<StepStatus>(fides::StepStatus::NotReady);
     return;
   }
-  this->NextStepStatus =
-    static_cast<StepStatus>(this->Impl->Reader->PrepareNextStep(this->Impl->Paths));
+  if (this->Impl->SkipNextPrepareCall)
+  {
+    this->Impl->SkipNextPrepareCall = false;
+    return;
+  }
+  try
+  {
+    this->NextStepStatus =
+      static_cast<StepStatus>(this->Impl->Reader->PrepareNextStep(this->Impl->Paths));
+  }
+  catch (...)
+  {
+    return;
+  }
   vtkDebugMacro(<< "PrepareNextStep() NextStepStatus = " << this->NextStepStatus);
   this->StreamSteps = true;
   this->Modified();
@@ -510,26 +663,12 @@ int vtkFidesReader::RequestData(
     return 1;
   }
 
-  vtkPartitionedDataSet* output = vtkPartitionedDataSet::GetData(outputVector);
+  vtkPartitionedDataSetCollection* output = vtkPartitionedDataSetCollection::GetData(outputVector);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  int nBlocks = outInfo->Get(NUMBER_OF_BLOCKS());
-
-  int nPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-  int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-  vtkDebugMacro(<< "nBlocks: " << nBlocks << ", nPieces: " << nPieces << ", piece: " << piece);
-
-  fides::metadata::Vector<size_t> blocksToRead = DetermineBlocksToRead(nBlocks, nPieces, piece);
+  output->SetNumberOfPartitionedDataSets(0);
 
   fides::metadata::MetaData selections;
-  if (blocksToRead.Data.empty())
-  {
-    // nothing to read on this rank
-    output->SetNumberOfPartitions(0);
-    vtkDebugMacro(<< "No blocks to read on this rank; returning");
-    return 1;
-  }
-  selections.Set(fides::keys::BLOCK_SELECTION(), blocksToRead);
-
+  // Select time step if downstream requested a specific time step.
   if (!this->StreamSteps && outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
   {
     auto step = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
@@ -539,82 +678,125 @@ int vtkFidesReader::RequestData(
       auto nSteps = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
       std::vector<double> allSteps(nSteps);
       outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS(), allSteps.data());
-      auto it = std::find(allSteps.begin(), allSteps.end(), step);
-      if (it != allSteps.end())
+
+      double minDiff = VTK_DOUBLE_MAX;
+      for (unsigned int i = 0; i < allSteps.size(); i++)
       {
-        index = it - allSteps.begin();
+        double diff = std::fabs(allSteps[i] - step);
+        if (diff < minDiff)
+        {
+          minDiff = diff;
+          index = i;
+        }
       }
     }
     if (index == -1)
     {
       vtkErrorMacro(<< "Couldn't find index of time value " << step);
-      index = static_cast<int>(step);
+      index = static_cast<int>(0);
     }
     vtkDebugMacro(<< "RequestData() Not streaming and we have update time step request for step "
-                  << step);
+                  << step << " with index " << index);
     fides::metadata::Index idx(index);
     selections.Set(fides::keys::STEP_SELECTION(), idx);
   }
 
-  using FieldInfoType = fides::metadata::Vector<fides::metadata::FieldInformation>;
-  FieldInfoType arraySelection;
-  int nArrays = this->PointDataArraySelection->GetNumberOfArrays();
-  for (int i = 0; i < nArrays; i++)
+  unsigned int pdsIdx = 0;
+  for (const auto& groupMetaData : this->Impl->GroupMetaDataCollection)
   {
-    const char* aname = this->PointDataArraySelection->GetArrayName(i);
-    if (this->PointDataArraySelection->ArrayIsEnabled(aname))
-    {
-      arraySelection.Data.emplace_back(aname, vtkm::cont::Field::Association::Points);
-    }
-  }
-  int nCArrays = this->CellDataArraySelection->GetNumberOfArrays();
-  for (int i = 0; i < nCArrays; i++)
-  {
-    const char* aname = this->CellDataArraySelection->GetArrayName(i);
-    if (this->CellDataArraySelection->ArrayIsEnabled(aname))
-    {
-      arraySelection.Data.emplace_back(aname, vtkm::cont::Field::Association::Cells);
-    }
-  }
-  selections.Set(fides::keys::FIELDS(), arraySelection);
+    int nBlocks = groupMetaData.NumberOfBlocks;
+    int nPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+    int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+    vtkDebugMacro(<< "nBlocks: " << nBlocks << ", nPieces: " << nPieces << ", piece: " << piece
+                  << (groupMetaData.Name.empty() ? "" : ", groupName: ") << groupMetaData.Name);
 
-  vtkm::cont::PartitionedDataSet datasets;
-  try
-  {
-    vtkDebugMacro(<< "RequestData() calling ReadDataSet");
-    datasets = this->Impl->Reader->ReadDataSet(this->Impl->Paths, selections);
-    if (this->StreamSteps)
+    fides::metadata::Vector<size_t> blocksToRead = DetermineBlocksToRead(nBlocks, nPieces, piece);
+    if (blocksToRead.Data.empty())
     {
-      this->NextStepStatus = static_cast<StepStatus>(fides::StepStatus::NotReady);
+      // nothing to read on this rank
+      output->SetNumberOfPartitions(pdsIdx, 0);
+      vtkDebugMacro(<< "No blocks to read on this rank; returning");
+      continue;
     }
-  }
-  catch (std::invalid_argument& e)
-  {
-    vtkErrorMacro(<< e.what());
-    return 0;
-  }
-  vtkm::Id nParts = datasets.GetNumberOfPartitions();
-  output->SetNumberOfPartitions(nParts);
+    // Select blocks to read.
+    selections.Set(fides::keys::BLOCK_SELECTION(), blocksToRead);
+    // Select group.
+    selections.Set(fides::keys::GROUP_SELECTION(), fides::metadata::String(groupMetaData.Name));
 
-  for (vtkm::Id i = 0; i < nParts; i++)
-  {
-    auto& ds = datasets.GetPartition(i);
-    if (this->ConvertToVTK)
+    using FieldInfoType = fides::metadata::Vector<fides::metadata::FieldInformation>;
+    FieldInfoType arraySelection;
+    // pick selected arrays from the global data array selection instances.
+    for (const auto& aname : groupMetaData.PointDataArrays)
     {
-      vtkDataSet* vds = ConvertDataSet(ds);
-      if (vds)
+      if (this->PointDataArraySelection->ArrayIsEnabled(aname.c_str()))
       {
-        output->SetPartition(i, vds);
+        // if this array was enabled on the global point data array selection.
+        arraySelection.Data.emplace_back(aname, vtkm::cont::Field::Association::Points);
+      }
+    }
+    for (const auto& aname : groupMetaData.CellDataArrays)
+    {
+      if (this->CellDataArraySelection->ArrayIsEnabled(aname.c_str()))
+      {
+        // if this array was enabled on the global cell data array selection.
+        arraySelection.Data.emplace_back(aname, vtkm::cont::Field::Association::Cells);
+      }
+    }
+    for (const auto& aname : groupMetaData.FieldDataArrays)
+    {
+      if (this->FieldDataArraySelection->ArrayIsEnabled(aname.c_str()))
+      {
+        // if this array was enabled on the global field data array selection.
+        arraySelection.Data.emplace_back(aname, vtkm::cont::Field::Association::WholeDataSet);
+      }
+    }
+    selections.Set(fides::keys::FIELDS(), arraySelection);
+
+    vtkm::cont::PartitionedDataSet datasets;
+    try
+    {
+      vtkDebugMacro(<< "RequestData() calling ReadDataSet");
+      datasets = this->Impl->Reader->ReadDataSet(this->Impl->Paths, selections);
+      if (this->StreamSteps)
+      {
+        this->NextStepStatus = static_cast<StepStatus>(fides::StepStatus::NotReady);
+      }
+    }
+    catch (std::invalid_argument& e)
+    {
+      vtkErrorMacro(<< e.what());
+      return 0;
+    }
+    vtkm::Id nParts = datasets.GetNumberOfPartitions();
+    output->SetNumberOfPartitions(pdsIdx, nParts);
+    std::string datasetName;
+    {
+      const auto parts = vtksys::SystemTools::SplitString(groupMetaData.Name);
+      datasetName = parts.empty() ? "mesh" : parts.back();
+    }
+    output->GetMetaData(pdsIdx)->Set(vtkCompositeDataSet::NAME(), datasetName.c_str());
+
+    for (vtkm::Id i = 0; i < nParts; i++)
+    {
+      auto& ds = datasets.GetPartition(i);
+      if (this->ConvertToVTK)
+      {
+        vtkDataSet* vds = ConvertDataSet(ds);
+        if (vds)
+        {
+          output->SetPartition(pdsIdx, i, vds);
+          vds->Delete();
+        }
+      }
+      else
+      {
+        vtkmDataSet* vds = vtkmDataSet::New();
+        vds->SetVtkmDataSet(ds);
+        output->SetPartition(pdsIdx, i, vds);
         vds->Delete();
       }
     }
-    else
-    {
-      vtkmDataSet* vds = vtkmDataSet::New();
-      vds->SetVtkmDataSet(ds);
-      output->SetPartition(i, vds);
-      vds->Delete();
-    }
+    pdsIdx++;
   }
 
   return 1;
@@ -623,6 +805,7 @@ int vtkFidesReader::RequestData(
 int vtkFidesReader::FillOutputPortInformation(int vtkNotUsed(port), vtkInformation* info)
 {
   // now add our info
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSet");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSetCollection");
   return 1;
 }
+VTK_ABI_NAMESPACE_END

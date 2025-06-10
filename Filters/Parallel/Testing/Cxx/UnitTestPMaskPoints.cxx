@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    UnitTestPMaskPoints.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "vtkPMaskPoints.h"
 #include "vtkSmartPointer.h"
@@ -30,6 +18,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <random>
 #include <sstream>
 
 static vtkSmartPointer<vtkPolyData> MakePolyData(unsigned int numPoints);
@@ -102,7 +91,9 @@ vtkSmartPointer<vtkPolyData> MakePolyData(unsigned int numPoints)
   {
     line.push_back(static_cast<double>(i));
   }
-  std::random_shuffle(line.begin(), line.end());
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(line.begin(), line.end(), g);
   for (unsigned int i = 0; i < numPoints; ++i)
   {
     points->InsertNextPoint(line[i], 0.0, 0.0);

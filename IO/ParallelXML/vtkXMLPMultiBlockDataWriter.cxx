@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkXMLPMultiBlockDataWriter.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkXMLPMultiBlockDataWriter.h"
 
 #include "vtkCompositeDataSet.h"
@@ -28,6 +16,7 @@
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkXMLPMultiBlockDataWriter);
 
 vtkCxxSetObjectMacro(vtkXMLPMultiBlockDataWriter, Controller, vtkMultiProcessController);
@@ -342,6 +331,28 @@ vtkStdString vtkXMLPMultiBlockDataWriter::CreatePieceFileName(
 }
 
 //------------------------------------------------------------------------------
+void vtkXMLPMultiBlockDataWriter::MakeDirectory(const char* name)
+{
+  // Avoid every rank trying to create a directory, which can happen in parallel
+  // runs when vtkXMLCompositeDataWriter::RequestData() is called.
+  // See https://gitlab.kitware.com/paraview/paraview/-/issues/22579
+  if (this->Controller == nullptr || this->Controller->GetLocalProcessId() == 0)
+  {
+    if (!vtksys::SystemTools::MakeDirectory(name))
+    {
+      vtkErrorMacro(<< "Sorry unable to create directory: " << name << endl
+                    << "Last system error was: " << vtksys::SystemTools::GetLastSystemError());
+    }
+  }
+
+  if (this->Controller)
+  {
+    // Add barrier to ensure directory is created before other ranks try to start writing into it.
+    this->Controller->Barrier();
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkXMLPMultiBlockDataWriter::RemoveWrittenFiles(const char* SubDirectory)
 {
   if (this->Controller->GetLocalProcessId() == 0)
@@ -350,3 +361,4 @@ void vtkXMLPMultiBlockDataWriter::RemoveWrittenFiles(const char* SubDirectory)
     this->Superclass::RemoveWrittenFiles(SubDirectory);
   }
 }
+VTK_ABI_NAMESPACE_END

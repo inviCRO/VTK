@@ -1,23 +1,9 @@
-/*=========================================================================
-
-Program:   Visualization Toolkit
-Module:    vtkVRRenderer.cxx
-
-Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-All rights reserved.
-See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-This software is distributed WITHOUT ANY WARRANTY; without even
-the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-PURPOSE.  See the above copyright notice for more information.
-
-Parts Copyright Valve Corporation from hellovr_opengl_main.cpp
-under their BSD license found here:
-https://github.com/ValveSoftware/openvr/blob/master/LICENSE
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-FileCopyrightText: Copyright (c) 2015, Valve Corporation
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkVRRenderer.h"
 
+#include "vtkAxes.h"
 #include "vtkCamera.h"
 #include "vtkImageCanvasSource2D.h"
 #include "vtkPlaneSource.h"
@@ -27,6 +13,7 @@ https://github.com/ValveSoftware/openvr/blob/master/LICENSE
 #include "vtkVRRenderWindow.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkVRRenderer::vtkVRRenderer()
 {
   this->FloorActor->PickableOff();
@@ -45,6 +32,31 @@ vtkVRRenderer::vtkVRRenderer()
 
   vtkNew<vtkTexture> texture;
   this->FloorActor->SetTexture(texture);
+
+  // Initialize controller markers
+  vtkNew<vtkAxes> marker;
+  marker->SymmetricOn();
+  marker->SetScaleFactor(0.02);
+
+  vtkNew<vtkPolyDataMapper> markerMapper;
+  markerMapper->SetInputConnection(marker->GetOutputPort());
+  markerMapper->ScalarVisibilityOff();
+
+  this->LeftMarkerActor->SetMapper(markerMapper);
+  this->LeftMarkerActor->PickableOff();
+  this->LeftMarkerActor->SetUseBounds(false);
+  this->LeftMarkerActor->SetCoordinateSystemToDevice();
+  this->LeftMarkerActor->SetCoordinateSystemDevice(
+    static_cast<int>(vtkEventDataDevice::LeftController));
+  this->LeftMarkerActor->SetCoordinateSystemRenderer(this);
+
+  this->RightMarkerActor->SetMapper(markerMapper);
+  this->RightMarkerActor->PickableOff();
+  this->RightMarkerActor->SetUseBounds(false);
+  this->RightMarkerActor->SetCoordinateSystemToDevice();
+  this->RightMarkerActor->SetCoordinateSystemDevice(
+    static_cast<int>(vtkEventDataDevice::RightController));
+  this->RightMarkerActor->SetCoordinateSystemRenderer(this);
 
   // build a grid fading off in the distance
   vtkNew<vtkImageCanvasSource2D> grid;
@@ -78,19 +90,38 @@ void vtkVRRenderer::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << "ShowFloor " << (this->ShowFloor ? "On\n" : "Off\n");
-  this->FloorActor->PrintSelf(os, indent);
+  this->FloorActor->PrintSelf(os, indent.GetNextIndent());
+
+  os << indent << "ShowLeftMarker " << (this->ShowLeftMarker ? "On\n" : "Off\n");
+  this->LeftMarkerActor->PrintSelf(os, indent.GetNextIndent());
+
+  os << indent << "ShowRightMarker " << (this->ShowRightMarker ? "On\n" : "Off\n");
+  this->RightMarkerActor->PrintSelf(os, indent.GetNextIndent());
 }
 
 //------------------------------------------------------------------------------
-// adjust the floor if we need to
 void vtkVRRenderer::DeviceRender()
 {
+  // Adjust the floor if we need to
   if (this->ShowFloor)
   {
     vtkNew<vtkTransform> floorTransform;
     this->GetFloorTransform(floorTransform);
     this->FloorActor->SetUserTransform(floorTransform);
+    // Prevent floor from being clipped by interactive crop
+    this->FloorActor->GetMapper()->RemoveAllClippingPlanes();
   }
+
+  // Prevent markers from being clipped by interactive crop
+  if (this->ShowLeftMarker)
+  {
+    this->LeftMarkerActor->GetMapper()->RemoveAllClippingPlanes();
+  }
+  if (this->ShowRightMarker)
+  {
+    this->RightMarkerActor->GetMapper()->RemoveAllClippingPlanes();
+  }
+
   this->Superclass::DeviceRender();
 }
 
@@ -120,20 +151,32 @@ void vtkVRRenderer::GetFloorTransform(vtkTransform* transform)
 //------------------------------------------------------------------------------
 void vtkVRRenderer::SetShowFloor(bool value)
 {
-  if (this->ShowFloor == value)
+  if (this->ShowFloor != value)
   {
-    return;
+    this->ShowFloor = value;
+    this->ShowFloor ? this->AddActor(this->FloorActor) : this->RemoveActor(this->FloorActor);
   }
+}
 
-  this->ShowFloor = value;
-
-  if (this->ShowFloor)
+//------------------------------------------------------------------------------
+void vtkVRRenderer::SetShowLeftMarker(bool value)
+{
+  if (this->ShowLeftMarker != value)
   {
-    this->AddActor(this->FloorActor);
+    this->ShowLeftMarker = value;
+    this->ShowLeftMarker ? this->AddActor(this->LeftMarkerActor)
+                         : this->RemoveActor(this->LeftMarkerActor);
   }
-  else
+}
+
+//------------------------------------------------------------------------------
+void vtkVRRenderer::SetShowRightMarker(bool value)
+{
+  if (this->ShowRightMarker != value)
   {
-    this->RemoveActor(this->FloorActor);
+    this->ShowRightMarker = value;
+    this->ShowRightMarker ? this->AddActor(this->RightMarkerActor)
+                          : this->RemoveActor(this->RightMarkerActor);
   }
 }
 
@@ -236,10 +279,11 @@ void vtkVRRenderer::ResetCamera(const double bounds[6])
   // be done in the actors but then it requires every actor
   // to be adjusted.  It cannot be done with the camera model
   // matrix as that is broken.
-  // The +distance in the Y translation is because we want
-  // the center of the world to be 1 meter up
+  // The additional distance translation in the view up direction is because we
+  // want the center of the world to be above the physical floor instead of at its level.
   vtkVRRenderWindow* win = static_cast<vtkVRRenderWindow*>(this->GetRenderWindow());
-  win->SetPhysicalTranslation(-center[0], -center[1] + distance, -center[2]);
+  win->SetPhysicalTranslation(
+    -center[0] + vup[0] * distance, -center[1] + vup[1] * distance, -center[2] + vup[2] * distance);
 
   win->SetPhysicalScale(distance);
 }
@@ -330,3 +374,4 @@ void vtkVRRenderer::ResetCameraClippingRange(const double bounds[6])
 
   this->ActiveCamera->SetClippingRange(range[0] * physicalScale, range[1] * physicalScale);
 }
+VTK_ABI_NAMESPACE_END
