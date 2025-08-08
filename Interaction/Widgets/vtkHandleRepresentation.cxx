@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkHandleRepresentation.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkHandleRepresentation.h"
 #include "vtkCoordinate.h"
 #include "vtkInteractorObserver.h"
@@ -23,6 +11,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkHandleRepresentation, PointPlacer, vtkPointPlacer);
 
 //------------------------------------------------------------------------------
@@ -46,7 +35,7 @@ vtkHandleRepresentation::~vtkHandleRepresentation()
 }
 
 //------------------------------------------------------------------------------
-void vtkHandleRepresentation::SetDisplayPosition(double displyPos[3])
+void vtkHandleRepresentation::SetDisplayPosition(double displyPos[2])
 {
   if (this->Renderer && this->PointPlacer)
   {
@@ -69,7 +58,7 @@ void vtkHandleRepresentation::SetDisplayPosition(double displyPos[3])
 }
 
 //------------------------------------------------------------------------------
-void vtkHandleRepresentation::GetDisplayPosition(double pos[3])
+void vtkHandleRepresentation::GetDisplayPosition(double pos[2])
 {
   // The position is really represented in the world position; the display
   // position is a convenience to go back and forth between coordinate systems.
@@ -81,7 +70,7 @@ void vtkHandleRepresentation::GetDisplayPosition(double pos[3])
         this->Renderer->GetVTKWindow()->GetMTime() > this->BuildTime)))
   {
     int* p = this->WorldPosition->GetComputedDisplayValue(this->Renderer);
-    this->DisplayPosition->SetValue(p[0], p[1], p[2]);
+    this->DisplayPosition->SetValue(p[0], p[1], 0);
   }
   this->DisplayPosition->GetValue(pos);
 }
@@ -99,7 +88,7 @@ double* vtkHandleRepresentation::GetDisplayPosition()
         this->Renderer->GetVTKWindow()->GetMTime() > this->BuildTime)))
   {
     int* p = this->WorldPosition->GetComputedDisplayValue(this->Renderer);
-    this->DisplayPosition->SetValue(p[0], p[1], p[2]);
+    this->DisplayPosition->SetValue(p[0], p[1], 0);
   }
   return this->DisplayPosition->GetValue();
 }
@@ -298,3 +287,4 @@ void vtkHandleRepresentation::PrintSelf(ostream& os, vtkIndent indent)
   // this->InteractionState is printed in superclass
   // this is commented to avoid PrintSelf errors
 }
+VTK_ABI_NAMESPACE_END

@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkPythonInterpreter.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @class   vtkPythonInterpreter
  * @brief   wrapper for an embedded Python interpreter.
@@ -65,6 +53,7 @@
 #include <vector> // for vtkWideArgsConverter
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKPYTHONINTERPRETER_EXPORT vtkPythonInterpreter : public vtkObject
 {
 public:
@@ -95,14 +84,15 @@ public:
   static bool IsInitialized();
 
   /**
-   * Set the program name. This internally calls `Py_SetProgramName`.
+   * Set the program name.
+   *
    * Python uses the program name to determine values for prefix and exec_prefix
    * paths that are used to locate Python standard libraries and hence call this
-   * if you if you know what you are doing.
+   * only if you know what you are doing.
    *
    * If not explicitly overridden, `Initialize` will try to guess a good default
-   * for the `Py_SetProgramName` to  help find Python standard libraries based
-   * on Python libraries used to build VTK.
+   * for the program name to help find the Python standard libraries based on
+   * Python libraries used to build VTK.
    */
   static void SetProgramName(const char* programname);
 
@@ -182,6 +172,16 @@ public:
 
   static bool InitializeWithArgs(int initsigs, int argc, char* argv[]);
 
+  /**
+   * Register a callback to be called when Python exits.
+   *
+   * This may be used to register callbacks before Python is initialized.
+   *
+   * Returns `0` if registration is successful, `-1` on failure, and `1` if
+   * registration is deferred (Python is not yet initialized).
+   */
+  static int AddAtExitCallback(void (*func)());
+
 protected:
   vtkPythonInterpreter();
   ~vtkPythonInterpreter() override;
@@ -220,23 +220,14 @@ private:
   ///@}
 
   /**
-   * Since vtkPythonInterpreter is often used outside CPython executable, e.g.
-   * vtkpython, the default logic to locate Python standard libraries used by
-   * Python (which depends on the executable path) may fail or pickup incorrect
-   * Python libs. This methods address the issue by setting program name to help
-   * guide Python's default prefix/exec_prefix searching logic.
-   */
-  static void SetupPythonPrefix();
-
-  /**
-   * Add paths to VTK's Python modules.
-   */
-  static void SetupVTKPythonPaths();
-
-  /**
    * Verbosity level to use when logging info.
    */
   static int LogVerbosity;
+
+  /**
+   * Container of callbacks to register.
+   */
+  static std::vector<void (*)()> AtExitCallbacks;
 };
 
 // For tracking global interpreters
@@ -273,4 +264,5 @@ private:
 };
 #endif
 
+VTK_ABI_NAMESPACE_END
 #endif

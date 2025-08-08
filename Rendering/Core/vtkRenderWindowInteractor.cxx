@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkRenderWindowInteractor.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkRenderWindowInteractor.h"
 
 #include "vtkCamera.h"
@@ -34,6 +22,7 @@
 
 // PIMPL'd class to keep track of timers. It maps the ids returned by CreateTimer()
 // to the platform-specific representation for timer ids.
+VTK_ABI_NAMESPACE_BEGIN
 struct vtkTimerStruct
 {
   int Id;
@@ -65,6 +54,8 @@ static int vtkTimerId = 1;
 //------------------------------------------------------------------------------
 vtkCxxSetObjectMacro(vtkRenderWindowInteractor, Picker, vtkAbstractPicker);
 vtkCxxSetObjectMacro(vtkRenderWindowInteractor, HardwareWindow, vtkHardwareWindow);
+
+bool vtkRenderWindowInteractor::InteractorManagesTheEventLoop = true;
 
 //------------------------------------------------------------------------------
 // Construct object so that light follows camera motion.
@@ -742,7 +733,6 @@ void vtkRenderWindowInteractor::RecognizeGesture(vtkCommand::EventIds event)
 
     if (this->CurrentGesture == vtkCommand::PinchEvent)
     {
-      vtkErrorMacro("See pinch");
       this->SetScale(newDistance / originalDistance);
       this->PinchEvent();
     }
@@ -1103,6 +1093,11 @@ void vtkRenderWindowInteractor::LeftButtonReleaseEvent()
     return;
   }
 
+  // Left button release event is responsible for ending any current multi-touch gestures being
+  // processed. Before invoking a release event on the first pointer and decrementing the pointers
+  // down count, note the current down count. This can be used later to call RecognizeGesture and
+  // end the gesture with a release event.
+  int previousPointersDownCount = this->PointersDownCount;
   if (this->RecognizeGestures)
   {
     if (this->PointersDown[this->PointerIndex])
@@ -1111,7 +1106,7 @@ void vtkRenderWindowInteractor::LeftButtonReleaseEvent()
       this->PointersDownCount--;
     }
     // do we have multitouch
-    if (this->PointersDownCount > 1)
+    if (previousPointersDownCount > 1)
     {
       // handle the gesture
       this->RecognizeGesture(vtkCommand::LeftButtonReleaseEvent);
@@ -1420,3 +1415,4 @@ void vtkRenderWindowInteractor::SwipeEvent()
   }
   this->InvokeEvent(vtkCommand::SwipeEvent, nullptr);
 }
+VTK_ABI_NAMESPACE_END

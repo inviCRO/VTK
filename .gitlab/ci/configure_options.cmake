@@ -47,6 +47,9 @@ configuration_flag(VTK_WRAP_JAVA "java")
 
 # qt
 configuration_flag_module(VTK_GROUP_ENABLE_Qt "qt")
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "qt5")
+  set(VTK_QT_VERSION 5 CACHE STRING "")
+endif ()
 
 # "nogl" builds
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "renderless")
@@ -80,3 +83,10 @@ endif ()
 
 # vtkmoverride
 configuration_flag(VTK_ENABLE_VTKM_OVERRIDES "vtkmoverride")
+
+# ospray
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "ospray")
+  set(VTK_MODULE_ENABLE_VTK_RenderingRayTracing YES CACHE STRING "")
+else ()
+  set(VTK_MODULE_ENABLE_VTK_RenderingRayTracing NO CACHE STRING "")
+endif ()

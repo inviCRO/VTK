@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    TestEnzoReader.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include <iostream>
 #include <string>
 
@@ -41,7 +29,7 @@ int CheckValue(const std::string& name, T actualValue, T expectedValue)
 
 } // END namespace
 
-int ComputeMaxNonEmptyLevel(vtkOverlappingAMR* amr)
+static int ComputeMaxNonEmptyLevel(vtkOverlappingAMR* amr)
 {
   vtkUniformGridAMRDataIterator* iter =
     vtkUniformGridAMRDataIterator::SafeDownCast(amr->NewIterator());
@@ -59,7 +47,7 @@ int ComputeMaxNonEmptyLevel(vtkOverlappingAMR* amr)
   return maxLevel + 1;
 }
 
-int ComputeNumberOfVisibleCells(vtkOverlappingAMR* amr)
+static int ComputeNumberOfVisibleCells(vtkOverlappingAMR* amr)
 {
   int numVisibleCells(0);
   vtkCompositeDataIterator* iter = amr->NewIterator();
