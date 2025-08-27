@@ -2806,7 +2806,7 @@ void vtkFixedPointVolumeRayCastMapper::ComputeGradients(vtkVolume* vol)
   }
 
   timer->StopTimer();
-  // cout << "Gradients computed in " << timer->GetElapsedTime() << " seconds " << endl;
+  vtkDebugMacro("Gradients computed in " << timer->GetElapsedTime() << " seconds ");
   timer->Delete();
 }
 
